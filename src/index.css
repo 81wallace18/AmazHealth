@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* AmazHealth - Paleta Amazônica */
+    --background: 0 0% 100%;
+    --foreground: 158 60% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 158 60% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 158 60% 8%;
+
+    /* Verde Amazônia como cor primária */
+    --primary: 158 64% 25%;
+    --primary-foreground: 0 0% 98%;
+    --primary-light: 158 45% 35%;
+    --primary-glow: 158 55% 45%;
+
+    /* Azul Rio como secundária */
+    --secondary: 195 100% 88%;
+    --secondary-foreground: 158 64% 25%;
+
+    --muted: 158 25% 95%;
+    --muted-foreground: 158 15% 40%;
+
+    /* Verde claro para acentos */
+    --accent: 120 40% 90%;
+    --accent-foreground: 158 64% 25%;
+
+    /* Vermelho para alertas médicos */
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Bordas suaves */
+    --border: 158 20% 88%;
+    --input: 158 20% 88%;
+    --ring: 158 64% 25%;
+
+    /* Gradientes amazônicos */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
+    --gradient-secondary: linear-gradient(180deg, hsl(var(--accent)), hsl(var(--secondary)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-light)) 50%, hsl(var(--accent)) 100%);
+
+    /* Sombras elegantes */
+    --shadow-soft: 0 2px 8px hsl(var(--primary) / 0.08);
+    --shadow-medium: 0 4px 16px hsl(var(--primary) / 0.12);
+    --shadow-strong: 0 8px 32px hsl(var(--primary) / 0.16);
+
+    /* Transições suaves */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* AmazHealth Dark Mode - Noite Amazônica */
+    --background: 158 35% 8%;
+    --foreground: 120 25% 92%;
+
+    --card: 158 30% 10%;
+    --card-foreground: 120 25% 92%;
+
+    --popover: 158 30% 10%;
+    --popover-foreground: 120 25% 92%;
+
+    --primary: 158 55% 55%;
+    --primary-foreground: 158 35% 8%;
+    --primary-light: 158 45% 45%;
+    --primary-glow: 158 65% 65%;
+
+    --secondary: 195 40% 15%;
+    --secondary-foreground: 120 25% 92%;
+
+    --muted: 158 20% 15%;
+    --muted-foreground: 158 15% 65%;
+
+    --accent: 120 30% 20%;
+    --accent-foreground: 120 25% 92%;
+
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 120 25% 92%;
+
+    --border: 158 25% 18%;
+    --input: 158 25% 18%;
+    --ring: 158 55% 55%;
+
+    /* Gradientes noturnos */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-secondary: linear-gradient(180deg, hsl(var(--accent)), hsl(var(--secondary)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-light)) 50%, hsl(var(--accent)) 100%);
+
+    /* Sombras para modo escuro */
+    --shadow-soft: 0 2px 8px hsl(0 0% 0% / 0.3);
+    --shadow-medium: 0 4px 16px hsl(0 0% 0% / 0.4);
+    --shadow-strong: 0 8px 32px hsl(0 0% 0% / 0.5);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}

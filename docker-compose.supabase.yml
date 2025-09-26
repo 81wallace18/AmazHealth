@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  # Produção do frontend (build + serve estático com NGINX)
+  web:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    environment:
+      # Opcional: defina variáveis VITE_* caso adapte o client do Supabase para usar import.meta.env
+      # - VITE_SUPABASE_URL=
+      # - VITE_SUPABASE_ANON_KEY=
+      - NODE_ENV=production
+    ports:
+      - "8081:80" # Acesse em http://localhost:8081
+    restart: unless-stopped
+
+  # Desenvolvimento do frontend (hot-reload)
+  web-dev:
+    profiles: ["dev"]
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173" # Acesse em http://localhost:5173
+    environment:
+      - NODE_ENV=development
+      # Opcional: defina VAriáveis VITE_* caso adapte o client do Supabase para usar import.meta.env
+      # - VITE_SUPABASE_URL=
+      # - VITE_SUPABASE_ANON_KEY=
+    volumes:
+      - ./:/app
+      - /app/node_modules
+

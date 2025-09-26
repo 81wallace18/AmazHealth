@@ -1,0 +1,45 @@
+services:
+  # Produção do frontend (build + serve estático com NGINX)
+  web:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    ports:
+      - "8081:80" # Acesse em http://localhost:8081
+    restart: unless-stopped
+
+  # Desenvolvimento do frontend (hot-reload)
+  web-dev:
+    profiles: ["dev"]
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173" # Acesse em http://localhost:5173
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./:/app
+      - /app/node_modules
+
+  # Banco de dados para o backend (planejado)
+  db:
+    profiles: ["backend", "dev"]
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=amazhealth
+      - POSTGRES_USER=amaz
+      - POSTGRES_PASSWORD=amazsecret
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
