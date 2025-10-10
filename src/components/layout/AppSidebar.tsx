@@ -23,6 +23,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const navigationItems = [
   {
@@ -114,7 +115,7 @@ const groupedItems = navigationItems.reduce((acc, item) => {
 }, {} as Record<string, typeof navigationItems>);
 
 export function AppSidebar() {
-  
+  const isMobile = useIsMobile();
   const location = useLocation();
 
   const isActive = (path: string) => {
@@ -125,7 +126,10 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="w-64">
+    <Sidebar
+      className="w-64"
+      collapsible={isMobile ? "offcanvas" : "none"}
+    >
       <SidebarContent>
         {/* Logo/Brand */}
         <div className="p-4 border-b">
@@ -150,19 +154,15 @@ export function AppSidebar() {
               <SidebarMenu>
                 {items.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        className={({ isActive: linkIsActive }) =>
-                          `flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                            isActive(item.url) || linkIsActive
-                              ? "bg-primary text-primary-foreground shadow-medium"
-                              : "hover:bg-accent text-foreground"
-                          }`
-                        }
-                      >
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={item.title}
+                      className={isActive(item.url) ? "bg-primary text-primary-foreground shadow-medium hover:bg-primary hover:text-primary-foreground" : ""}
+                    >
+                      <NavLink to={item.url}>
                         <item.icon className="h-5 w-5 flex-shrink-0" />
-                        <span className="text-sm font-medium">{item.title}</span>
+                        <span>{item.title}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
