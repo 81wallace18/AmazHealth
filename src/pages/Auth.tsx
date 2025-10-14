@@ -13,13 +13,15 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
+  login: z.string().min(1, 'Email ou username é obrigatório'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  organizationId: z.string().optional(),
 });
 
 const signupSchema = z.object({
+  username: z.string().min(3, 'Username deve ter pelo menos 3 caracteres'),
   email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
   confirmPassword: z.string(),
   registrationNumber: z.string().min(1, 'Número de registro é obrigatório'),
   fullName: z.string().min(1, 'Nome completo é obrigatório'),
@@ -51,14 +53,16 @@ export default function Auth() {
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      login: '',
       password: '',
+      organizationId: '',
     },
   });
 
   const signupForm = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
+      username: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -69,7 +73,9 @@ export default function Auth() {
   });
 
   const onLogin = async (values: z.infer<typeof loginSchema>) => {
-    const { error } = await signIn(values.email, values.password);
+    // TODO: Implementar seleção de organização. Por ora usa temporário
+    const orgId = values.organizationId || '00000000-0000-0000-0000-000000000000';
+    const { error } = await signIn(values.login, values.password, orgId);
     if (!error) {
       navigate('/');
     }
@@ -77,6 +83,7 @@ export default function Auth() {
 
   const onSignup = async (values: z.infer<typeof signupSchema>) => {
     const { error } = await signUp(
+      values.username,
       values.email,
       values.password,
       values.registrationNumber,
@@ -84,7 +91,8 @@ export default function Auth() {
       values.area
     );
     if (!error) {
-      setIsLogin(true);
+      // Após cadastro, redireciona direto para home (já está logado)
+      navigate('/');
     }
   };
 
@@ -109,12 +117,12 @@ export default function Auth() {
                 <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                   <FormField
                     control={loginForm.control}
-                    name="email"
+                    name="login"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>Email ou Username</FormLabel>
                         <FormControl>
-                          <Input placeholder="seu.email@exemplo.com" {...field} />
+                          <Input placeholder="seu.email@exemplo.com ou username" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -143,6 +151,19 @@ export default function Auth() {
             <TabsContent value="signup">
               <Form {...signupForm}>
                 <form onSubmit={signupForm.handleSubmit(onSignup)} className="space-y-4">
+                  <FormField
+                    control={signupForm.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Username</FormLabel>
+                        <FormControl>
+                          <Input placeholder="seu_username" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={signupForm.control}
                     name="registrationNumber"
@@ -211,7 +232,7 @@ export default function Auth() {
                       <FormItem>
                         <FormLabel>Senha</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••" {...field} />
+                          <Input type="password" placeholder="••••••••" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -224,7 +245,7 @@ export default function Auth() {
                       <FormItem>
                         <FormLabel>Confirmar Senha</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••" {...field} />
+                          <Input type="password" placeholder="••••••••" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
