@@ -1,4 +1,4 @@
-import { Phone, Mail, Eye, Pencil, Trash2 } from "lucide-react";
+import { Phone, Mail, Eye, Pencil, Trash2, Printer, UserPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +12,11 @@ interface PatientTableProps {
   onView?: (patient: Patient) => void;
   onEdit?: (patient: Patient) => void;
   onDelete?: (patient: Patient) => void;
+  onPrintLabel?: (patient: Patient) => void;
+  onStartAttendance?: (patient: Patient) => void;
 }
 
-export function PatientTable({ patients, onView, onEdit, onDelete }: PatientTableProps) {
+export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel, onStartAttendance }: PatientTableProps) {
   return (
     <Card>
       <CardHeader>
@@ -86,12 +88,31 @@ export function PatientTable({ patients, onView, onEdit, onDelete }: PatientTabl
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          aria-label="Iniciar atendimento"
+                          onClick={() => onStartAttendance?.(patient)}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <UserPlus className="h-4 w-4 mr-1" />
+                          Atender
+                        </Button>
                         <Button variant="ghost" size="sm" aria-label="Ver detalhes" onClick={() => onView?.(patient)}>
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="sm" aria-label="Editar" onClick={() => onEdit?.(patient)}>
                           <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label="Imprimir etiqueta"
+                          onClick={() => onPrintLabel?.(patient)}
+                          className="text-primary hover:text-primary/80"
+                        >
+                          <Printer className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="sm" aria-label="Excluir" onClick={() => onDelete?.(patient)}>
                           <Trash2 className="h-4 w-4" />
