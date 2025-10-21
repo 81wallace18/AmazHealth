@@ -26,7 +26,7 @@ export function useAuth() {
     setLoading(false);
   }, []);
 
-  const signIn = async (login: string, password: string, organizationId: string) => {
+  const signIn = async (login: string, password: string, organizationId?: string) => {
     try {
       setLoading(true);
       const response: AuthResponse = await authService.login({
