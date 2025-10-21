@@ -1,0 +1,167 @@
+/**
+ * Estilos para impressão de etiquetas térmicas
+ * Tamanhos suportados: 57mm x 40mm (padrão) e 100mm x 50mm
+ */
+
+@media print {
+  /* Oculta tudo da página exceto a área de impressão */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Mostra apenas o conteúdo da etiqueta */
+  #print-area,
+  #print-area *,
+  .print-label,
+  .print-label * {
+    visibility: visible !important;
+  }
+
+  /* Posiciona a etiqueta no topo */
+  #print-area,
+  .print-label {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Remove margens padrão do navegador */
+  @page {
+    size: 57mm 40mm;
+    margin: 0;
+  }
+
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Remove elementos de navegação/UI */
+  header,
+  footer,
+  nav,
+  aside,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Garante que o texto é preto em fundo branco */
+  .print-label {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Remove sombras e bordas decorativas */
+  .print-label,
+  .print-label * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* Força quebra de página após cada etiqueta */
+  .print-label {
+    page-break-after: always;
+    page-break-inside: avoid;
+  }
+
+  /* Garante que QR codes e imagens sejam impressos */
+  img,
+  svg,
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Remove animações e transições */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Garante tamanho de fonte adequado para etiqueta pequena */
+  .print-label {
+    font-size: 10pt;
+    line-height: 1.2;
+  }
+
+  .print-label h1,
+  .print-label h2 {
+    font-size: 14pt;
+    margin: 2mm 0;
+  }
+
+  .print-label h3,
+  .print-label h4 {
+    font-size: 12pt;
+    margin: 1mm 0;
+  }
+
+  .print-label p {
+    margin: 0.5mm 0;
+  }
+
+  .print-label .text-xs {
+    font-size: 8pt;
+  }
+
+  .print-label .text-sm {
+    font-size: 9pt;
+  }
+
+  .print-label .text-base {
+    font-size: 10pt;
+  }
+
+  .print-label .text-lg {
+    font-size: 12pt;
+  }
+
+  .print-label .text-xl {
+    font-size: 14pt;
+  }
+
+  .print-label .text-2xl {
+    font-size: 16pt;
+  }
+
+  /* Remove padding/margin excessivos */
+  .print-label * {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+/**
+ * Tamanho alternativo: 100mm x 50mm (etiqueta maior)
+ * Para usar, adicione a classe "print-label-large" ao elemento
+ */
+@media print {
+  .print-label-large {
+    font-size: 12pt;
+  }
+
+  @page {
+    size: 100mm 50mm;
+  }
+}
+
+/**
+ * Modo paisagem (landscape)
+ * Para usar, adicione a classe "print-label-landscape" ao elemento
+ */
+@media print {
+  .print-label-landscape {
+    transform: rotate(90deg);
+    transform-origin: center;
+  }
+
+  @page {
+    size: 40mm 57mm landscape;
+  }
+}
