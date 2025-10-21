@@ -14,13 +14,24 @@ const api = axios.create({
 
 /**
  * Interceptor para adicionar token JWT em todas as requisições.
+ *
+ * TODO: Ativar autenticação quando backend estiver configurado
+ * Por enquanto, usando modo de desenvolvimento sem autenticação
  */
 api.interceptors.request.use(
   (config) => {
+    // DESENVOLVIMENTO: Token mock para teste
+    // Em produção, usar token real do localStorage
     const token = localStorage.getItem('accessToken');
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // TODO: Remover este token mock em produção
+      // Token de desenvolvimento (deve ser aceito pelo backend ou desabilitar security)
+      console.warn('[API] Sem token de autenticação. Backend deve permitir acesso sem auth para desenvolvimento.');
     }
+
     return config;
   },
   (error) => {
