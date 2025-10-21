@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 
 const loginSchema = z.object({
   login: z.string().min(1, 'Email ou username é obrigatório'),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  password: z.string().min(8, 'Senha deve ter pelo menos 6 caracteres'),
   organizationId: z.string().optional(),
 });
 
@@ -73,9 +73,8 @@ export default function Auth() {
   });
 
   const onLogin = async (values: z.infer<typeof loginSchema>) => {
-    // TODO: Implementar seleção de organização. Por ora usa temporário
-    const orgId = values.organizationId || '00000000-0000-0000-0000-000000000000';
-    const { error } = await signIn(values.login, values.password, orgId);
+    // OrganizationId é opcional - backend usa primeira org do usuário se não fornecido
+    const { error } = await signIn(values.login, values.password, values.organizationId);
     if (!error) {
       navigate('/');
     }
