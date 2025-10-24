@@ -123,7 +123,8 @@ export function validateDateOfBirth(dateString: string): boolean {
   // Calcula idade em anos
   const age = (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
 
-  // Idade deve estar entre 0 e 150 anos
+  // Idade deve estar entre 0 e 150 anos (permite data de hoje para recém-nascidos)
+  // Não permite datas futuras (age >= 0 significa data <= hoje)
   return age >= 0 && age <= 150;
 }
 

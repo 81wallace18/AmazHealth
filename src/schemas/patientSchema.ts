@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import {
   validateCPF,
-  validateCNS,
   validateCEP,
   validatePhone,
   validateDateOfBirth,
@@ -30,7 +29,7 @@ export const patientSchema = z.object({
   dateOfBirth: z.string()
     .min(1, 'Data de nascimento é obrigatória')
     .refine(validateDateOfBirth, {
-      message: 'Data de nascimento inválida (idade deve estar entre 0 e 150 anos)'
+      message: 'Data de nascimento inválida (não pode ser futura e idade máxima de 150 anos)'
     }),
 
   gender: z.nativeEnum(Gender, {
@@ -63,11 +62,8 @@ export const patientSchema = z.object({
     .or(z.literal('')),
 
   cns: z.string()
+    .max(15, 'CNS deve ter no máximo 15 caracteres')
     .optional()
-    .refine(
-      (val) => !val || val === '' || validateCNS(val),
-      { message: 'CNS (Cartão SUS) inválido' }
-    )
     .or(z.literal('')),
 
   rg: z.string()
