@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { usePatientsSpring } from "@/hooks/usePatientsSpring";
 import { PatientFormNew } from "@/components/forms/PatientFormNew";
 import { PatientStats } from "@/components/patients/PatientStats";
@@ -198,6 +198,12 @@ export default function Patients() {
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Cadastrar novo paciente</DialogTitle>
+              <DialogDescription>
+                Preencha os dados abaixo para registrar um novo paciente no sistema.
+              </DialogDescription>
+            </DialogHeader>
             <PatientFormNew onSubmit={handleAddPatient} loading={loading} />
           </DialogContent>
         </Dialog>
@@ -236,12 +242,24 @@ export default function Patients() {
 
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do paciente</DialogTitle>
+            <DialogDescription>
+              Consulte as informações cadastradas para o paciente selecionado.
+            </DialogDescription>
+          </DialogHeader>
           {selectedPatient && <PatientDetails patient={selectedPatient} />}
         </DialogContent>
       </Dialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar paciente</DialogTitle>
+            <DialogDescription>
+              Atualize os dados necessários e salve as alterações realizadas.
+            </DialogDescription>
+          </DialogHeader>
           {selectedPatient && (
             <PatientFormNew onSubmit={handleUpdatePatient} loading={loading} initialData={selectedPatient} />
           )}
