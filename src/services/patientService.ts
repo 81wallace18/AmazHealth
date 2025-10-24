@@ -12,8 +12,22 @@ import type {
  * Integrado com backend Spring Boot
  */
 
-// OrganizationId padrão para desenvolvimento (será obtido do JWT no futuro)
-const DEFAULT_ORGANIZATION_ID = '550e8400-e29b-41d4-a716-446655440000';
+// Helper para obter organizationId do usuário logado
+function getOrganizationId(): string {
+  const user = localStorage.getItem('user');
+  if (user) {
+    try {
+      const parsedUser = JSON.parse(user);
+      return parsedUser.organizationId;
+    } catch (e) {
+      console.error('[PatientService] Erro ao obter organizationId do localStorage:', e);
+    }
+  }
+
+  // Fallback para desenvolvimento (será removido quando JWT estiver totalmente implementado)
+  console.warn('[PatientService] Usando organizationId padrão. Usuário não está logado.');
+  return '550e8400-e29b-41d4-a716-446655440000';
+}
 
 interface PaginatedResponse<T> {
   content: T[];
@@ -30,7 +44,7 @@ export const patientService = {
   async search(params: PatientSearchParams): Promise<PaginatedResponse<Patient>> {
     const response = await api.get<PaginatedResponse<Patient>>('/patients', {
       params: {
-        organizationId: DEFAULT_ORGANIZATION_ID,
+        organizationId: getOrganizationId(),
         q: params.query,
         status: params.status,
         page: params.page || 0,
@@ -51,9 +65,10 @@ export const patientService = {
   ): Promise<Patient[]> {
     const response = await api.get<Patient[]>('/patients/search/duplicates', {
       params: {
+        organizationId: getOrganizationId(),
         firstName,
         lastName,
-        dob: dateOfBirth
+        dateOfBirth
       }
     });
     return response.data;
@@ -64,7 +79,7 @@ export const patientService = {
    */
   async create(data: PatientCreateRequest): Promise<Patient> {
     const response = await api.post<Patient>('/patients', data, {
-      params: { organizationId: DEFAULT_ORGANIZATION_ID }
+      params: { organizationId: getOrganizationId() }
     });
     return response.data;
   },
@@ -74,7 +89,7 @@ export const patientService = {
    */
   async getById(id: string): Promise<Patient> {
     const response = await api.get<Patient>(`/patients/${id}`, {
-      params: { organizationId: DEFAULT_ORGANIZATION_ID }
+      params: { organizationId: getOrganizationId() }
     });
     return response.data;
   },
@@ -84,7 +99,7 @@ export const patientService = {
    */
   async update(id: string, data: PatientUpdateRequest): Promise<Patient> {
     const response = await api.put<Patient>(`/patients/${id}`, data, {
-      params: { organizationId: DEFAULT_ORGANIZATION_ID }
+      params: { organizationId: getOrganizationId() }
     });
     return response.data;
   },
@@ -94,7 +109,7 @@ export const patientService = {
    */
   async list(page = 0, size = 20, status?: string): Promise<PaginatedResponse<Patient>> {
     const response = await api.get<PaginatedResponse<Patient>>('/patients', {
-      params: { organizationId: DEFAULT_ORGANIZATION_ID, page, size, status }
+      params: { organizationId: getOrganizationId(), page, size, status }
     });
     return response.data;
   },
@@ -104,7 +119,10 @@ export const patientService = {
    */
   async getIdentification(patientId: string): Promise<PatientIdentification> {
     const response = await api.get<PatientIdentification>(
-      `/patients/${patientId}/identification`
+      `/patients/${patientId}/identification`,
+      {
+        params: { organizationId: getOrganizationId() }
+      }
     );
     return response.data;
   },
@@ -113,24 +131,24 @@ export const patientService = {
    * US-A3: Registrar impressão de identificação (audit trail)
    */
   async printIdentification(patientId: string, attendanceId?: string): Promise<void> {
-    // TODO: Implementar quando backend estiver disponível
-    // await api.post(`/patients/${patientId}/identification/print`, {
-    //   attendanceId
-    // });
-
-    console.log('[PatientService] Impressão registrada (mock):', { patientId, attendanceId });
+    await api.post(`/patients/${patientId}/identification/print`,
+      attendanceId ? { attendanceId } : {},
+      {
+        params: { organizationId: getOrganizationId() }
+      }
+    );
   },
 
   /**
    * US-A3: Registrar reimpressão de identificação (audit trail)
    */
   async reprintIdentification(patientId: string, reason?: string): Promise<void> {
-    // TODO: Implementar quando backend estiver disponível
-    // await api.post(`/patients/${patientId}/identification/reprint`, {
-    //   reason
-    // });
-
-    console.log('[PatientService] Reimpressão registrada (mock):', { patientId, reason });
+    await api.post(`/patients/${patientId}/identification/reprint`,
+      reason ? { reason } : {},
+      {
+        params: { organizationId: getOrganizationId() }
+      }
+    );
   },
 
   /**
@@ -139,7 +157,7 @@ export const patientService = {
   async findByCpf(cpf: string): Promise<Patient | null> {
     try {
       const response = await api.get<PaginatedResponse<Patient>>('/patients', {
-        params: { organizationId: DEFAULT_ORGANIZATION_ID, q: cpf }
+        params: { organizationId: getOrganizationId(), q: cpf }
       });
       return response.data.content[0] || null;
     } catch (error) {
@@ -153,7 +171,7 @@ export const patientService = {
   async findByCns(cns: string): Promise<Patient | null> {
     try {
       const response = await api.get<PaginatedResponse<Patient>>('/patients', {
-        params: { organizationId: DEFAULT_ORGANIZATION_ID, q: cns }
+        params: { organizationId: getOrganizationId(), q: cns }
       });
       return response.data.content[0] || null;
     } catch (error) {
@@ -166,7 +184,7 @@ export const patientService = {
    */
   async findByMotherName(motherName: string): Promise<PaginatedResponse<Patient>> {
     const response = await api.get<PaginatedResponse<Patient>>('/patients', {
-      params: { organizationId: DEFAULT_ORGANIZATION_ID, q: motherName }
+      params: { organizationId: getOrganizationId(), q: motherName }
     });
     return response.data;
   },
@@ -176,7 +194,7 @@ export const patientService = {
    */
   async countByStatus(status: string): Promise<number> {
     const response = await api.get<{ count: number }>(`/patients/count/active`, {
-      params: { organizationId: DEFAULT_ORGANIZATION_ID }
+      params: { organizationId: getOrganizationId() }
     });
     return response.data;
   },
@@ -186,7 +204,7 @@ export const patientService = {
    */
   async delete(id: string): Promise<void> {
     await api.delete(`/patients/${id}`, {
-      params: { organizationId: DEFAULT_ORGANIZATION_ID }
+      params: { organizationId: getOrganizationId() }
     });
   }
 };
