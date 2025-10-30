@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Patient } from "@/hooks/usePatients";
+import { Patient } from "@/types/patient";
 import { statusColors, statusLabels, genderLabels, getInitials, calculateAge } from "./patientUtils";
 
 interface PatientTableProps {
@@ -40,8 +40,8 @@ export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel,
             </TableHeader>
             <TableBody>
               {patients.map((patient) => {
-                const fullName = `${patient.first_name} ${patient.last_name}`;
-                const age = calculateAge(patient.date_of_birth);
+                const fullName = `${patient.firstName} ${patient.lastName}`;
+                const age = calculateAge(patient.dateOfBirth);
                 return (
                   <TableRow key={patient.id}>
                     <TableCell>
@@ -56,7 +56,7 @@ export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel,
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-sm">{patient.patient_code}</TableCell>
+                    <TableCell className="font-mono text-sm">{patient.patientCode}</TableCell>
                     <TableCell>{patient.email || '-'}</TableCell>
                     <TableCell>{age} anos</TableCell>
                     <TableCell>
@@ -72,13 +72,13 @@ export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel,
                       </div>
                     </TableCell>
                     <TableCell>
-                      {patient.blood_type ? (
+                      {patient.bloodType ? (
                         <Badge variant="outline" className="font-mono">
-                          {patient.blood_type}
+                          {patient.bloodType}
                         </Badge>
                       ) : '-'}
                     </TableCell>
-                    <TableCell>{new Date(patient.updated_at).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell>{new Date(patient.updatedAt).toLocaleDateString('pt-BR')}</TableCell>
                     <TableCell>
                       <Badge 
                         variant="outline" 
