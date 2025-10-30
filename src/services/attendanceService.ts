@@ -1,4 +1,4 @@
-import api from './api';
+import api from '@/lib/api';
 
 export interface CreateAttendanceDTO {
   patientId: string;
@@ -29,40 +29,36 @@ export interface Attendance {
   updatedAt: string;
 }
 
+/**
+ * Helper para obter organizationId do usuário logado
+ */
+function getOrganizationId(): string {
+  const user = localStorage.getItem('user');
+  if (user) {
+    try {
+      const parsedUser = JSON.parse(user);
+      return parsedUser.organizationId;
+    } catch (e) {
+      console.error('[AttendanceService] Erro ao obter organizationId do localStorage:', e);
+    }
+  }
+
+  // Fallback para desenvolvimento (será removido quando JWT estiver totalmente implementado)
+  console.warn('[AttendanceService] Usando organizationId padrão. Usuário não está logado.');
+  return '550e8400-e29b-41d4-a716-446655440000';
+}
+
 class AttendanceService {
   /**
    * Cria um novo atendimento
-   * Endpoint: POST /api/attendances
+   * Endpoint: POST /api/v1/attendances
+   * ✅ INTEGRADO COM BACKEND - Sprint 0
    */
   async create(data: CreateAttendanceDTO): Promise<Attendance> {
-    // TODO: Integrar com backend quando endpoint estiver disponível
-    // const response = await api.post<Attendance>('/attendances', data);
-    // return response.data;
-
-    // Mock temporário para desenvolvimento
-    console.warn('[AttendanceService] Backend não implementado. Usando mock.');
-
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockAttendance: Attendance = {
-          id: crypto.randomUUID(),
-          organizationId: '00000000-0000-0000-0000-000000000000',
-          patientId: data.patientId,
-          attendanceNumber: `PA-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
-          type: data.type,
-          entryDate: new Date().toISOString(),
-          status: 'aguardando_triagem',
-          paymentType: data.paymentType,
-          healthInsuranceId: data.healthInsuranceId,
-          healthInsuranceName: data.healthInsuranceName,
-          healthInsuranceNumber: data.healthInsuranceNumber,
-          chiefComplaint: data.chiefComplaint,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        resolve(mockAttendance);
-      }, 800);
+    const response = await api.post<Attendance>('/attendances', data, {
+      params: { organizationId: getOrganizationId() }
     });
+    return response.data;
   }
 
   /**
