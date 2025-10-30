@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Patient } from "@/hooks/usePatients";
+import { Patient } from "@/types/patient";
 import { genderLabels, statusLabels } from "./patientUtils";
 
 interface PatientDetailsProps {
@@ -8,7 +8,7 @@ interface PatientDetailsProps {
 }
 
 export function PatientDetails({ patient }: PatientDetailsProps) {
-  const fullName = `${patient.first_name} ${patient.last_name}`;
+  const fullName = `${patient.firstName} ${patient.lastName}`;
 
   return (
     <Card>
@@ -27,11 +27,11 @@ export function PatientDetails({ patient }: PatientDetailsProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Código</div>
-            <div className="font-medium font-mono">{patient.patient_code}</div>
+            <div className="font-medium font-mono">{patient.patientCode}</div>
           </div>
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Data de Nascimento</div>
-            <div className="font-medium">{new Date(patient.date_of_birth).toLocaleDateString('pt-BR')}</div>
+            <div className="font-medium">{new Date(patient.dateOfBirth).toLocaleDateString('pt-BR')}</div>
           </div>
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Telefone</div>
@@ -43,15 +43,15 @@ export function PatientDetails({ patient }: PatientDetailsProps) {
           </div>
           <div className="space-y-1 md:col-span-2">
             <div className="text-sm text-muted-foreground">Endereço</div>
-            <div className="font-medium">{patient.address || '-'}{patient.city ? `, ${patient.city}` : ''}{patient.state ? ` - ${patient.state}` : ''}{patient.zip_code ? `, CEP: ${patient.zip_code}` : ''}</div>
+            <div className="font-medium">{patient.address || '-'}{patient.city ? `, ${patient.city}` : ''}{patient.state ? ` - ${patient.state}` : ''}{patient.zipCode ? `, CEP: ${patient.zipCode}` : ''}</div>
           </div>
           <div className="space-y-1">
-            <div className="text-sm text-muted-foreground">Contato de Emergência</div>
-            <div className="font-medium">{patient.emergency_contact_name || '-'} {patient.emergency_contact_phone ? `(${patient.emergency_contact_phone})` : ''}</div>
+            <div className="text-sm text-muted-foreground">Nome da Mãe</div>
+            <div className="font-medium">{patient.motherName || '-'}</div>
           </div>
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Tipo Sanguíneo</div>
-            <div className="font-medium">{patient.blood_type || '-'}</div>
+            <div className="font-medium">{patient.bloodType || '-'}</div>
           </div>
         </div>
 
@@ -62,17 +62,17 @@ export function PatientDetails({ patient }: PatientDetailsProps) {
 
         <div className="space-y-1">
           <div className="text-sm text-muted-foreground">Histórico Médico</div>
-          <div className="font-medium whitespace-pre-wrap">{patient.medical_history || '-'}</div>
+          <div className="font-medium whitespace-pre-wrap">{patient.medicalHistory || '-'}</div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Criado em</div>
-            <div className="font-medium">{new Date(patient.created_at).toLocaleString('pt-BR')}</div>
+            <div className="font-medium">{new Date(patient.createdAt).toLocaleString('pt-BR')}</div>
           </div>
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Atualizado em</div>
-            <div className="font-medium">{new Date(patient.updated_at).toLocaleString('pt-BR')}</div>
+            <div className="font-medium">{new Date(patient.updatedAt).toLocaleString('pt-BR')}</div>
           </div>
         </div>
       </CardContent>
