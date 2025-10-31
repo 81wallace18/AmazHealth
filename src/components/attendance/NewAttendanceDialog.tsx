@@ -35,10 +35,10 @@ import { Patient } from "@/types/patient";
 
 // Schema de validação para novo atendimento
 const newAttendanceSchema = z.object({
-  type: z.enum(["urgencia", "ambulatorial"], {
+  type: z.enum(["URGENCIA", "AMBULATORIAL"], {
     required_error: "Tipo de atendimento é obrigatório",
   }),
-  paymentType: z.enum(["sus", "convenio", "particular"], {
+  paymentType: z.enum(["SUS", "CONVENIO", "PARTICULAR"], {
     required_error: "Forma de pagamento é obrigatória",
   }),
   healthInsuranceId: z.string().optional(),
@@ -73,8 +73,8 @@ export function NewAttendanceDialog({
   const form = useForm<NewAttendanceFormData>({
     resolver: zodResolver(newAttendanceSchema),
     defaultValues: {
-      type: "urgencia",
-      paymentType: "sus",
+      type: "URGENCIA",
+      paymentType: "SUS",
       chiefComplaint: "",
     },
   });
@@ -164,7 +164,7 @@ export function NewAttendanceDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="urgencia">
+                      <SelectItem value="URGENCIA">
                         <div className="flex flex-col">
                           <span className="font-semibold">Urgência/Emergência</span>
                           <span className="text-xs text-muted-foreground">
@@ -172,7 +172,7 @@ export function NewAttendanceDialog({
                           </span>
                         </div>
                       </SelectItem>
-                      <SelectItem value="ambulatorial">
+                      <SelectItem value="AMBULATORIAL">
                         <div className="flex flex-col">
                           <span className="font-semibold">Ambulatorial</span>
                           <span className="text-xs text-muted-foreground">
@@ -207,7 +207,7 @@ export function NewAttendanceDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="sus">
+                      <SelectItem value="SUS">
                         <div className="flex flex-col">
                           <span className="font-semibold">SUS</span>
                           <span className="text-xs text-muted-foreground">
@@ -215,7 +215,7 @@ export function NewAttendanceDialog({
                           </span>
                         </div>
                       </SelectItem>
-                      <SelectItem value="convenio">
+                      <SelectItem value="CONVENIO">
                         <div className="flex flex-col">
                           <span className="font-semibold">Convênio</span>
                           <span className="text-xs text-muted-foreground">
@@ -223,7 +223,7 @@ export function NewAttendanceDialog({
                           </span>
                         </div>
                       </SelectItem>
-                      <SelectItem value="particular">
+                      <SelectItem value="PARTICULAR">
                         <div className="flex flex-col">
                           <span className="font-semibold">Particular</span>
                           <span className="text-xs text-muted-foreground">
@@ -239,7 +239,7 @@ export function NewAttendanceDialog({
             />
 
             {/* Dados do Convênio (condicional) */}
-            {paymentType === "convenio" && (
+            {paymentType === "CONVENIO" && (
               <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
                 <h4 className="text-sm font-semibold flex items-center gap-2">
                   <Building2 className="h-4 w-4" />
