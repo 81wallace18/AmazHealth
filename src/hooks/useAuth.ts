@@ -9,6 +9,9 @@ interface User {
   fullName: string;
   organizationId: string;
   organizationName: string;
+  staffId?: string | null;
+  activeSectorId?: string | null;
+  roles: string[];
 }
 
 export function useAuth() {
@@ -21,7 +24,11 @@ export function useAuth() {
     const accessToken = localStorage.getItem('accessToken');
 
     if (storedUser && accessToken) {
-      setUser(JSON.parse(storedUser));
+      const parsed = JSON.parse(storedUser);
+      if (!parsed.roles) {
+        parsed.roles = [];
+      }
+      setUser(parsed);
     }
     setLoading(false);
   }, []);
@@ -37,7 +44,9 @@ export function useAuth() {
 
       // Salva tokens e user no localStorage
       localStorage.setItem('accessToken', response.accessToken);
-      localStorage.setItem('refreshToken', response.refreshToken);
+      if (response.refreshToken) {
+        localStorage.setItem('refreshToken', response.refreshToken);
+      }
       localStorage.setItem('user', JSON.stringify(response.user));
 
       setUser(response.user);
@@ -73,7 +82,9 @@ export function useAuth() {
 
       // Salva tokens e user no localStorage
       localStorage.setItem('accessToken', response.accessToken);
-      localStorage.setItem('refreshToken', response.refreshToken);
+      if (response.refreshToken) {
+        localStorage.setItem('refreshToken', response.refreshToken);
+      }
       localStorage.setItem('user', JSON.stringify(response.user));
 
       setUser(response.user);
@@ -91,9 +102,7 @@ export function useAuth() {
   const signOut = async () => {
     try {
       setLoading(true);
-      if (user) {
-        await authService.logout(user.id);
-      }
+      await authService.logout();
 
       // Limpa localStorage
       localStorage.removeItem('accessToken');
