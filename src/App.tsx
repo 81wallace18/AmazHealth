@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Hospital from "./pages/Hospital";
 import Consultations from "./pages/Consultations";
 import Patients from "./pages/Patients";
+import Triage from "./pages/Triage";
 import Appointments from "./pages/Appointments";
 import MedicalRecords from "./pages/MedicalRecords";
 import Admissions from "./pages/Admissions";
@@ -86,6 +87,7 @@ const App = () => (
             <Route path="hospital" element={<Hospital />} />
             <Route path="consultations" element={<Consultations />} />
             <Route path="patients" element={<Patients />} />
+            <Route path="triage" element={<Triage />} />
             <Route path="appointments" element={<Appointments />} />
             <Route path="medical-records" element={<MedicalRecords />} />
             <Route path="admissions" element={<Admissions />} />
