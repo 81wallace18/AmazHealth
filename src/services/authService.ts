@@ -20,7 +20,7 @@ export interface LoginData {
 
 export interface AuthResponse {
   accessToken: string;
-  refreshToken: string;
+  refreshToken: string | null;
   tokenType: string;
   expiresIn: number;
   user: {
@@ -30,6 +30,9 @@ export interface AuthResponse {
     fullName: string;
     organizationId: string;
     organizationName: string;
+    staffId?: string | null;
+    activeSectorId?: string | null;
+    roles: string[];
   };
 }
 
@@ -64,7 +67,7 @@ export const authService = {
   /**
    * Realiza logout.
    */
-  async logout(userId: string): Promise<void> {
-    await api.post('/auth/logout', { userId });
+  async logout(): Promise<void> {
+    await api.post('/auth/logout');
   },
 };
