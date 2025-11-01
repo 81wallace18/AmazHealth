@@ -11,7 +11,8 @@ import {
   UserPlus,
   TestTube,
   Leaf,
-  Building
+  Building,
+  Activity
 } from "lucide-react";
 import {
   Sidebar,
@@ -42,6 +43,12 @@ const navigationItems = [
     title: "Agendamentos",
     url: "/appointments",
     icon: Calendar,
+    group: "Atendimento"
+  },
+  {
+    title: "Triagem",
+    url: "/triage",
+    icon: Activity,
     group: "Atendimento"
   },
   {
