@@ -51,6 +51,8 @@ export interface TriageBoardItem {
   entryTime: string;                // ISO 8601 timestamp (visitDate)
   triageTime: string | null;        // ISO 8601 timestamp (triageAt)
   waitingTimeMinutes: number;       // Tempo de espera em minutos
+  sectorId?: string | null;
+  sectorName?: string | null;
 }
 
 /**
