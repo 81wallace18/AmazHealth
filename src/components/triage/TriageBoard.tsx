@@ -11,6 +11,7 @@
 import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   TriageBoardItem,
   ManchesterColor,
@@ -18,15 +19,23 @@ import {
   formatWaitingTime,
   isWaitingTimeExceeded,
 } from '@/types/triage';
-import { Clock, AlertTriangle } from 'lucide-react';
+import { Clock, AlertTriangle, MapPin, RefreshCw } from 'lucide-react';
 
 interface TriageBoardProps {
   patients: TriageBoardItem[];
   autoRefresh?: boolean;
   onRefresh?: () => void;
+  onAssignSector?: (visitId: string, patientName: string) => void;
+  isRefreshing?: boolean;
 }
 
-export function TriageBoard({ patients, autoRefresh = true, onRefresh }: TriageBoardProps) {
+export function TriageBoard({
+  patients,
+  autoRefresh = true,
+  onRefresh,
+  onAssignSector,
+  isRefreshing = false,
+}: TriageBoardProps) {
   // Auto-refresh every 30 seconds
   useEffect(() => {
     if (!autoRefresh || !onRefresh) return;
@@ -119,36 +128,54 @@ export function TriageBoard({ patients, autoRefresh = true, onRefresh }: TriageB
                             <p className="text-xs text-gray-500">{patient.patientCode}</p>
                           </div>
 
-                          {/* Status Badge */}
-                          <div className="mt-2">
-                            {patient.status === 'IN_ATTENDANCE' ? (
-                              <Badge variant="default" className="text-xs">
-                                Em Atendimento
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="text-xs">
-                                Aguardando Médico
-                              </Badge>
-                            )}
-                          </div>
+                      {/* Sector */}
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-600">
+                        <MapPin className="h-3 w-3" />
+                        <span>{patient.sectorName ?? 'Setor não definido'}</span>
+                      </div>
 
-                          {/* Waiting Time */}
-                          <div className="mt-2 flex items-center gap-1 text-xs">
-                            <Clock className="h-3 w-3" />
-                            <span className={exceeded ? 'text-red-600 font-semibold' : 'text-gray-600'}>
-                              {formatWaitingTime(patient.waitingTimeMinutes)}
-                            </span>
-                            {exceeded && <AlertTriangle className="h-3 w-3 text-red-600 ml-1" />}
-                          </div>
+                      {/* Status Badge */}
+                      <div className="mt-2">
+                        {patient.status === 'IN_ATTENDANCE' ? (
+                          <Badge variant="default" className="text-xs">
+                            Em Atendimento
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">
+                            Aguardando Médico
+                          </Badge>
+                        )}
+                      </div>
 
-                          {/* Exceeded Warning */}
-                          {exceeded && (
-                            <p className="text-xs text-red-600 mt-1 font-medium">
-                              Tempo excedido!
-                            </p>
-                          )}
+                      {/* Waiting Time */}
+                      <div className="mt-2 flex items-center gap-1 text-xs">
+                        <Clock className="h-3 w-3" />
+                        <span className={exceeded ? 'text-red-600 font-semibold' : 'text-gray-600'}>
+                          {formatWaitingTime(patient.waitingTimeMinutes)}
+                        </span>
+                        {exceeded && <AlertTriangle className="h-3 w-3 text-red-600 ml-1" />}
+                      </div>
+
+                      {/* Exceeded Warning */}
+                      {exceeded && (
+                        <p className="text-xs text-red-600 mt-1 font-medium">
+                          Tempo excedido!
+                        </p>
+                      )}
+
+                      {onAssignSector && patient.status === 'AWAITING_DOCTOR' && (
+                        <div className="mt-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onAssignSector(patient.visitId, patient.patientName)}
+                          >
+                            Definir setor
+                          </Button>
                         </div>
-                      );
+                      )}
+                    </div>
+                  );
                     })
                   )}
                 </CardContent>
@@ -160,7 +187,8 @@ export function TriageBoard({ patients, autoRefresh = true, onRefresh }: TriageB
 
       {/* Auto-refresh indicator */}
       {autoRefresh && onRefresh && (
-        <p className="text-sm text-gray-500 text-center">
+        <p className="text-sm text-gray-500 text-center flex items-center justify-center gap-2">
+          {isRefreshing && <RefreshCw className="h-3 w-3 animate-spin" aria-hidden="true" />}
           Atualização automática a cada 30 segundos
         </p>
       )}
