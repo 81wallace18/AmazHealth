@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ToastAction } from "@/components/ui/toast";
 import { usePatientsSpring } from "@/hooks/usePatientsSpring";
+import { useToast } from "@/hooks/use-toast";
 import { PatientFormNew } from "@/components/forms/PatientFormNew";
 import { PatientStats } from "@/components/patients/PatientStats";
 import { PatientFilters } from "@/components/patients/PatientFilters";
@@ -13,26 +16,39 @@ import { PatientIdentification } from "@/components/patients/PatientIdentificati
 import { NewAttendanceDialog } from "@/components/attendance/NewAttendanceDialog";
 import attendanceService from "@/services/attendanceService";
 import { patientService } from "@/services/patientService";
+import type { Patient, PatientIdentification as PatientIdentificationInfo } from "@/types/patient";
 
 export default function Patients() {
   const { patients, loading, addPatient, updatePatient, deletePatient, refetch } = usePatientsSpring();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState("all");
   const [dateOfBirthFilter, setDateOfBirthFilter] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isPrintLabelOpen, setIsPrintLabelOpen] = useState(false);
   const [isNewAttendanceOpen, setIsNewAttendanceOpen] = useState(false);
   const [currentAttendanceNumber, setCurrentAttendanceNumber] = useState<string | undefined>();
+  const [identificationInfo, setIdentificationInfo] = useState<PatientIdentificationInfo | null>(null);
+  const [isLoadingIdentification, setIsLoadingIdentification] = useState(false);
 
   useEffect(() => {
     document.title = "Recepção PA | Pronto Atendimento";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute('content', 'Recepção Pronto Atendimento: buscar, cadastrar e iniciar atendimento');
   }, []);
+
+  useEffect(() => {
+    if (!isPrintLabelOpen) {
+      setIdentificationInfo(null);
+      setIsLoadingIdentification(false);
+      setCurrentAttendanceNumber(undefined);
+    }
+  }, [isPrintLabelOpen]);
 
   const filteredPatients = patients.filter(patient => {
     const fullName = `${patient.firstName} ${patient.lastName}`;
@@ -66,12 +82,12 @@ export default function Patients() {
     }
   };
 
-  const openView = (patient: any) => {
+  const openView = (patient: Patient) => {
     setSelectedPatient(patient);
     setIsViewOpen(true);
   };
 
-  const openEdit = (patient: any) => {
+  const openEdit = (patient: Patient) => {
     setSelectedPatient(patient);
     setIsEditOpen(true);
   };
@@ -87,7 +103,7 @@ export default function Patients() {
     }
   };
 
-  const handleDeletePatient = async (patient: any) => {
+  const handleDeletePatient = async (patient: Patient) => {
     if (!patient) return;
     const confirmed = window.confirm('Confirmar exclusão deste paciente?');
     if (!confirmed) return;
@@ -98,27 +114,39 @@ export default function Patients() {
     }
   };
 
-  const handlePrintLabel = (patient: any) => {
+  const fetchIdentification = async (patientId: string) => {
+    setIsLoadingIdentification(true);
+    try {
+      const data = await patientService.getIdentification(patientId);
+      setIdentificationInfo(data);
+      setCurrentAttendanceNumber((prev) => data.attendanceNumber ?? prev);
+    } catch (error) {
+      console.error('Error fetching identification data:', error);
+    } finally {
+      setIsLoadingIdentification(false);
+    }
+  };
+
+  const handlePrintLabel = (patient: Patient) => {
     setSelectedPatient(patient);
+    setIdentificationInfo(null);
+    setCurrentAttendanceNumber(undefined);
     setIsPrintLabelOpen(true);
+    void fetchIdentification(patient.id);
   };
 
   const handlePrint = async () => {
     if (!selectedPatient) return;
 
     try {
-      // Registra impressão no audit trail
       await patientService.printIdentification(
         selectedPatient.id,
-        currentAttendanceNumber
+        currentAttendanceNumber ?? identificationInfo?.attendanceNumber
       );
-
-      // Imprime
-      window.print();
     } catch (error) {
       console.error('Error logging print:', error);
-      // Mesmo com erro no log, permite impressão
-      window.print();
+    } finally {
+      await fetchIdentification(selectedPatient.id);
     }
   };
 
@@ -126,22 +154,18 @@ export default function Patients() {
     if (!selectedPatient) return;
 
     try {
-      // Registra reimpressão no audit trail
       await patientService.reprintIdentification(
         selectedPatient.id,
         'Reimpressão solicitada pelo usuário'
       );
-
-      // Imprime
-      window.print();
     } catch (error) {
       console.error('Error logging reprint:', error);
-      // Mesmo com erro no log, permite impressão
-      window.print();
+    } finally {
+      await fetchIdentification(selectedPatient.id);
     }
   };
 
-  const handleStartAttendance = (patient: any) => {
+  const handleStartAttendance = (patient: Patient) => {
     setSelectedPatient(patient);
     setIsNewAttendanceOpen(true);
   };
@@ -157,6 +181,7 @@ export default function Patients() {
 
       // Armazena o número de atendimento para a etiqueta
       setCurrentAttendanceNumber(attendance.attendanceNumber);
+      setIdentificationInfo(null);
 
       // Fecha o modal de novo atendimento
       setIsNewAttendanceOpen(false);
@@ -164,11 +189,25 @@ export default function Patients() {
       // Abre automaticamente o modal de impressão de etiqueta
       setIsPrintLabelOpen(true);
 
-      // TODO: Notificar sucesso ao usuário
-      console.log('Atendimento criado com sucesso:', attendance);
-    } catch (error) {
+      void fetchIdentification(selectedPatient.id);
+
+      toast({
+        title: "Atendimento criado",
+        description: "Paciente encaminhado para a triagem Manchester.",
+        action: (
+          <ToastAction altText="Ir para triagem" onClick={() => navigate("/triage")}>
+            Ir para triagem
+          </ToastAction>
+        ),
+      });
+    } catch (error: any) {
       console.error('Error creating attendance:', error);
-      // TODO: Mostrar erro ao usuário
+      const message = error.response?.data?.message || error.message || 'Erro ao criar atendimento';
+      toast({
+        title: "Erro ao criar atendimento",
+        description: message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -272,7 +311,10 @@ export default function Patients() {
         onOpenChange={setIsPrintLabelOpen}
         onPrint={handlePrint}
         onReprint={handleReprint}
-        attendanceNumber={currentAttendanceNumber}
+        attendanceNumber={currentAttendanceNumber ?? identificationInfo?.attendanceNumber}
+        printedAt={identificationInfo?.printedAt}
+        printedBy={identificationInfo?.printedBy}
+        isLoading={isLoadingIdentification}
       />
 
       <NewAttendanceDialog
