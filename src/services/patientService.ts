@@ -3,7 +3,8 @@ import type {
   Patient,
   PatientCreateRequest,
   PatientUpdateRequest,
-  PatientSearchParams
+  PatientSearchParams,
+  PatientIdentification
 } from '@/types/patient';
 
 /**
@@ -106,6 +107,11 @@ export const patientService = {
       `/patients/${patientId}/identification/print`,
       attendanceNumber ? { attendanceNumber } : {}
     );
+  },
+
+  async getIdentification(patientId: string): Promise<PatientIdentification> {
+    const response = await api.get<PatientIdentification>(`/patients/${patientId}/identification`);
+    return response.data;
   },
 
   /**
