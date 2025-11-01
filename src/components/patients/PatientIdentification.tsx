@@ -31,6 +31,9 @@ interface PatientIdentificationProps {
   onPrint?: () => void;
   onReprint?: () => void;
   attendanceNumber?: string;
+  printedAt?: string;
+  printedBy?: string;
+  isLoading?: boolean;
 }
 
 /**
@@ -43,7 +46,10 @@ export function PatientIdentification({
   onOpenChange,
   onPrint,
   onReprint,
-  attendanceNumber
+  attendanceNumber,
+  printedAt,
+  printedBy,
+  isLoading
 }: PatientIdentificationProps) {
   const [showReprintConfirm, setShowReprintConfirm] = useState(false);
   const [hasBeenPrinted, setHasBeenPrinted] = useState(false);
@@ -64,6 +70,19 @@ export function PatientIdentification({
   const formatDateTime = () => {
     return format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
   };
+
+  const formatPrintedAt = (value?: string) => {
+    if (!value) {
+      return null;
+    }
+    try {
+      return format(new Date(value), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    } catch {
+      return value;
+    }
+  };
+
+  const lastPrintedLabel = formatPrintedAt(printedAt);
 
   const handlePrint = () => {
     window.print();
@@ -94,6 +113,13 @@ export function PatientIdentification({
               Visualize e imprima a etiqueta de identificação do paciente
             </DialogDescription>
           </DialogHeader>
+
+          {/* Loading indicator */}
+          {isLoading && (
+            <div className="mb-3 rounded-md border border-dashed border-muted-foreground/40 bg-muted/30 p-3 text-xs text-muted-foreground">
+              Carregando dados de identificação...
+            </div>
+          )}
 
           {/* Preview da Etiqueta */}
           <div className="my-4">
@@ -142,6 +168,13 @@ export function PatientIdentification({
               </div>
             </div>
           </div>
+
+          {lastPrintedLabel && (
+            <div className="mt-2 text-xs text-muted-foreground">
+              Última impressão registrada em {lastPrintedLabel}
+              {printedBy ? ` por ${printedBy}` : ''}.
+            </div>
+          )}
 
           {/* Alerta se já foi impresso */}
           {hasBeenPrinted && (
