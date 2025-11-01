@@ -169,13 +169,15 @@ export interface PatientSearchParams {
 // Response de identificação
 export interface PatientIdentification {
   patientId: string;
+  organizationId: string;
   patientCode: string;
-  attendanceNumber: string;
   fullName: string;
   dateOfBirth: string;
+  attendanceNumber?: string;
   barcode: string;
-  printedAt: string;
-  printedBy: string;
+  printedAt?: string;
+  printedById?: string;
+  printedBy?: string;
 }
 
 // Labels para exibição
