@@ -8,12 +8,11 @@
  * - Display waiting time
  */
 
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TriageBoardItem, formatWaitingTime } from '@/types/triage';
-import { Clock, User, ClipboardList } from 'lucide-react';
+import { Clock, User, ClipboardList, MapPin } from 'lucide-react';
 
 interface TriageQueueProps {
   patients: TriageBoardItem[];
@@ -21,8 +20,10 @@ interface TriageQueueProps {
 }
 
 export function TriageQueue({ patients, onStartTriage }: TriageQueueProps) {
-  // Filter only patients awaiting triage
-  const waitingPatients = patients.filter((p) => p.status === 'AWAITING_TRIAGE');
+  // Filter only patients awaiting triage and order by longest waiting time
+  const waitingPatients = patients
+    .filter((p) => p.status === 'AWAITING_TRIAGE')
+    .sort((a, b) => b.waitingTimeMinutes - a.waitingTimeMinutes);
 
   if (waitingPatients.length === 0) {
     return (
@@ -100,6 +101,12 @@ export function TriageQueue({ patients, onStartTriage }: TriageQueueProps) {
                   Iniciar Triagem
                 </Button>
               </div>
+              {patient.sectorName && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                  <MapPin className="h-3 w-3" />
+                  <span>Setor sugerido: {patient.sectorName}</span>
+                </div>
+              )}
             </div>
           ))}
         </div>
