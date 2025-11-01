@@ -13,18 +13,32 @@ import { TriageQueue } from '@/components/triage/TriageQueue';
 import { TriageBoard } from '@/components/triage/TriageBoard';
 import { TriageForm } from '@/components/triage/TriageForm';
 import { triageService } from '@/services/triageService';
+import { sectorService } from '@/services/sectorService';
 import { TriageBoardItem } from '@/types/triage';
+import type { Sector } from '@/types/sector';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Triage() {
   const [patients, setPatients] = useState<TriageBoardItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user, loading: authLoading } = useAuth();
+  const [sectors, setSectors] = useState<Sector[]>([]);
+  const { toast } = useToast();
+
+  const [isAssignSectorOpen, setIsAssignSectorOpen] = useState(false);
+  const [assigningVisitId, setAssigningVisitId] = useState<string | null>(null);
+  const [assigningPatientName, setAssigningPatientName] = useState('');
+  const [selectedSectorId, setSelectedSectorId] = useState('');
+  const [isAssigningSector, setIsAssigningSector] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
   // Triage Form State
   const [isTriageFormOpen, setIsTriageFormOpen] = useState(false);
@@ -33,6 +47,7 @@ export default function Triage() {
 
   // Load triage board
   const loadTriageBoard = useCallback(async () => {
+    setIsRefreshing(true);
     try {
       setError(null);
       const data = await triageService.getTriageBoard();
@@ -42,6 +57,7 @@ export default function Triage() {
       setError(err.message || 'Erro ao carregar painel de triagem');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
@@ -49,6 +65,21 @@ export default function Triage() {
   useEffect(() => {
     loadTriageBoard();
   }, [loadTriageBoard]);
+
+  useEffect(() => {
+    const fetchSectors = async () => {
+      try {
+        const data = await sectorService.list();
+        setSectors(data);
+      } catch (err) {
+        console.error('Error loading sectors:', err);
+      }
+    };
+
+    if (!authLoading && user) {
+      fetchSectors();
+    }
+  }, [authLoading, user]);
 
   // Handle start triage
   const handleStartTriage = (visitId: string, patientName: string) => {
@@ -62,7 +93,11 @@ export default function Triage() {
     setIsTriageFormOpen(false);
     setSelectedVisitId(null);
     setSelectedPatientName('');
-    loadTriageBoard(); // Refresh board
+    void loadTriageBoard(); // Refresh board
+    toast({
+      title: 'Triagem registrada',
+      description: 'Paciente atualizado para aguardando atendimento médico.',
+    });
   };
 
   // Handle triage cancel
@@ -70,6 +105,57 @@ export default function Triage() {
     setIsTriageFormOpen(false);
     setSelectedVisitId(null);
     setSelectedPatientName('');
+  };
+
+  const handleOpenAssignSector = (visitId: string, patientName: string) => {
+    setAssigningVisitId(visitId);
+    setAssigningPatientName(patientName);
+    setSelectedSectorId('');
+    setAssignError(null);
+    setIsAssignSectorOpen(true);
+  };
+
+  const handleAssignDialogChange = (open: boolean) => {
+    setIsAssignSectorOpen(open);
+    if (!open) {
+      setAssigningVisitId(null);
+      setAssigningPatientName('');
+      setSelectedSectorId('');
+      setAssignError(null);
+      setIsAssigningSector(false);
+    }
+  };
+
+  const handleAssignSector = async () => {
+    if (!assigningVisitId || !selectedSectorId) {
+      setAssignError('Selecione um setor.');
+      return;
+    }
+
+    try {
+      setIsAssigningSector(true);
+      await triageService.assignSector(assigningVisitId, { sectorId: selectedSectorId });
+      await loadTriageBoard();
+      const sector = sectors.find((item) => item.id === selectedSectorId);
+      setAssignError(null);
+      handleAssignDialogChange(false);
+      toast({
+        title: 'Setor definido',
+        description: sector
+          ? `${assigningPatientName} foi encaminhado para ${sector.name}.`
+          : 'Setor atualizado com sucesso.',
+      });
+    } catch (err: any) {
+      const message = err.message || 'Erro ao atribuir setor';
+      setAssignError(message);
+      toast({
+        title: 'Falha ao definir setor',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAssigningSector(false);
+    }
   };
 
   // Manual refresh
@@ -125,7 +211,7 @@ export default function Triage() {
           </p>
         </div>
         <Button onClick={handleManualRefresh} variant="outline" size="sm">
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 mr-2 ${(isLoading || isRefreshing) ? 'animate-spin' : ''}`} />
           Atualizar
         </Button>
       </div>
@@ -146,7 +232,71 @@ export default function Triage() {
         patients={patients}
         autoRefresh={true}
         onRefresh={loadTriageBoard}
+        isRefreshing={isRefreshing}
+        onAssignSector={handleOpenAssignSector}
       />
+
+      <Dialog open={isAssignSectorOpen} onOpenChange={handleAssignDialogChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Definir setor</DialogTitle>
+            <DialogDescription>
+              Selecione o setor de destino para <strong>{assigningPatientName}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          {assignError && (
+            <Alert variant="destructive" className="mb-3">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{assignError}</AlertDescription>
+            </Alert>
+          )}
+
+          {sectors.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhum setor disponível nesta organização.
+            </p>
+          ) : (
+            <Select
+              value={selectedSectorId}
+              onValueChange={(value) => {
+                setSelectedSectorId(value);
+                setAssignError(null);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o setor" />
+              </SelectTrigger>
+              <SelectContent>
+                {sectors.map((sector) => (
+                  <SelectItem key={sector.id} value={sector.id}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{sector.name}</span>
+                      <span className="text-xs text-muted-foreground">{sector.type}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => handleAssignDialogChange(false)}
+              disabled={isAssigningSector}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleAssignSector}
+              disabled={isAssigningSector || sectors.length === 0 || !selectedSectorId}
+            >
+              {isAssigningSector ? 'Salvando...' : 'Confirmar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Triage Form Modal */}
       <Dialog open={isTriageFormOpen} onOpenChange={setIsTriageFormOpen}>
