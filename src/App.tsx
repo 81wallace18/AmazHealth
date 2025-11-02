@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import { toast } from "sonner";
 import { AppLayout } from "./components/layout/AppLayout";
 import { useAuth } from "./hooks/useAuth";
+import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import { AUTH_LOGOUT_EVENT } from "./lib/api";
 import Dashboard from "./pages/Dashboard";
 import Hospital from "./pages/Hospital";
@@ -29,6 +30,12 @@ const queryClient = new QueryClient();
 
 function AuthListener() {
   const navigate = useNavigate();
+
+  // Timeout de sessão automático (15 minutos de inatividade)
+  useSessionTimeout({
+    timeout: 15 * 60 * 1000, // 15 minutos
+    warningTime: 60 * 1000,  // Avisa 1 minuto antes
+  });
 
   useEffect(() => {
     const handleLogout = (event: Event) => {
