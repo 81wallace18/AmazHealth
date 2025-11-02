@@ -13,16 +13,28 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 
 export function AppHeader() {
-  const { profile, signOut } = useAuth();
-  
+  const { user, signOut } = useAuth();
+
   const handleSignOut = () => {
     signOut();
+  };
+
+  // Gera iniciais do nome
+  const getInitials = (name?: string) => {
+    if (!name) return 'US';
+    return name
+      .split(' ')
+      .filter(n => n.length > 0)
+      .slice(0, 2)
+      .map(n => n[0])
+      .join('')
+      .toUpperCase();
   };
 
   return (
     <header className="h-14 border-b bg-card shadow-soft flex items-center px-4 gap-4">
       <SidebarTrigger className="md:hidden" />
-      
+
       <div className="flex-1 flex items-center gap-4">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -47,17 +59,23 @@ export function AppHeader() {
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/placeholder-avatar.jpg" />
                 <AvatarFallback>
-                  {profile?.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : 'US'}
+                  {getInitials(user?.fullName)}
                 </AvatarFallback>
               </Avatar>
               <span className="hidden md:block text-sm font-medium">
-                {profile?.full_name || 'Usuário'}
+                {user?.fullName || 'Usuário'}
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
+            <div className="px-2 py-1.5 text-sm">
+              <div className="font-medium">{user?.fullName || 'Usuário'}</div>
+              <div className="text-xs text-muted-foreground">{user?.email}</div>
+            </div>
+            <DropdownMenuSeparator />
             <div className="px-2 py-1.5 text-xs text-muted-foreground">
-              {profile?.area} - {profile?.registration_number}
+              <div className="font-medium">{user?.organizationName}</div>
+              <div>Papéis: {user?.roles.join(', ') || 'Nenhum'}</div>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
