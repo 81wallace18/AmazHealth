@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 
 const loginSchema = z.object({
   login: z.string().min(1, 'Email ou username é obrigatório'),
-  password: z.string().min(8, 'Senha deve ter pelo menos 6 caracteres'),
+  password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
   organizationId: z.string().optional(),
 });
 
