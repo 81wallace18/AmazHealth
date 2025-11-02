@@ -31,6 +31,11 @@ api.interceptors.request.use(
 );
 
 /**
+ * Evento customizado para notificar logout/sessão expirada
+ */
+export const AUTH_LOGOUT_EVENT = 'auth:logout';
+
+/**
  * Interceptor para tratar erros de autenticação (401).
  * Se token expirado, tenta renovar com refresh token.
  */
@@ -64,11 +69,17 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh falhou, limpa tokens e redireciona para login
+        // Refresh falhou, limpa tokens e dispara evento de logout
+        console.warn('[API] Sessão expirada, fazendo logout automático');
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-        window.location.href = '/auth';
+
+        // Dispara evento customizado para o App reagir
+        window.dispatchEvent(new CustomEvent(AUTH_LOGOUT_EVENT, {
+          detail: { reason: 'session_expired' }
+        }));
+
         return Promise.reject(refreshError);
       }
     }

@@ -1,10 +1,13 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { AppLayout } from "./components/layout/AppLayout";
 import { useAuth } from "./hooks/useAuth";
+import { AUTH_LOGOUT_EVENT } from "./lib/api";
 import Dashboard from "./pages/Dashboard";
 import Hospital from "./pages/Hospital";
 import Consultations from "./pages/Consultations";
@@ -23,6 +26,27 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function AuthListener() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleLogout = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('[App] Logout automático detectado:', customEvent.detail);
+      toast.error('Sessão expirada. Faça login novamente.');
+      navigate('/auth', { replace: true });
+    };
+
+    window.addEventListener(AUTH_LOGOUT_EVENT, handleLogout);
+
+    return () => {
+      window.removeEventListener(AUTH_LOGOUT_EVENT, handleLogout);
+    };
+  }, [navigate]);
+
+  return null;
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -72,6 +96,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <AuthListener />
         <Routes>
           <Route path="/auth" element={
             <PublicRoute>
