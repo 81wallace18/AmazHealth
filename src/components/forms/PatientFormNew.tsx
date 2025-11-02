@@ -86,7 +86,8 @@ export function PatientFormNew({ onSubmit, loading = false, initialData }: Patie
           setDuplicates([]);
         }
       } catch (error) {
-        console.error('Erro ao verificar duplicatas:', error);
+        // Erro silencioso - não impede cadastro
+        // TODO: Implementar logging seguro sem expor dados sensíveis
       } finally {
         setCheckingDuplicates(false);
       }
@@ -110,8 +111,18 @@ export function PatientFormNew({ onSubmit, loading = false, initialData }: Patie
       reset();
       setDuplicates([]);
       setPendingData(null);
-    } catch (error) {
-      console.error('Erro ao salvar paciente:', error);
+      toast({
+        title: "Paciente salvo!",
+        description: "Cadastro realizado com sucesso.",
+      });
+    } catch (error: any) {
+      // Mostra erro ao usuário sem expor dados sensíveis
+      const message = error.response?.data?.message || 'Erro ao salvar paciente. Tente novamente.';
+      toast({
+        title: "Erro ao salvar",
+        description: message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -130,8 +141,18 @@ export function PatientFormNew({ onSubmit, loading = false, initialData }: Patie
         reset();
         setDuplicates([]);
         setPendingData(null);
-      } catch (error) {
-        console.error('Erro ao salvar paciente:', error);
+        setShowDuplicateAlert(false);
+        toast({
+          title: "Paciente salvo!",
+          description: "Cadastro realizado com sucesso.",
+        });
+      } catch (error: any) {
+        const message = error.response?.data?.message || 'Erro ao salvar paciente. Tente novamente.';
+        toast({
+          title: "Erro ao salvar",
+          description: message,
+          variant: "destructive",
+        });
       }
     }
   };
