@@ -126,30 +126,24 @@ export const patientService = {
 
   /**
    * Buscar por CPF
+   * @throws Error se houver problema na busca (rede, servidor, etc)
    */
   async findByCpf(cpf: string): Promise<Patient | null> {
-    try {
-      const response = await api.get<PaginatedResponse<Patient>>('/patients', {
-        params: { q: cpf }
-      });
-      return response.data.content[0] || null;
-    } catch (error) {
-      return null;
-    }
+    const response = await api.get<PaginatedResponse<Patient>>('/patients', {
+      params: { q: cpf }
+    });
+    return response.data.content[0] || null;
   },
 
   /**
    * Buscar por CNS
+   * @throws Error se houver problema na busca (rede, servidor, etc)
    */
   async findByCns(cns: string): Promise<Patient | null> {
-    try {
-      const response = await api.get<PaginatedResponse<Patient>>('/patients', {
-        params: { q: cns }
-      });
-      return response.data.content[0] || null;
-    } catch (error) {
-      return null;
-    }
+    const response = await api.get<PaginatedResponse<Patient>>('/patients', {
+      params: { q: cns }
+    });
+    return response.data.content[0] || null;
   },
 
   /**
