@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -175,6 +176,8 @@ export function RichTextEditor({
   disabled = false,
   className,
 }: RichTextEditorProps) {
+  const isFirstRender = useRef(true);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -188,6 +191,12 @@ export function RichTextEditor({
     content: value,
     editable: !disabled,
     onUpdate: ({ editor }) => {
+      // Ignora a primeira atualização (inicialização)
+      if (isFirstRender.current) {
+        isFirstRender.current = false;
+        return;
+      }
+
       const html = editor.getHTML();
       // Só chama onChange se o conteúdo mudou de fato
       if (html !== value) {
