@@ -75,7 +75,7 @@ export function AppHeader() {
             <DropdownMenuSeparator />
             <div className="px-2 py-1.5 text-xs text-muted-foreground">
               <div className="font-medium">{user?.organizationName}</div>
-              <div>Papéis: {user?.roles.join(', ') || 'Nenhum'}</div>
+              <div>Papéis: {user?.roles?.join(', ') || 'Nenhum'}</div>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem>

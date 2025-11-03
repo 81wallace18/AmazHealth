@@ -27,6 +27,7 @@ export interface Attendance {
   outcomeDate?: string;
   createdAt: string;
   updatedAt: string;
+  visitId?: string; // ID da OpdVisit associada
 }
 
 class AttendanceService {
