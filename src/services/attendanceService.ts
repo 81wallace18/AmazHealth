@@ -89,6 +89,36 @@ class AttendanceService {
     const response = await api.patch<Attendance>(`/attendances/${id}/finalize`, { outcome });
     return response.data;
   }
+
+  /**
+   * Busca attendance por visitId
+   * Como não há endpoint específico, busca todos e filtra localmente
+   */
+  async findByVisitId(visitId: string): Promise<Attendance | null> {
+    try {
+      // Busca em todos os status possíveis
+      const statuses: Attendance['status'][] = [
+        'AGUARDANDO_ATENDIMENTO',
+        'EM_ATENDIMENTO',
+        'AGUARDANDO_EXAMES',
+        'EM_TRIAGEM',
+        'AGUARDANDO_TRIAGEM'
+      ];
+
+      for (const status of statuses) {
+        const attendances = await this.findByStatus(status);
+        const found = attendances.find(att => att.visitId === visitId);
+        if (found) {
+          return found;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Erro ao buscar attendance por visitId:', error);
+      return null;
+    }
+  }
 }
 
 export default new AttendanceService();
