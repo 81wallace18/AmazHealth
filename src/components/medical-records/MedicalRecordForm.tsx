@@ -123,6 +123,7 @@ export function MedicalRecordForm({
 
   async function onSubmit(data: FormData) {
     setIsLoading(true);
+    console.log('📤 Dados enviados para o backend:', data);
     try {
       if (isEditing) {
         await medicalRecordService.update(recordId, data);
@@ -140,11 +141,18 @@ export function MedicalRecordForm({
       onOpenChange(false);
       onSuccess?.();
     } catch (error: any) {
-      console.error('Erro ao salvar registro:', error);
+      console.error('❌ Erro ao salvar registro:', error);
+      console.error('❌ Resposta do backend:', error.response?.data);
+      console.error('❌ Status:', error.response?.status);
 
       if (error.response?.status === 403) {
         toast.error('Sem permissão', {
           description: 'Apenas o autor pode editar este registro nas primeiras 24h.',
+        });
+      } else if (error.response?.status === 400) {
+        const errorMsg = error.response?.data?.message || JSON.stringify(error.response?.data);
+        toast.error('Erro de validação', {
+          description: errorMsg,
         });
       } else {
         toast.error('Erro ao salvar', {
