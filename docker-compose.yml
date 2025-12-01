@@ -8,6 +8,8 @@ services:
     ports:
       - "8081:80" # Acesse em http://localhost:8081
     restart: unless-stopped
+    networks:
+      - amazhealth-net
 
   # Desenvolvimento do frontend (hot-reload)
   web-dev:
@@ -23,6 +25,12 @@ services:
     volumes:
       - ./:/app
       - /app/node_modules
+    networks:
+      - amazhealth-net
 
 volumes:
   db_data:
+
+networks:
+  amazhealth-net:
+    external: true

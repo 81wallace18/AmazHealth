@@ -92,4 +92,29 @@ export const medicalRecordService = {
   async delete(id: string): Promise<void> {
     await api.delete(`/medical-records/${id}`);
   },
+
+  async generateMedicalCertificate(payload: {
+    patientName: string;
+    patientCode?: string;
+    type: 'WORK_LEAVE' | 'FIT_FOR_WORK' | 'EXAM';
+    days?: string;
+    observations?: string;
+  }): Promise<Blob> {
+    const response = await api.post('/medical-records/documents/certificate', payload, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  async generateAttendanceDeclaration(payload: {
+    patientName: string;
+    patientCode?: string;
+    attendanceNumber?: string;
+    purpose?: string;
+  }): Promise<Blob> {
+    const response = await api.post('/medical-records/documents/attendance-declaration', payload, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };

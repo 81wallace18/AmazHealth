@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import type { PatientIdentification } from '@/types/patient';
 
 export interface CreateAttendanceDTO {
   patientId: string;
@@ -28,6 +29,13 @@ export interface Attendance {
   createdAt: string;
   updatedAt: string;
   visitId?: string; // ID da OpdVisit associada
+}
+
+export interface FinalizeAttendancePayload {
+  outcome: Attendance['outcome'];
+  notes?: string;
+  physicianId?: string;
+  admissionReason?: string;
 }
 
 class AttendanceService {
@@ -85,8 +93,20 @@ class AttendanceService {
    * Finaliza atendimento com desfecho
    * Endpoint: PATCH /api/attendances/:id/finalize
    */
-  async finalize(id: string, outcome: Attendance['outcome']): Promise<Attendance> {
-    const response = await api.patch<Attendance>(`/attendances/${id}/finalize`, { outcome });
+  async finalize(id: string, payload: FinalizeAttendancePayload): Promise<Attendance> {
+    const response = await api.patch<Attendance>(`/attendances/${id}/finalize`, payload);
+    return response.data;
+  }
+
+  /**
+   * Reimprime etiqueta vinculada ao atendimento
+   * Endpoint: POST /api/v1/attendances/:id/reprint-label
+   */
+  async reprintLabel(id: string, reason?: string): Promise<PatientIdentification> {
+    const response = await api.post<PatientIdentification>(
+      `/attendances/${id}/reprint-label`,
+      reason ? { reason } : {}
+    );
     return response.data;
   }
 

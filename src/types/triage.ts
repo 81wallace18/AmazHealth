@@ -61,6 +61,7 @@ export interface TriageBoardItem {
  */
 export interface SectorAssignRequest {
   sectorId: string;                 // UUID do setor
+  reason: string;                   // Motivo obrigatório para override
 }
 
 /**

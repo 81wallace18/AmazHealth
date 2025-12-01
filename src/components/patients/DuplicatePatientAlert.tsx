@@ -63,6 +63,11 @@ export function DuplicatePatientAlert({
     );
   };
 
+  const formatSimilarity = (score?: number) => {
+    if (typeof score !== "number") return null;
+    return `${score.toFixed(1)}%`;
+  };
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
@@ -73,9 +78,14 @@ export function DuplicatePatientAlert({
               ⚠️ Possível Duplicidade Detectada
             </AlertDialogTitle>
           </div>
-          <AlertDialogDescription>
-            Encontramos <strong>{duplicates.length}</strong> paciente(s) com dados similares.
-            Por favor, verifique se não é um cadastro duplicado.
+          <AlertDialogDescription className="space-y-1">
+            <p>
+              Encontramos <strong>{duplicates.length}</strong> paciente(s) com dados similares
+              considerando nome completo e data de nascimento.
+            </p>
+            <p className="text-muted-foreground text-xs">
+              Valores de similaridade acima de 80% representam alta probabilidade de duplicidade.
+            </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -95,6 +105,11 @@ export function DuplicatePatientAlert({
                           {patient.firstName} {patient.lastName}
                         </h3>
                         {getStatusBadge(patient.status)}
+                        {typeof patient.similarityScore === "number" && (
+                          <Badge variant="outline" className="border-amber-300 text-amber-700 bg-amber-50">
+                            Similaridade {formatSimilarity(patient.similarityScore)}
+                          </Badge>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground">

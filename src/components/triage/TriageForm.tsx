@@ -56,6 +56,16 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
   const [triageColor, setTriageColor] = useState<ManchesterColor | ''>('');
   const [triageJustification, setTriageJustification] = useState('');
 
+  const hasMandatoryVitals =
+    bloodPressureSys.trim() !== '' &&
+    bloodPressureDia.trim() !== '' &&
+    heartRate.trim() !== '' &&
+    glasgow.trim() !== '';
+
+  const hasManchesterSelection = Boolean(triageColor) && triageJustification.trim().length >= 10;
+
+  const isFormValid = hasMandatoryVitals && hasManchesterSelection;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -340,10 +350,15 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
           </div>
 
           {/* Actions */}
+          {!isFormValid && (
+            <p className="text-sm text-muted-foreground">
+              Preencha os sinais vitais obrigatórios, a cor de Manchester e a justificativa para habilitar o envio.
+            </p>
+          )}
           <div className="flex gap-4 pt-4">
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isFormValid}
               className="flex-1"
             >
               {isSubmitting ? 'Salvando...' : 'Registrar Triagem'}

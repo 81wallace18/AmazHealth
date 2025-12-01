@@ -20,6 +20,8 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -37,8 +39,10 @@ export default function Triage() {
   const [assigningVisitId, setAssigningVisitId] = useState<string | null>(null);
   const [assigningPatientName, setAssigningPatientName] = useState('');
   const [selectedSectorId, setSelectedSectorId] = useState('');
+  const [sectorReason, setSectorReason] = useState('');
   const [isAssigningSector, setIsAssigningSector] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
+  const [manualAutoRefreshPause, setManualAutoRefreshPause] = useState(false);
 
   // Triage Form State
   const [isTriageFormOpen, setIsTriageFormOpen] = useState(false);
@@ -111,6 +115,7 @@ export default function Triage() {
     setAssigningVisitId(visitId);
     setAssigningPatientName(patientName);
     setSelectedSectorId('');
+    setSectorReason('');
     setAssignError(null);
     setIsAssignSectorOpen(true);
   };
@@ -121,6 +126,7 @@ export default function Triage() {
       setAssigningVisitId(null);
       setAssigningPatientName('');
       setSelectedSectorId('');
+      setSectorReason('');
       setAssignError(null);
       setIsAssigningSector(false);
     }
@@ -132,9 +138,17 @@ export default function Triage() {
       return;
     }
 
+    if (!sectorReason || sectorReason.trim().length < 5) {
+      setAssignError('Informe o motivo da mudança de setor (mínimo 5 caracteres).');
+      return;
+    }
+
     try {
       setIsAssigningSector(true);
-      await triageService.assignSector(assigningVisitId, { sectorId: selectedSectorId });
+      await triageService.assignSector(assigningVisitId, {
+        sectorId: selectedSectorId,
+        reason: sectorReason.trim(),
+      });
       await loadTriageBoard();
       const sector = sectors.find((item) => item.id === selectedSectorId);
       setAssignError(null);
@@ -163,6 +177,9 @@ export default function Triage() {
     setIsLoading(true);
     loadTriageBoard();
   };
+  const modalPause = isTriageFormOpen || isAssignSectorOpen;
+  const autoRefreshEnabled = !manualAutoRefreshPause && !modalPause;
+  const isPollingPaused = !autoRefreshEnabled;
 
   if (authLoading) {
     return (
@@ -230,10 +247,14 @@ export default function Triage() {
       {/* Triage Board - 5 Manchester columns */}
       <TriageBoard
         patients={patients}
-        autoRefresh={true}
+        autoRefresh={autoRefreshEnabled}
         onRefresh={loadTriageBoard}
         isRefreshing={isRefreshing}
         onAssignSector={handleOpenAssignSector}
+        isPaused={isPollingPaused}
+        isManualPause={manualAutoRefreshPause}
+        disableToggle={modalPause}
+        onToggleAutoRefresh={() => setManualAutoRefreshPause((prev) => !prev)}
       />
 
       <Dialog open={isAssignSectorOpen} onOpenChange={handleAssignDialogChange}>
@@ -279,6 +300,23 @@ export default function Triage() {
               </SelectContent>
             </Select>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="sector-reason">Motivo *</Label>
+            <Textarea
+              id="sector-reason"
+              value={sectorReason}
+              onChange={(event) => {
+                setSectorReason(event.target.value);
+                setAssignError(null);
+              }}
+              rows={4}
+              placeholder="Explique por que o paciente está sendo direcionado para este setor."
+            />
+            <p className="text-xs text-muted-foreground">
+              Obrigatório — mínimo 5 caracteres.
+            </p>
+          </div>
 
           <DialogFooter>
             <Button

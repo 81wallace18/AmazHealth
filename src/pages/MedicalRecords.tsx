@@ -1,17 +1,25 @@
-import { useState } from 'react';
-import { Search, FileText, AlertCircle, ClipboardList } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Search, FileText, AlertCircle, ClipboardList, Receipt } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { MedicalRecordHistory } from '@/components/medical-records/MedicalRecordHistory';
 import { MedicalRecordForm } from '@/components/medical-records/MedicalRecordForm';
+import { LabTestOrderForm } from '@/components/medical-records/LabTestOrderForm';
+import { LabTestList } from '@/components/medical-records/LabTestList';
+import { AttendanceOutcomeForm } from '@/components/medical-records/AttendanceOutcomeForm';
+import { PrescriptionForm } from '@/components/prescriptions/PrescriptionForm';
+import { PrescriptionList } from '@/components/prescriptions/PrescriptionList';
 import { patientService } from '@/services/patientService';
 import attendanceService, { type Attendance } from '@/services/attendanceService';
 import type { Patient } from '@/types/patient';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function MedicalRecords() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -19,7 +27,18 @@ export default function MedicalRecords() {
   const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingAttendances, setIsLoadingAttendances] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showRecordForm, setShowRecordForm] = useState(false);
+  const [labOrderOpen, setLabOrderOpen] = useState(false);
+  const [labTestsVersion, setLabTestsVersion] = useState(0);
+  const [prescriptionFormOpen, setPrescriptionFormOpen] = useState(false);
+  const [prescriptionsVersion, setPrescriptionsVersion] = useState(0);
+  const [activeTab, setActiveTab] = useState<'records' | 'lab-tests' | 'prescriptions'>('records');
+  const [showOutcomeForm, setShowOutcomeForm] = useState(false);
+
+  useEffect(() => {
+    setLabTestsVersion((prev) => prev + 1);
+    setPrescriptionsVersion((prev) => prev + 1);
+  }, [selectedPatient?.id, selectedAttendance?.id]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -273,57 +292,137 @@ export default function MedicalRecords() {
                 </CardContent>
               </Card>
 
-              {/* Histórico e Novo Registro */}
+              {/* Histórico, registros e exames */}
               {selectedAttendance && (
-                <>
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle>Prontuário do Paciente</CardTitle>
-                          <CardDescription>
-                            Atendimento: {selectedAttendance.attendanceNumber}
-                          </CardDescription>
+                <Tabs
+                  value={activeTab}
+                  onValueChange={(value) =>
+                    setActiveTab(value as 'records' | 'lab-tests' | 'prescriptions')
+                  }
+                >
+                  <TabsList className="w-full justify-start">
+                    <TabsTrigger value="records">Prontuário</TabsTrigger>
+                    <TabsTrigger value="lab-tests">Exames</TabsTrigger>
+                    <TabsTrigger value="prescriptions">Prescrições</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="records" className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle>Prontuário do Paciente</CardTitle>
+                            <CardDescription>
+                              Atendimento: {selectedAttendance.attendanceNumber}
+                            </CardDescription>
+                          </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowOutcomeForm(true)}
+                            disabled={selectedAttendance.status === 'FINALIZADO'}
+                          >
+                            Finalizar atendimento
+                          </Button>
+                          <Button
+                            onClick={() => setShowRecordForm(true)}
+                            disabled={!selectedAttendance.visitId}
+                            title={!selectedAttendance.visitId ? 'Atendimento sem visita associada' : ''}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Novo Registro
+                          </Button>
                         </div>
-                        <Button
-                          onClick={() => setShowForm(true)}
-                          disabled={!selectedAttendance.visitId}
-                          title={!selectedAttendance.visitId ? 'Atendimento sem visita associada' : ''}
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Novo Registro
-                        </Button>
                       </div>
                     </CardHeader>
                   </Card>
 
-                  <MedicalRecordHistory
-                    patientId={selectedPatient.id}
-                    patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
-                  />
-
-                  {selectedAttendance.visitId ? (
-                    <MedicalRecordForm
-                      open={showForm}
-                      onOpenChange={setShowForm}
-                      visitId={selectedAttendance.visitId}
+                    <MedicalRecordHistory
+                      patientId={selectedPatient.id}
                       patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
-                      onSuccess={() => {
-                        setShowForm(false);
-                        // Forçar reload do histórico (o componente já faz isso internamente)
-                      }}
+                      patientCode={selectedPatient.patientCode}
+                      attendanceNumber={selectedAttendance.attendanceNumber}
                     />
-                  ) : (
-                    showForm && (
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                          Este atendimento não possui uma visita associada. Não é possível criar registros no prontuário.
-                        </AlertDescription>
-                      </Alert>
-                    )
-                  )}
-                </>
+
+                    {selectedAttendance.visitId ? (
+                      <MedicalRecordForm
+                        open={showRecordForm}
+                        onOpenChange={setShowRecordForm}
+                        visitId={selectedAttendance.visitId}
+                        patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
+                        onSuccess={() => {
+                          setShowRecordForm(false);
+                        }}
+                      />
+                    ) : (
+                      showRecordForm && (
+                        <Alert>
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Este atendimento não possui uma visita associada. Não é possível criar registros no prontuário.
+                          </AlertDescription>
+                        </Alert>
+                      )
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="lab-tests" className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle>Exames Laboratoriais</CardTitle>
+                            <CardDescription>
+                              Solicite exames e acompanhe resultados vinculados ao atendimento.
+                            </CardDescription>
+                          </div>
+                          <Button onClick={() => setLabOrderOpen(true)}>
+                            <ClipboardList className="h-4 w-4 mr-2" />
+                            Solicitar exame
+                          </Button>
+                        </div>
+                      </CardHeader>
+                    </Card>
+
+                    <LabTestList
+                      patientId={selectedPatient.id}
+                      visitId={selectedAttendance.visitId}
+                      version={labTestsVersion}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="prescriptions" className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle>Prescrições Médicas</CardTitle>
+                            <CardDescription>
+                              Gere novas prescrições e consulte o histórico do paciente.
+                            </CardDescription>
+                          </div>
+                          <Button
+                            onClick={() => setPrescriptionFormOpen(true)}
+                            disabled={!selectedAttendance.visitId}
+                            title={
+                              !selectedAttendance.visitId
+                                ? 'Atendimento sem visita associada'
+                                : undefined
+                            }
+                          >
+                            <Receipt className="h-4 w-4 mr-2" />
+                            Nova prescrição
+                          </Button>
+                        </div>
+                      </CardHeader>
+                    </Card>
+
+                    <PrescriptionList
+                      patientId={selectedPatient.id}
+                      version={prescriptionsVersion}
+                    />
+                  </TabsContent>
+                </Tabs>
               )}
             </>
           ) : (
@@ -348,6 +447,51 @@ export default function MedicalRecords() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {selectedPatient && (
+        <LabTestOrderForm
+          open={labOrderOpen}
+          onOpenChange={setLabOrderOpen}
+          patientId={selectedPatient.id}
+          patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
+          visitId={selectedAttendance?.visitId}
+          onSuccess={() => {
+            setLabOrderOpen(false);
+            setLabTestsVersion((prev) => prev + 1);
+          }}
+        />
+      )}
+
+      {selectedPatient && selectedAttendance && (
+        <PrescriptionForm
+          open={prescriptionFormOpen}
+          onOpenChange={setPrescriptionFormOpen}
+          patientId={selectedPatient.id}
+          patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
+          visitId={selectedAttendance.visitId}
+          attendanceId={selectedAttendance.id}
+          defaultDoctorId={user?.staffId ?? undefined}
+          onSuccess={() => {
+            setPrescriptionsVersion((prev) => prev + 1);
+            setPrescriptionFormOpen(false);
+          }}
+        />
+      )}
+
+      {selectedAttendance && selectedPatient && (
+        <AttendanceOutcomeForm
+          open={showOutcomeForm}
+          onOpenChange={setShowOutcomeForm}
+          attendanceId={selectedAttendance.id}
+          patientId={selectedPatient.id}
+          patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
+          attendanceNumber={selectedAttendance.attendanceNumber}
+          onSuccess={() => {
+            setShowOutcomeForm(false);
+            handleSelectPatient(selectedPatient);
+          }}
+        />
       )}
     </div>
   );

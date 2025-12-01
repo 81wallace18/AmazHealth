@@ -52,14 +52,18 @@ export const patientService = {
     lastName: string,
     dateOfBirth: string
   ): Promise<Patient[]> {
-    const response = await api.get<PaginatedResponse<Patient>>('/patients/search/duplicates', {
+    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+    if (!fullName || !dateOfBirth) {
+      return [];
+    }
+
+    const response = await api.get<Patient[]>('/patients/check-duplicate', {
       params: {
-        firstName,
-        lastName,
-        dateOfBirth
+        name: fullName,
+        birthDate: dateOfBirth
       }
     });
-    return response.data.content;
+    return response.data;
   },
 
   /**
@@ -112,16 +116,6 @@ export const patientService = {
   async getIdentification(patientId: string): Promise<PatientIdentification> {
     const response = await api.get<PatientIdentification>(`/patients/${patientId}/identification`);
     return response.data;
-  },
-
-  /**
-   * US-A3: Registrar reimpressão de identificação (audit trail)
-   */
-  async reprintIdentification(patientId: string, reason?: string): Promise<void> {
-    await api.post(
-      `/patients/${patientId}/identification/reprint`,
-      reason ? { reason } : {}
-    );
   },
 
   /**

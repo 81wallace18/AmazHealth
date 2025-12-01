@@ -10,17 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MedicalRecordHistory } from '@/components/medical-records/MedicalRecordHistory';
 import { MedicalRecordForm } from '@/components/medical-records/MedicalRecordForm';
+import { AttendanceOutcomeForm } from '@/components/medical-records/AttendanceOutcomeForm';
 import { triageService } from '@/services/triageService';
 import attendanceService, { type Attendance } from '@/services/attendanceService';
 import type { TriageBoardItem, ManchesterColor } from '@/types/triage';
@@ -34,8 +28,7 @@ export default function Consultations() {
   const [attendance, setAttendance] = useState<Attendance | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showMedicalRecordForm, setShowMedicalRecordForm] = useState(false);
-  const [isFinalizing, setIsFinalizing] = useState(false);
-  const [outcome, setOutcome] = useState<'ALTA' | 'INTERNACAO' | 'OBITO' | 'TRANSFERENCIA' | 'EVASAO'>('ALTA');
+  const [showOutcomeForm, setShowOutcomeForm] = useState(false);
 
   // Carregar fila de pacientes
   useEffect(() => {
@@ -101,23 +94,6 @@ export default function Consultations() {
     setSelectedPatient(null);
     setAttendance(null);
     setShowMedicalRecordForm(false);
-  };
-
-  const handleFinalizeAttendance = async () => {
-    if (!attendance) return;
-
-    setIsFinalizing(true);
-    try {
-      await attendanceService.finalize(attendance.id, outcome);
-      toast.success('Atendimento finalizado com sucesso');
-      handleCloseDialog();
-      loadPatients(); // Recarregar fila
-    } catch (error) {
-      console.error('Erro ao finalizar atendimento:', error);
-      toast.error('Erro ao finalizar atendimento');
-    } finally {
-      setIsFinalizing(false);
-    }
   };
 
   const getManchesterBadge = (color: ManchesterColor | null) => {
@@ -290,30 +266,14 @@ export default function Consultations() {
                 </Alert>
 
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Desfecho do Atendimento</label>
-                    <Select value={outcome} onValueChange={(v: any) => setOutcome(v)}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALTA">Alta Médica</SelectItem>
-                        <SelectItem value="INTERNACAO">Internação</SelectItem>
-                        <SelectItem value="TRANSFERENCIA">Transferência</SelectItem>
-                        <SelectItem value="OBITO">Óbito</SelectItem>
-                        <SelectItem value="EVASAO">Evasão</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   <div className="flex justify-end gap-2">
                     <Button variant="outline" onClick={handleCloseDialog}>
                       <XCircle className="h-4 w-4 mr-2" />
                       Cancelar
                     </Button>
-                    <Button onClick={handleFinalizeAttendance} disabled={isFinalizing}>
+                    <Button onClick={() => setShowOutcomeForm(true)}>
                       <CheckCircle2 className="h-4 w-4 mr-2" />
-                      {isFinalizing ? 'Finalizando...' : 'Finalizar Atendimento'}
+                      Finalizar atendimento
                     </Button>
                   </div>
                 </div>
@@ -328,6 +288,22 @@ export default function Consultations() {
           )}
         </DialogContent>
       </Dialog>
+
+      {attendance && (
+        <AttendanceOutcomeForm
+          open={showOutcomeForm}
+          onOpenChange={setShowOutcomeForm}
+          attendanceId={attendance.id}
+           patientId={attendance.patientId}
+          patientName={selectedPatient?.patientName || ''}
+          attendanceNumber={attendance.attendanceNumber}
+          onSuccess={() => {
+            setShowOutcomeForm(false);
+            handleCloseDialog();
+            loadPatients();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -31,6 +31,7 @@ import {
   User,
   Calendar,
   AlertCircle,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MedicalRecordForm } from './MedicalRecordForm';
@@ -39,6 +40,8 @@ interface MedicalRecordHistoryProps {
   patientId: string;
   patientName?: string;
   visitId?: string; // Se fornecido, filtra por visita
+  patientCode?: string;
+  attendanceNumber?: string;
 }
 
 /**
@@ -64,12 +67,16 @@ export function MedicalRecordHistory({
   patientId,
   patientName,
   visitId,
+  patientCode,
+  attendanceNumber,
 }: MedicalRecordHistoryProps) {
   const queryClient = useQueryClient();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [deleteRecord, setDeleteRecord] = useState<MedicalRecordResponse | null>(null);
   const [editRecord, setEditRecord] = useState<MedicalRecordResponse | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
+  const [isGeneratingDeclaration, setIsGeneratingDeclaration] = useState(false);
 
   // Buscar registros
   const { data, isLoading, error, refetch } = useQuery({
@@ -126,6 +133,88 @@ export function MedicalRecordHistory({
     return `${hours}h`;
   };
 
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleGenerateCertificate = async () => {
+    if (!patientName) {
+      toast.error('Selecione um paciente para gerar o documento.');
+      return;
+    }
+    const typeInput = window
+      .prompt('Tipo de atestado (WORK_LEAVE, FIT_FOR_WORK, EXAM):', 'WORK_LEAVE')
+      ?.toUpperCase()
+      .trim();
+    if (!typeInput) {
+      return;
+    }
+    if (!['WORK_LEAVE', 'FIT_FOR_WORK', 'EXAM'].includes(typeInput)) {
+      toast.error('Tipo de atestado inválido.');
+      return;
+    }
+    let days: string | undefined;
+    if (typeInput === 'WORK_LEAVE') {
+      const daysInput = window.prompt('Quantidade de dias de afastamento?', '3');
+      if (!daysInput) {
+        toast.error('Informe os dias de afastamento.');
+        return;
+      }
+      days = daysInput;
+    }
+    const observations = window.prompt('Observações (opcional)') ?? undefined;
+
+    setIsGeneratingCertificate(true);
+    try {
+      const blob = await medicalRecordService.generateMedicalCertificate({
+        patientName,
+        patientCode,
+        type: typeInput as 'WORK_LEAVE' | 'FIT_FOR_WORK' | 'EXAM',
+        days,
+        observations,
+      });
+      downloadBlob(blob, `atestado_${patientId}.pdf`);
+      toast.success('Atestado gerado com sucesso.');
+    } catch (error: any) {
+      console.error('Erro ao gerar atestado:', error);
+      toast.error(error?.response?.data?.message || 'Não foi possível gerar o atestado.');
+    } finally {
+      setIsGeneratingCertificate(false);
+    }
+  };
+
+  const handleGenerateDeclaration = async () => {
+    if (!patientName) {
+      toast.error('Selecione um paciente para gerar o documento.');
+      return;
+    }
+    const purpose = window.prompt('Finalidade da declaração (opcional)') ?? undefined;
+
+    setIsGeneratingDeclaration(true);
+    try {
+      const blob = await medicalRecordService.generateAttendanceDeclaration({
+        patientName,
+        patientCode,
+        attendanceNumber,
+        purpose,
+      });
+      downloadBlob(blob, `declaracao_${patientId}.pdf`);
+      toast.success('Declaração gerada com sucesso.');
+    } catch (error: any) {
+      console.error('Erro ao gerar declaração:', error);
+      toast.error(error?.response?.data?.message || 'Não foi possível gerar a declaração.');
+    } finally {
+      setIsGeneratingDeclaration(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -164,6 +253,29 @@ export function MedicalRecordHistory({
 
   return (
     <>
+      {patientName && (
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateCertificate}
+            disabled={isGeneratingCertificate}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Atestado
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateDeclaration}
+            disabled={isGeneratingDeclaration}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Declaração
+          </Button>
+        </div>
+      )}
+
       <div className="space-y-4">
         {records.map((record) => {
           const isExpanded = expandedIds.has(record.id);

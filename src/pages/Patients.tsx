@@ -33,6 +33,7 @@ export default function Patients() {
   const [isPrintLabelOpen, setIsPrintLabelOpen] = useState(false);
   const [isNewAttendanceOpen, setIsNewAttendanceOpen] = useState(false);
   const [currentAttendanceNumber, setCurrentAttendanceNumber] = useState<string | undefined>();
+  const [currentAttendanceId, setCurrentAttendanceId] = useState<string | undefined>();
   const [identificationInfo, setIdentificationInfo] = useState<PatientIdentificationInfo | null>(null);
   const [isLoadingIdentification, setIsLoadingIdentification] = useState(false);
 
@@ -47,6 +48,7 @@ export default function Patients() {
       setIdentificationInfo(null);
       setIsLoadingIdentification(false);
       setCurrentAttendanceNumber(undefined);
+      setCurrentAttendanceId(undefined);
     }
   }, [isPrintLabelOpen]);
 
@@ -120,6 +122,7 @@ export default function Patients() {
       const data = await patientService.getIdentification(patientId);
       setIdentificationInfo(data);
       setCurrentAttendanceNumber((prev) => data.attendanceNumber ?? prev);
+      setCurrentAttendanceId((prev) => data.attendanceId ?? prev);
     } catch (error) {
       console.error('Error fetching identification data:', error);
     } finally {
@@ -131,6 +134,7 @@ export default function Patients() {
     setSelectedPatient(patient);
     setIdentificationInfo(null);
     setCurrentAttendanceNumber(undefined);
+    setCurrentAttendanceId(undefined);
     setIsPrintLabelOpen(true);
     void fetchIdentification(patient.id);
   };
@@ -152,16 +156,36 @@ export default function Patients() {
 
   const handleReprint = async () => {
     if (!selectedPatient) return;
+    const attendanceId = identificationInfo?.attendanceId || currentAttendanceId;
+    if (!attendanceId) {
+      toast({
+        title: "Não foi possível reimprimir",
+        description: "Nenhum atendimento ativo foi encontrado para este paciente.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
-      await patientService.reprintIdentification(
-        selectedPatient.id,
-        'Reimpressão solicitada pelo usuário'
+      const updatedInfo = await attendanceService.reprintLabel(
+        attendanceId,
+        'Reimpressão solicitada manualmente'
       );
-    } catch (error) {
+      setIdentificationInfo(updatedInfo);
+      setCurrentAttendanceNumber(updatedInfo.attendanceNumber ?? currentAttendanceNumber);
+      setCurrentAttendanceId(updatedInfo.attendanceId ?? currentAttendanceId);
+      toast({
+        title: "Etiqueta reimpressa",
+        description: "A ação foi registrada no log de auditoria.",
+      });
+    } catch (error: any) {
       console.error('Error logging reprint:', error);
-    } finally {
-      await fetchIdentification(selectedPatient.id);
+      const message = error.response?.data?.message || 'Erro ao reimprimir etiqueta. Tente novamente.';
+      toast({
+        title: "Erro ao reimprimir",
+        description: message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -181,6 +205,7 @@ export default function Patients() {
 
       // Armazena o número de atendimento para a etiqueta
       setCurrentAttendanceNumber(attendance.attendanceNumber);
+      setCurrentAttendanceId(attendance.id);
       setIdentificationInfo(null);
 
       // Fecha o modal de novo atendimento

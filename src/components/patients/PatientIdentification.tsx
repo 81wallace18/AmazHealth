@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Printer, AlertTriangle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -28,8 +28,8 @@ interface PatientIdentificationProps {
   patient: Patient | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPrint?: () => void;
-  onReprint?: () => void;
+  onPrint?: () => Promise<void> | void;
+  onReprint?: () => Promise<void> | void;
   attendanceNumber?: string;
   printedAt?: string;
   printedBy?: string;
@@ -53,6 +53,10 @@ export function PatientIdentification({
 }: PatientIdentificationProps) {
   const [showReprintConfirm, setShowReprintConfirm] = useState(false);
   const [hasBeenPrinted, setHasBeenPrinted] = useState(false);
+
+  useEffect(() => {
+    setHasBeenPrinted((value) => value || Boolean(printedAt));
+  }, [printedAt]);
 
   // Retorna null se não há paciente
   if (!patient) {
@@ -84,20 +88,25 @@ export function PatientIdentification({
 
   const lastPrintedLabel = formatPrintedAt(printedAt);
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     window.print();
     setHasBeenPrinted(true);
-    onPrint?.();
+    if (onPrint) {
+      await onPrint();
+    }
   };
 
   const handleReprint = () => {
     setShowReprintConfirm(true);
   };
 
-  const confirmReprint = () => {
+  const confirmReprint = async () => {
     setShowReprintConfirm(false);
+    if (onReprint) {
+      await onReprint();
+    }
+    setHasBeenPrinted(true);
     window.print();
-    onReprint?.();
   };
 
   return (

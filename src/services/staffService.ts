@@ -49,7 +49,7 @@ export interface PageResponse<T> {
 }
 
 class StaffService {
-  private baseUrl = '/api/v1/staff';
+  private baseUrl = '/staff';
 
   /**
    * Lista todos os profissionais com paginação e filtros

@@ -1,49 +1,98 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { authService, AuthResponse } from '@/services/authService';
-import api from '@/lib/api';
+import {
+  authService,
+  AuthResponse,
+  MeResponse,
+  OrganizationInfo,
+} from '@/services/authService';
 
 interface User {
   id: string;
   username: string;
   email: string;
-  fullName: string;
+  fullName?: string;
   organizationId: string;
   organizationName: string;
   staffId?: string | null;
   activeSectorId?: string | null;
   roles: string[];
+  organizations?: OrganizationInfo[];
 }
+
+const mapAuthUser = (authUser: AuthResponse['user']): User => ({
+  id: authUser.id,
+  username: authUser.username,
+  email: authUser.email,
+  fullName: authUser.fullName,
+  organizationId: authUser.organizationId,
+  organizationName: authUser.organizationName,
+  staffId: authUser.staffId ?? null,
+  activeSectorId: authUser.activeSectorId ?? null,
+  roles: authUser.roles ?? [],
+});
+
+const mapProfileToUser = (profile: MeResponse): User => ({
+  id: profile.userId,
+  username: profile.username,
+  email: profile.email,
+  fullName: profile.username,
+  organizationId: profile.activeOrganizationId,
+  organizationName: profile.activeOrganizationName,
+  staffId: profile.staffId ?? null,
+  activeSectorId: profile.activeSectorId ?? null,
+  roles: profile.activeRoles ?? [],
+  organizations: profile.organizations,
+});
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const clearSession = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    setUser(null);
+  };
+
+  const persistUser = (data: User) => {
+    localStorage.setItem('user', JSON.stringify(data));
+    setUser(data);
+  };
+
+  const syncAuthResponse = (response: AuthResponse) => {
+    localStorage.setItem('accessToken', response.accessToken);
+    if (response.refreshToken) {
+      localStorage.setItem('refreshToken', response.refreshToken);
+    }
+    const normalized = mapAuthUser(response.user);
+    persistUser(normalized);
+    return normalized;
+  };
+
   useEffect(() => {
     // Verifica se há usuário salvo no localStorage ao carregar
     const validateSession = async () => {
-      const storedUser = localStorage.getItem('user');
+      const storedUserRaw = localStorage.getItem('user');
       const accessToken = localStorage.getItem('accessToken');
 
-      if (storedUser && accessToken) {
+      if (storedUserRaw && accessToken) {
         try {
-          // Tenta validar o token fazendo uma requisição ao backend
-          const response = await api.get('/auth/me');
-          const parsed = JSON.parse(storedUser);
+          const parsed: User = JSON.parse(storedUserRaw);
           if (!parsed.roles) {
             parsed.roles = [];
           }
-          // Atualiza com dados frescos do backend
-          setUser(response.data);
+          setUser(parsed);
+
+          const profile = await authService.getProfile();
+          const normalized = mapProfileToUser(profile);
+          persistUser(normalized);
         } catch (error) {
-          // Token inválido/expirado - limpa tudo
           console.warn('[useAuth] Token inválido ao carregar, limpando sessão');
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('user');
-          setUser(null);
+          clearSession();
         }
       }
       setLoading(false);
@@ -61,14 +110,7 @@ export function useAuth() {
         organizationId,
       });
 
-      // Salva tokens e user no localStorage
-      localStorage.setItem('accessToken', response.accessToken);
-      if (response.refreshToken) {
-        localStorage.setItem('refreshToken', response.refreshToken);
-      }
-      localStorage.setItem('user', JSON.stringify(response.user));
-
-      setUser(response.user);
+      syncAuthResponse(response);
       toast.success('Login realizado com sucesso!');
       return { error: null };
     } catch (error: any) {
@@ -122,14 +164,7 @@ export function useAuth() {
         area,
       });
 
-      // Salva tokens e user no localStorage
-      localStorage.setItem('accessToken', response.accessToken);
-      if (response.refreshToken) {
-        localStorage.setItem('refreshToken', response.refreshToken);
-      }
-      localStorage.setItem('user', JSON.stringify(response.user));
-
-      setUser(response.user);
+      syncAuthResponse(response);
       toast.success('Cadastro realizado com sucesso! Bem-vindo(a)!');
       return { error: null };
     } catch (error: any) {
@@ -173,12 +208,7 @@ export function useAuth() {
       setLoading(true);
       await authService.logout();
 
-      // Limpa localStorage
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-
-      setUser(null);
+      clearSession();
       toast.success('Logout realizado com sucesso!');
 
       // Redireciona para login
@@ -186,11 +216,36 @@ export function useAuth() {
     } catch (error) {
       // Mesmo com erro no backend, limpa localmente e redireciona
       console.error('[useAuth] Erro ao fazer logout no backend:', error);
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      setUser(null);
+      clearSession();
       navigate('/auth', { replace: true });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const changeActiveSector = async (sectorId: string) => {
+    try {
+      setLoading(true);
+      const response = await authService.updateActiveSector(sectorId);
+      syncAuthResponse(response);
+      toast.success('Setor ativo atualizado.');
+    } catch (error: any) {
+      console.error('Erro ao atualizar setor ativo:', error);
+      toast.error(error?.response?.data?.message || 'Não foi possível atualizar o setor.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const linkStaff = async (staffId: string) => {
+    try {
+      setLoading(true);
+      const response = await authService.updateStaff(staffId);
+      syncAuthResponse(response);
+      toast.success('Profissional vinculado ao usuário.');
+    } catch (error: any) {
+      console.error('Erro ao atualizar staff do usuário:', error);
+      toast.error(error?.response?.data?.message || 'Não foi possível atualizar o vínculo.');
     } finally {
       setLoading(false);
     }
@@ -203,5 +258,7 @@ export function useAuth() {
     signUp,
     signOut,
     isAuthenticated: !!user,
+    changeActiveSector,
+    linkStaff,
   };
 }

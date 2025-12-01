@@ -36,6 +36,24 @@ export interface AuthResponse {
   };
 }
 
+export interface OrganizationInfo {
+  organizationId: string;
+  organizationName: string;
+  roles: string[];
+}
+
+export interface MeResponse {
+  userId: string;
+  username: string;
+  email: string;
+  activeOrganizationId: string;
+  activeOrganizationName: string;
+  activeRoles: string[];
+  staffId?: string | null;
+  activeSectorId?: string | null;
+  organizations: OrganizationInfo[];
+}
+
 /**
  * Service para autenticação com o backend.
  */
@@ -69,5 +87,29 @@ export const authService = {
    */
   async logout(): Promise<void> {
     await api.post('/auth/logout');
+  },
+
+  /**
+   * Retorna o perfil autenticado.
+   */
+  async getProfile(): Promise<MeResponse> {
+    const response = await api.get<MeResponse>('/auth/me');
+    return response.data;
+  },
+
+  /**
+   * Atualiza setor ativo do usuário autenticado.
+   */
+  async updateActiveSector(sectorId: string): Promise<AuthResponse> {
+    const response = await api.patch<AuthResponse>('/auth/me/sector', { sectorId });
+    return response.data;
+  },
+
+  /**
+   * Atualiza staff associado ao usuário autenticado.
+   */
+  async updateStaff(staffId: string): Promise<AuthResponse> {
+    const response = await api.patch<AuthResponse>('/auth/me/staff', { staffId });
+    return response.data;
   },
 };

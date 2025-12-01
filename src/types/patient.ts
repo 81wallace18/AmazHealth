@@ -100,6 +100,7 @@ export interface Patient {
 
   // Status e Controle
   status: PatientStatus;
+  similarityScore?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -173,6 +174,7 @@ export interface PatientIdentification {
   patientCode: string;
   fullName: string;
   dateOfBirth: string;
+  attendanceId?: string;
   attendanceNumber?: string;
   barcode: string;
   printedAt?: string;

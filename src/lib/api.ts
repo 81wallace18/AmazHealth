@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 
 /**
  * Cliente API base usando Axios.
@@ -80,8 +81,22 @@ api.interceptors.response.use(
           detail: { reason: 'session_expired' }
         }));
 
+        toast.error('Sessão expirada. Faça login novamente.');
         return Promise.reject(refreshError);
       }
+    }
+
+    if (error.response) {
+      const status = error.response.status;
+      if (status === 403) {
+        toast.error(error.response.data?.message || 'Você não tem permissão para esta ação.');
+      } else if (status >= 400 && status < 500) {
+        toast.error(error.response.data?.message || 'Verifique os dados e tente novamente.');
+      } else if (status >= 500) {
+        toast.error('Erro interno no servidor. Tente novamente mais tarde.');
+      }
+    } else if (error.request) {
+      toast.error('Servidor indisponível. Verifique sua conexão.');
     }
 
     return Promise.reject(error);

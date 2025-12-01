@@ -27,6 +27,10 @@ interface TriageBoardProps {
   onRefresh?: () => void;
   onAssignSector?: (visitId: string, patientName: string) => void;
   isRefreshing?: boolean;
+  isPaused?: boolean;
+  isManualPause?: boolean;
+  disableToggle?: boolean;
+  onToggleAutoRefresh?: () => void;
 }
 
 export function TriageBoard({
@@ -35,6 +39,10 @@ export function TriageBoard({
   onRefresh,
   onAssignSector,
   isRefreshing = false,
+  isPaused = false,
+  isManualPause = false,
+  disableToggle = false,
+  onToggleAutoRefresh,
 }: TriageBoardProps) {
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -69,11 +77,30 @@ export function TriageBoard({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Painel de Triagem Manchester</h2>
-        <Badge variant="outline" className="text-sm">
-          {triagedPatients.length} {triagedPatients.length === 1 ? 'paciente' : 'pacientes'} no painel
-        </Badge>
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl font-bold">Painel de Triagem Manchester</h2>
+          <Badge variant="outline" className="text-sm">
+            {triagedPatients.length} {triagedPatients.length === 1 ? 'paciente' : 'pacientes'} no painel
+          </Badge>
+        </div>
+        {onToggleAutoRefresh && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onToggleAutoRefresh}
+              disabled={disableToggle && !isManualPause}
+            >
+              {isPaused ? 'Retomar Atualização' : 'Pausar Atualização'}
+            </Button>
+            {isPaused && (
+              <Badge variant="secondary" className="text-xs">
+                {isManualPause ? 'Pausado manualmente' : 'Pausado temporariamente'}
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
 
       {triagedPatients.length === 0 ? (
@@ -186,10 +213,14 @@ export function TriageBoard({
       )}
 
       {/* Auto-refresh indicator */}
-      {autoRefresh && onRefresh && (
+      {onRefresh && (
         <p className="text-sm text-gray-500 text-center flex items-center justify-center gap-2">
           {isRefreshing && <RefreshCw className="h-3 w-3 animate-spin" aria-hidden="true" />}
-          Atualização automática a cada 30 segundos
+          {isPaused
+            ? isManualPause
+              ? 'Atualização pausada manualmente'
+              : 'Atualização pausada enquanto há janelas abertas'
+            : 'Atualização automática a cada 30 segundos'}
         </p>
       )}
     </div>
