@@ -13,11 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { pharmacyService } from "@/services/pharmacyService";
-import type { Medicine, MedicineStock } from "@/types/pharmacy";
+import type { Medicine, MedicineRequest, MedicineStock } from "@/types/pharmacy";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle, Pencil } from "lucide-react";
 
 type StockView = "AVAILABLE" | "NEAR" | "LOW" | "EXPIRED";
 
@@ -31,6 +33,11 @@ export function StockManagement() {
   const [quantity, setQuantity] = useState<number>(0);
   const [batchNumber, setBatchNumber] = useState("");
   const [expirationDate, setExpirationDate] = useState("");
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingMedicineId, setEditingMedicineId] = useState<string | null>(null);
+  const [medicineForm, setMedicineForm] = useState<MedicineRequest | null>(null);
+  const [savingMedicine, setSavingMedicine] = useState(false);
+  const [loadingMedicineDetails, setLoadingMedicineDetails] = useState(false);
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -71,6 +78,82 @@ export function StockManagement() {
     };
     void loadMedicines();
   }, []);
+
+  const openEditMedicine = async (medicineId: string) => {
+    setLoadingMedicineDetails(true);
+    try {
+      let medicine = medicines.find((item) => item.id === medicineId);
+      if (!medicine) {
+        const fetched = await pharmacyService.getMedicineById(medicineId);
+        setMedicines((prev) => [...prev, fetched]);
+        medicine = fetched;
+      }
+
+      const form: MedicineRequest = {
+        medicineCode: medicine.medicineCode,
+        medicineName: medicine.medicineName,
+        genericName: medicine.genericName,
+        strength: medicine.strength,
+        dosageForm: medicine.dosageForm,
+        manufacturer: medicine.manufacturer,
+        category: medicine.category,
+        unitPrice: medicine.unitPrice,
+        reorderLevel: medicine.reorderLevel,
+        isActive: medicine.isActive ?? true,
+        status: medicine.status,
+        description: medicine.description,
+        requiresPrescription: medicine.requiresPrescription ?? true,
+        isControlled: medicine.isControlled ?? false,
+        maxDispenseQuantity: medicine.maxDispenseQuantity,
+        minDispenseQuantity: medicine.minDispenseQuantity,
+        barcode: medicine.barcode
+      };
+
+      if (medicine) {
+        setMedicineForm(form);
+        setEditingMedicineId(medicine.id);
+        setIsEditOpen(true);
+      }
+    } catch (err: any) {
+      toast({
+        title: "Erro ao carregar medicamento",
+        description: err?.message || "Não foi possível carregar os dados do medicamento selecionado.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingMedicineDetails(false);
+    }
+  };
+
+  const handleMedicineChange = (field: keyof MedicineRequest, value: MedicineRequest[typeof field]) => {
+    setMedicineForm((prev) => (prev ? { ...prev, [field]: value } : prev));
+  };
+
+  const handleSaveMedicine = async () => {
+    if (!medicineForm || !editingMedicineId) {
+      return;
+    }
+
+    setSavingMedicine(true);
+    try {
+      const updated = await pharmacyService.updateMedicine(editingMedicineId, medicineForm);
+      setMedicines((prev) => prev.map((medicine) => (medicine.id === updated.id ? updated : medicine)));
+      toast({
+        title: "Medicamento atualizado",
+        description: "As informações do medicamento foram salvas com sucesso."
+      });
+      setIsEditOpen(false);
+      await loadData();
+    } catch (err: any) {
+      toast({
+        title: "Erro ao atualizar medicamento",
+        description: err?.message || "Verifique os dados e tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingMedicine(false);
+    }
+  };
 
   const handleAddStock = async () => {
     if (!selectedMedicine || !quantity || !batchNumber || !expirationDate) {
@@ -151,6 +234,7 @@ export function StockManagement() {
                       <TableHead>Quantidade</TableHead>
                       <TableHead>Validade</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -167,6 +251,17 @@ export function StockManagement() {
                           <Badge variant={stock.isExpired ? "destructive" : stock.isNearExpiry ? "secondary" : "outline"}>
                             {stock.status ?? (stock.isExpired ? "Vencido" : stock.isNearExpiry ? "Próx. Vencimento" : "Disponível")}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditMedicine(stock.medicineId)}
+                            disabled={loadingMedicineDetails && editingMedicineId === stock.medicineId}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Editar medicamento</span>
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -225,6 +320,142 @@ export function StockManagement() {
             </Button>
             <Button onClick={handleAddStock}>
               Salvar entrada
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar medicamento</DialogTitle>
+          </DialogHeader>
+          {medicineForm ? (
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <Label>Código</Label>
+                  <Input value={medicineForm.medicineCode} disabled />
+                </div>
+                <div className="space-y-1">
+                  <Label>Nome</Label>
+                  <Input
+                    value={medicineForm.medicineName}
+                    onChange={(event) => handleMedicineChange("medicineName", event.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <Label>Nome genérico</Label>
+                  <Input
+                    value={medicineForm.genericName ?? ""}
+                    onChange={(event) => handleMedicineChange("genericName", event.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Fabricante</Label>
+                  <Input
+                    value={medicineForm.manufacturer ?? ""}
+                    onChange={(event) => handleMedicineChange("manufacturer", event.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <Label>Categoria</Label>
+                  <Input
+                    value={medicineForm.category ?? ""}
+                    onChange={(event) => handleMedicineChange("category", event.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Classe terapêutica</Label>
+                  <Input
+                    value={medicineForm.therapeuticClass ?? ""}
+                    onChange={(event) => handleMedicineChange("therapeuticClass", event.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <Label>Preço unitário</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={medicineForm.unitPrice ?? ""}
+                    onChange={(event) => handleMedicineChange("unitPrice", Number(event.target.value))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Nível de reposição</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={medicineForm.reorderLevel ?? ""}
+                    onChange={(event) => handleMedicineChange("reorderLevel", Number(event.target.value))}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div>
+                    <p className="text-sm font-medium">Requer prescrição</p>
+                    <p className="text-xs text-muted-foreground">
+                      Exigir receita para dispensação.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={medicineForm.requiresPrescription ?? true}
+                    onCheckedChange={(checked) => handleMedicineChange("requiresPrescription", checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div>
+                    <p className="text-sm font-medium">Medicamento controlado</p>
+                    <p className="text-xs text-muted-foreground">
+                      Requer ficha de controle especial.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={medicineForm.isControlled ?? false}
+                    onCheckedChange={(checked) => handleMedicineChange("isControlled", checked)}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <p className="text-sm font-medium">Medicamento ativo</p>
+                  <p className="text-xs text-muted-foreground">
+                    Controla a disponibilidade na listagem.
+                  </p>
+                </div>
+                <Switch
+                  checked={medicineForm.isActive ?? true}
+                  onCheckedChange={(checked) => handleMedicineChange("isActive", checked)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Descrição</Label>
+                <Textarea
+                  rows={3}
+                  value={medicineForm.description ?? ""}
+                  onChange={(event) => handleMedicineChange("description", event.target.value)}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+              Selecionando medicamento...
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveMedicine} disabled={savingMedicine || !medicineForm}>
+              {savingMedicine && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar alterações
             </Button>
           </DialogFooter>
         </DialogContent>

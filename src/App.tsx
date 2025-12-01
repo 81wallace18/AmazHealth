@@ -24,6 +24,7 @@ import Reports from "./pages/Reports";
 import Staff from "./pages/Staff";
 import UserManagement from "./pages/UserManagement";
 import Auth from "./pages/Auth";
+import ActivateAccount from "./pages/ActivateAccount";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -108,6 +109,11 @@ const App = () => (
           <Route path="/auth" element={
             <PublicRoute>
               <Auth />
+            </PublicRoute>
+          } />
+          <Route path="/activate" element={
+            <PublicRoute>
+              <ActivateAccount />
             </PublicRoute>
           } />
           <Route path="/" element={

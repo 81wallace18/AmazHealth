@@ -18,6 +18,8 @@ export interface Medicine {
   barcode?: string;
   totalStockQuantity?: number;
   needsReorder?: boolean;
+  description?: string;
+  therapeuticClass?: string;
 }
 
 export interface MedicineRequest {
@@ -103,6 +105,20 @@ export interface PharmacyStatistics {
   nearExpiry: number;
 }
 
+export interface ConsumptionPoint {
+  date: string;
+  quantity: number;
+}
+
+export interface RecentPrescriptionSummary {
+  id: string;
+  code: string;
+  patientName: string;
+  doctorName?: string;
+  status: string;
+  createdAt: string;
+}
+
 export interface PharmacyDashboardData {
   stockByStatus: Record<string, number>;
   stockByCategory: Record<string, number>;
@@ -110,6 +126,8 @@ export interface PharmacyDashboardData {
   inventoryAlerts: number;
   alertsBySeverity: Record<string, number>;
   totalMedicines: number;
+  consumptionTrend: ConsumptionPoint[];
+  recentPrescriptions: RecentPrescriptionSummary[];
 }
 
 export interface DispenseRequestItem {

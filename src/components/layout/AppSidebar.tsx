@@ -100,13 +100,13 @@ const navigationItems = [
     group: "Gestão"
   },
   {
-    title: "Equipe",
+    title: "Equipe Clínica",
     url: "/staff",
     icon: Users,
     group: "Gestão"
   },
   {
-    title: "Usuários",
+    title: "Usuários & Acessos",
     url: "/users",
     icon: UserPlus,
     group: "Gestão"

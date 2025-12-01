@@ -54,6 +54,12 @@ export interface MeResponse {
   organizations: OrganizationInfo[];
 }
 
+export interface ActivateAccountRequest {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}
+
 /**
  * Service para autenticação com o backend.
  */
@@ -110,6 +116,14 @@ export const authService = {
    */
   async updateStaff(staffId: string): Promise<AuthResponse> {
     const response = await api.patch<AuthResponse>('/auth/me/staff', { staffId });
+    return response.data;
+  },
+
+  /**
+   * Ativa conta de usuário a partir de token.
+   */
+  async activateAccount(data: ActivateAccountRequest): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>('/auth/activate', data);
     return response.data;
   },
 };

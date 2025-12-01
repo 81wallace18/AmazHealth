@@ -1,5 +1,13 @@
 export type LabTestStatus = 'SOLICITADO' | 'COLETADO' | 'LAUDADO' | 'CANCELADO';
 
+export type LabTestIntegrationStatus =
+  | 'NOT_SENT'
+  | 'PENDING'
+  | 'SENT'
+  | 'ACKNOWLEDGED'
+  | 'RESULT_RECEIVED'
+  | 'FAILED';
+
 export interface LabTestOrder {
   id: string;
   patientId: string;
@@ -18,6 +26,11 @@ export interface LabTestOrder {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  integrationStatus: LabTestIntegrationStatus;
+  integrationProvider?: string;
+  externalOrderId?: string;
+  externalResultUrl?: string;
+  lastSyncedAt?: string;
 }
 
 export interface LabTestOrderRequest {
@@ -34,4 +47,3 @@ export interface LabTestStatusUpdateRequest {
   result?: string;
   notes?: string;
 }
-

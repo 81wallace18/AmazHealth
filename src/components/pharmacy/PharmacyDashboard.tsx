@@ -5,6 +5,11 @@ import { pharmacyService } from "@/services/pharmacyService";
 import type { PharmacyDashboardData, PharmacyStatistics } from "@/types/pharmacy";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Activity, Boxes, ClipboardCheck, TriangleAlert } from "lucide-react";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Line, LineChart, CartesianGrid, XAxis } from "recharts";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import type { ChartConfig } from "@/components/ui/chart";
 
 export function PharmacyDashboard() {
   const [summary, setSummary] = useState<PharmacyDashboardData | null>(null);
@@ -32,6 +37,24 @@ export function PharmacyDashboard() {
 
     void loadData();
   }, []);
+
+  const chartData = summary?.consumptionTrend ?? [];
+  const recentPrescriptions = summary?.recentPrescriptions ?? [];
+
+  const chartConfig: ChartConfig = {
+    quantity: {
+      label: "Unidades dispensadas",
+      color: "hsl(var(--primary))"
+    }
+  };
+
+  const formatDateTime = (isoDate: string) => {
+    const formatter = new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "short"
+    });
+    return formatter.format(new Date(isoDate));
+  };
 
   if (error) {
     return (
@@ -94,6 +117,82 @@ export function PharmacyDashboard() {
             {Object.entries(summary.stockByCategory).map(([category, value]) => (
               <StatusRow key={category} label={category} value={value} />
             ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Consumo (últimos 30 dias)</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[260px]">
+            {chartData.length ? (
+              <ChartContainer config={chartConfig}>
+                <LineChart data={chartData} margin={{ left: 16, right: 16, top: 8, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={(value: string) => value.slice(5)}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line
+                    type="monotone"
+                    dataKey="quantity"
+                    stroke="var(--color-quantity)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ChartContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground">Ainda não há movimentações registradas.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Prescrições recentes</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {recentPrescriptions.length === 0 ? (
+              <p className="px-6 py-4 text-sm text-muted-foreground">
+                Nenhuma prescrição disponível para exibição.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Médico</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Data</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentPrescriptions.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.code}</TableCell>
+                        <TableCell>{item.patientName}</TableCell>
+                        <TableCell>{item.doctorName || "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{item.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {formatDateTime(item.createdAt)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

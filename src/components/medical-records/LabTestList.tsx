@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import labTestService from '@/services/labTestService';
-import type { LabTestOrder, LabTestStatus } from '@/types/labTest';
+import type { LabTestIntegrationStatus, LabTestOrder, LabTestStatus } from '@/types/labTest';
 import {
   Card,
   CardContent,
@@ -41,6 +41,24 @@ const statusStyles: Record<LabTestStatus, string> = {
   COLETADO: 'bg-amber-100 text-amber-900',
   LAUDADO: 'bg-green-100 text-green-800',
   CANCELADO: 'bg-gray-100 text-gray-700',
+};
+
+const integrationLabels: Record<LabTestIntegrationStatus, string> = {
+  NOT_SENT: 'Não integrado',
+  PENDING: 'Pendente',
+  SENT: 'Enviado',
+  ACKNOWLEDGED: 'Confirmado',
+  RESULT_RECEIVED: 'Resultado recebido',
+  FAILED: 'Falha',
+};
+
+const integrationStyles: Record<LabTestIntegrationStatus, string> = {
+  NOT_SENT: 'bg-gray-100 text-gray-700',
+  PENDING: 'bg-purple-100 text-purple-800',
+  SENT: 'bg-blue-100 text-blue-800',
+  ACKNOWLEDGED: 'bg-amber-100 text-amber-900',
+  RESULT_RECEIVED: 'bg-emerald-100 text-emerald-800',
+  FAILED: 'bg-red-100 text-red-800',
 };
 
 type StatusFilter = 'ALL' | LabTestStatus;
@@ -190,6 +208,7 @@ export function LabTestList({ patientId, visitId, version = 0 }: LabTestListProp
                 <TableRow>
                   <TableHead>Exame</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Integração</TableHead>
                   <TableHead>Solicitado em</TableHead>
                   <TableHead>Resultado</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -211,6 +230,30 @@ export function LabTestList({ patientId, visitId, version = 0 }: LabTestListProp
                       <Badge className={statusStyles[order.status]}>
                         {statusLabels[order.status]}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <Badge className={integrationStyles[order.integrationStatus ?? 'NOT_SENT']}>
+                          {integrationLabels[order.integrationStatus ?? 'NOT_SENT']}
+                        </Badge>
+                        {order.integrationProvider && (
+                          <span className="text-xs text-muted-foreground">
+                            Destino: {order.integrationProvider}
+                          </span>
+                        )}
+                        {order.lastSyncedAt && (
+                          <span className="text-xs text-muted-foreground">
+                            Sync: {format(new Date(order.lastSyncedAt), 'dd/MM HH:mm', { locale: ptBR })}
+                          </span>
+                        )}
+                        {order.externalResultUrl && (
+                          <Button variant="link" size="sm" className="px-0" asChild>
+                            <a href={order.externalResultUrl} target="_blank" rel="noreferrer">
+                              Ver laudo externo
+                            </a>
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {order.requestedAt
@@ -302,4 +345,3 @@ export function LabTestList({ patientId, visitId, version = 0 }: LabTestListProp
     </>
   );
 }
-

@@ -46,7 +46,8 @@ const medicationTypes: { value: MedicationType; label: string }[] = [
 const prescriptionStatuses = ['DRAFT', 'ACTIVE'] as const;
 
 const itemSchema = z.object({
-  medicineId: z.string().min(1, 'ID do medicamento é obrigatório'),
+  // ID é gerado automaticamente; o campo existe apenas para visualização
+  medicineId: z.string().optional().or(z.literal('')),
   medicineName: z.string().min(2, 'Nome do medicamento é obrigatório'),
   medicineDescription: z.string().optional(),
   medicationType: z.enum(medicationTypes.map((m) => m.value) as [MedicationType, ...MedicationType[]]),
@@ -98,13 +99,20 @@ export function PrescriptionForm({
     null
   );
 
+  const generateUuid = () => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return crypto.randomUUID();
+    }
+    return '00000000-0000-0000-0000-000000000000';
+  };
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       status: 'ACTIVE',
       items: [
         {
-          medicineId: '',
+          medicineId: generateUuid(),
           medicineName: '',
           medicationType: 'COMMON',
           dosage: '',
@@ -230,7 +238,10 @@ export function PrescriptionForm({
         status: values.status,
         notes: values.notes?.trim() || undefined,
         items: values.items.map((item) => ({
-          medicineId: item.medicineId,
+          medicineId:
+            item.medicineId && item.medicineId.length === 36
+              ? item.medicineId
+              : generateUuid(),
           medicineName: item.medicineName,
           medicineDescription: item.medicineDescription?.trim() || undefined,
           medicationType: item.medicationType,
@@ -363,7 +374,7 @@ export function PrescriptionForm({
                     variant="outline"
                     onClick={() =>
                       append({
-                        medicineId: '',
+                        medicineId: generateUuid(),
                         medicineName: '',
                         medicationType: 'COMMON',
                         dosage: '',
@@ -400,9 +411,13 @@ export function PrescriptionForm({
                         name={`items.${index}.medicineId`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>ID do medicamento</FormLabel>
+                            <FormLabel>ID do medicamento (gerado automaticamente)</FormLabel>
                             <FormControl>
-                              <Input placeholder="UUID do medicamento" {...field} />
+                              <Input
+                                {...field}
+                                readOnly
+                                onChange={field.onChange}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

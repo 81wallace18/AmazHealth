@@ -120,10 +120,10 @@ export default function Staff() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Users className="h-8 w-8" />
-            Gestão de Equipe
+            Equipe Clínica
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gerenciar profissionais da organização
+            Gerenciar profissionais de saúde da organização
           </p>
         </div>
         <Button onClick={handleNewStaff}>

@@ -197,7 +197,7 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
                       </Button>
                       <Button variant="default" size="sm" onClick={() => handleOpenDispense(prescription)}>
                         <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Dispensar
+                        Aprovar &amp; Dispensar
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -250,6 +250,17 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowDetails(false)}>
                   Fechar
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    if (!selected) return;
+                    setShowDetails(false);
+                    setShowDispense(true);
+                  }}
+                >
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Aprovar &amp; Dispensar
                 </Button>
                 <Button variant="destructive" onClick={handleRefuse} disabled={refusing}>
                   {refusing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}

@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -210,9 +210,12 @@ export function RichTextEditor({
   }
 
   // Sincroniza valor externo com editor (útil quando reseta form)
-  if (value !== editor.getHTML() && value === '') {
-    editor.commands.setContent(value);
-  }
+  useEffect(() => {
+    if (!editor) return;
+    if (value === '' && editor.getHTML() !== value) {
+      editor.commands.setContent(value);
+    }
+  }, [value, editor]);
 
   const characterCount = editor.storage.characterCount.characters();
   const wordCount = editor.storage.characterCount.words();
