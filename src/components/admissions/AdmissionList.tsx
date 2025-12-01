@@ -432,7 +432,7 @@ function AllocateBedDialog({ admission, onOpenChange, onSuccess }: AllocateBedDi
     enabled: !!admission,
     queryFn: async () => {
       const wards = await admissionService.getBedBoard();
-      return wards.flatMap((ward) => ward.beds.filter((bed) => bed.isAvailable));
+      return wards.flatMap((ward) => ward.beds.filter((bed) => bed.available));
     },
   });
 

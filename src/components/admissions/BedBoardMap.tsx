@@ -148,7 +148,7 @@ export function BedBoardMap() {
                         statusColors[bed.status]
                       )}
                       onClick={() => {
-                        if (bed.isAvailable) {
+                        if (bed.available) {
                           setAssignBed(bed);
                         } else {
                           setBedDetails(bed);
@@ -157,7 +157,7 @@ export function BedBoardMap() {
                     >
                       <div className="font-semibold">{bed.fullBedIdentifier || bed.bedNumber}</div>
                       <div className="text-xs text-muted-foreground truncate">
-                        {bed.isOccupied ? bed.patientName : 'Disponível'}
+                        {bed.occupied ? bed.patientName : 'Disponível'}
                       </div>
                     </button>
                   ))}

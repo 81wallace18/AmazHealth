@@ -130,7 +130,7 @@ export function AdmissionForm({
     queryFn: async () => {
       const wards = await admissionService.getBedBoard();
       return wards.flatMap((ward) =>
-        ward.beds.filter((bed) => bed.isAvailable).map((bed) => ({ ...bed, wardName: ward.wardName }))
+        ward.beds.filter((bed) => bed.available).map((bed) => ({ ...bed, wardName: ward.wardName }))
       );
     },
     staleTime: 30 * 1000,

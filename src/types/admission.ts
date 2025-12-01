@@ -133,8 +133,8 @@ export interface Bed {
   statusDescription?: string;
   fullBedIdentifier?: string;
   canBeAllocated: boolean;
-  isAvailable: boolean;
-  isOccupied: boolean;
+  available: boolean;
+  occupied: boolean;
   currentPatientId?: string;
   patientName?: string;
   currentAdmissionId?: string;
