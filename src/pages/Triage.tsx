@@ -55,7 +55,15 @@ export default function Triage() {
     try {
       setError(null);
       const data = await triageService.getTriageBoard();
-      setPatients(data);
+      // evita duplicidades por código/nome no painel
+      const unique = new Map<string, TriageBoardItem>();
+      data.forEach((item) => {
+        const key = `${item.patientCode}-${item.patientName}`.toLowerCase();
+        if (!unique.has(key)) {
+          unique.set(key, item);
+        }
+      });
+      setPatients(Array.from(unique.values()));
     } catch (err: any) {
       console.error('Error loading triage board:', err);
       setError(err.message || 'Erro ao carregar painel de triagem');
@@ -249,6 +257,14 @@ export default function Triage() {
         patients={patients}
         autoRefresh={autoRefreshEnabled}
         onRefresh={loadTriageBoard}
+        canAssignSector={user?.roles?.includes('NURSE') || user?.roles?.includes('ADMIN')}
+        canStartAttendance={user?.roles?.includes('DOCTOR')}
+        onStartAttendance={(visitId, patientName) => {
+          toast({
+            title: 'Iniciar atendimento',
+            description: `Visita ${patientName} (${visitId}) pronta para atendimento médico.`,
+          });
+        }}
         isRefreshing={isRefreshing}
         onAssignSector={handleOpenAssignSector}
         isPaused={isPollingPaused}

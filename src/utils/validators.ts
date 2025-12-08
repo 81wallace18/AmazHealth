@@ -99,8 +99,8 @@ export function validateCEP(cep: string): boolean {
 export function validatePhone(phone: string): boolean {
   if (!phone) return false;
 
-  // Remove caracteres não numéricos
-  const cleaned = phone.replace(/\D/g, '');
+  // Remove espaços extras e caracteres não numéricos
+  const cleaned = phone.trim().replace(/\D/g, '');
 
   // Telefone deve ter 10 (fixo) ou 11 (celular) dígitos
   return cleaned.length === 10 || cleaned.length === 11;

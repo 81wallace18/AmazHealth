@@ -21,6 +21,9 @@ export interface MedicalRecordRequest {
   physicalExamination?: string;
   diagnosis?: string;
   treatment?: string;
+  primaryDiagnosisCode?: string;
+  primaryDiagnosisDescription?: string;
+  secondaryDiagnosisCodes?: string[];
 
   // Campo obrigatório
   notes: string;
@@ -45,6 +48,9 @@ export interface MedicalRecordResponse {
   physicalExamination?: string;
   diagnosis?: string;
   treatment?: string;
+  primaryDiagnosisCode?: string;
+  primaryDiagnosisDescription?: string;
+  secondaryDiagnosisCodes?: string[];
 
   notes: string;
   attachments?: string[];

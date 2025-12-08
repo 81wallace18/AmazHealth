@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -31,6 +31,7 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { medicalRecordService } from '@/services/medicalRecordService';
+import { icd10Service, type Icd10Entry } from '@/services/icd10Service';
 import type { RecordType } from '@/types/medicalRecord';
 import { RECORD_TYPE_LABELS } from '@/types/medicalRecord';
 import { Loader2, FileText } from 'lucide-react';
@@ -56,6 +57,9 @@ const formSchema = z.object({
   physicalExamination: z.string().optional(),
   diagnosis: z.string().optional(),
   treatment: z.string().optional(),
+  primaryDiagnosisCode: z.string().optional(),
+  primaryDiagnosisDescription: z.string().optional(),
+  secondaryDiagnosisCodes: z.array(z.string()).optional(),
 
   // Obrigatório
   notes: z
@@ -108,6 +112,11 @@ export function MedicalRecordForm({
 }: MedicalRecordFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('soap');
+  const [icdQuery, setIcdQuery] = useState('');
+  const [icdResults, setIcdResults] = useState<Icd10Entry[]>([]);
+  const [isSearchingIcd, setIsSearchingIcd] = useState(false);
+  const [secondaryCodeInput, setSecondaryCodeInput] = useState('');
+  const [icdSearchError, setIcdSearchError] = useState<string | null>(null);
 
   const isEditing = !!recordId;
 
@@ -118,12 +127,12 @@ export function MedicalRecordForm({
       recordType: 'EVOLUTION',
       notes: '',
       ...defaultValues,
+      secondaryDiagnosisCodes: defaultValues?.secondaryDiagnosisCodes ?? [],
     },
   });
 
   async function onSubmit(data: FormData) {
     setIsLoading(true);
-    console.log('📤 Dados enviados para o backend:', data);
     try {
       if (isEditing) {
         await medicalRecordService.update(recordId, data);
@@ -139,12 +148,8 @@ export function MedicalRecordForm({
 
       form.reset();
       onOpenChange(false);
-      onSuccess?.();
+        onSuccess?.();
     } catch (error: any) {
-      console.error('❌ Erro ao salvar registro:', error);
-      console.error('❌ Resposta do backend:', error.response?.data);
-      console.error('❌ Status:', error.response?.status);
-
       if (error.response?.status === 403) {
         toast.error('Sem permissão', {
           description: 'Apenas o autor pode editar este registro nas primeiras 24h.',
@@ -163,6 +168,52 @@ export function MedicalRecordForm({
       setIsLoading(false);
     }
   }
+
+  const handleSearchIcd = async () => {
+    if (!icdQuery.trim()) return;
+    setIsSearchingIcd(true);
+    setIcdSearchError(null);
+    try {
+      const results = await icd10Service.search(icdQuery);
+      setIcdResults(results);
+    } catch (error) {
+      setIcdSearchError('Não foi possível buscar CID-10.');
+      toast.error('Não foi possível buscar CID-10.');
+    } finally {
+      setIsSearchingIcd(false);
+    }
+  };
+
+  // busca automática com debounce enquanto o usuário digita (a partir de 3 caracteres)
+  useEffect(() => {
+    if (icdQuery.trim().length < 3) {
+      setIcdResults([]);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      void handleSearchIcd();
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [icdQuery]);
+
+  const addSecondaryCode = () => {
+    const code = secondaryCodeInput.trim();
+    if (!code) return;
+    const current = form.getValues('secondaryDiagnosisCodes') || [];
+    if (current.includes(code)) {
+      setSecondaryCodeInput('');
+      return;
+    }
+    form.setValue('secondaryDiagnosisCodes', [...current, code]);
+    setSecondaryCodeInput('');
+  };
+
+  const removeSecondaryCode = (code: string) => {
+    const current = form.getValues('secondaryDiagnosisCodes') || [];
+    form.setValue('secondaryDiagnosisCodes', current.filter((c) => c !== code));
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -295,6 +346,9 @@ export function MedicalRecordForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>A - Diagnóstico / Hipótese Diagnóstica</FormLabel>
+                      <FormDescription className="text-xs">
+                        Separe a descrição clínica do código CID-10 para maior rastreabilidade.
+                      </FormDescription>
                       <FormControl>
                         <Textarea
                           placeholder="CID-10, diagnóstico clínico..."
@@ -303,13 +357,130 @@ export function MedicalRecordForm({
                           {...field}
                         />
                       </FormControl>
-                      <FormDescription>
-                        Avaliação e conclusão diagnóstica
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* CID-10 primário */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="primaryDiagnosisCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>CID-10 Primário</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Ex: I64"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="primaryDiagnosisDescription"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Descrição CID-10 Primário</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Ex: Acidente vascular cerebral..."
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Busca CID-10 */}
+                <div className="space-y-2">
+                  <FormLabel>Buscar CID-10</FormLabel>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Digite termo ou código (ex: acidente vascular, I64)"
+                      value={icdQuery}
+                      onChange={(e) => setIcdQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleSearchIcd())}
+                    />
+                    <Button type="button" variant="secondary" onClick={handleSearchIcd} disabled={isSearchingIcd}>
+                      {isSearchingIcd ? 'Buscando...' : 'Buscar'}
+                    </Button>
+                  </div>
+                  {icdSearchError && (
+                    <p className="text-xs text-destructive">{icdSearchError}</p>
+                  )}
+                  {icdResults.length > 0 && (
+                    <div className="border rounded-md p-2 space-y-2 max-h-48 overflow-y-auto">
+                      {icdResults.map((item) => (
+                        <div key={item.code} className="flex items-center justify-between gap-2 text-sm">
+                          <div>
+                            <div className="font-semibold">{item.code}</div>
+                            <div className="text-muted-foreground">{item.description}</div>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              form.setValue('primaryDiagnosisCode', item.code);
+                              form.setValue('primaryDiagnosisDescription', item.description);
+                              setIcdResults([]);
+                            }}
+                          >
+                            Usar
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* CID-10 secundários */}
+                <div className="space-y-2">
+                  <FormLabel>CIDs Secundários</FormLabel>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Ex: I63.9"
+                      value={secondaryCodeInput}
+                      onChange={(e) => setSecondaryCodeInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSecondaryCode())}
+                    />
+                    <Button type="button" variant="outline" onClick={addSecondaryCode}>
+                      Adicionar
+                    </Button>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="secondaryDiagnosisCodes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex flex-wrap gap-2">
+                          {(field.value || []).map((code) => (
+                            <div key={code} className="flex items-center gap-2 bg-secondary px-2 py-1 rounded-md text-sm">
+                              <span>{code}</span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => removeSecondaryCode(code)}
+                              >
+                                Remover
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 {/* P - Plano */}
                 <FormField

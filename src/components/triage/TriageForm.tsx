@@ -8,13 +8,14 @@
  * - Manchester color + justificativa obrigatórios
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -28,6 +29,7 @@ import {
   TriageRegisterRequest,
   MANCHESTER_COLORS,
   validateVitalSigns,
+  TriageDiscriminators,
 } from '@/types/triage';
 import { triageService } from '@/services/triageService';
 import { AlertCircle, Heart, Activity, Thermometer, Wind, Droplet, Brain } from 'lucide-react';
@@ -52,9 +54,32 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
   const [oxygenSaturation, setOxygenSaturation] = useState('');
   const [glasgow, setGlasgow] = useState('');
 
+  // Queixa e discriminadores
+  const [chiefComplaint, setChiefComplaint] = useState('');
+  const [discriminators, setDiscriminators] = useState<TriageDiscriminators>({
+    cardiacArrest: false,
+    activeSeizure: false,
+    severeBleeding: false,
+    severeTrauma: false,
+    chestPain: false,
+    strokeSymptoms: false,
+    shortnessOfBreath: false,
+    immunosuppressed: false,
+    pregnant: false,
+    severePain: false,
+    moderatePain: false,
+    highFeverImmunosuppressed: false,
+  });
+
   // Manchester Classification State
   const [triageColor, setTriageColor] = useState<ManchesterColor | ''>('');
   const [triageJustification, setTriageJustification] = useState('');
+  const [userSelectedColor, setUserSelectedColor] = useState(false);
+
+  const [suggestedColorBackend, setSuggestedColorBackend] = useState<ManchesterColor | null>(null);
+  const [suggestionJustification, setSuggestionJustification] = useState<string | null>(null);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
 
   const hasMandatoryVitals =
     bloodPressureSys.trim() !== '' &&
@@ -143,6 +168,81 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
   };
 
   const suggestedColor = getSuggestedColor();
+
+  // Sugestão automática no backend (fonte de verdade)
+  useEffect(() => {
+    const controller = new AbortController();
+    const shouldSuggest =
+      bloodPressureSys && bloodPressureDia && heartRate && glasgow;
+
+    if (!shouldSuggest) {
+      setSuggestedColorBackend(null);
+      setSuggestionJustification(null);
+      return () => controller.abort();
+    }
+
+    const timeout = setTimeout(async () => {
+      setIsSuggesting(true);
+      setSuggestionError(null);
+
+      const vitalSigns: VitalSigns = {
+        bloodPressure: `${bloodPressureSys}/${bloodPressureDia}`,
+        heartRate: parseInt(heartRate),
+        glasgowComaScale: parseInt(glasgow),
+        respiratoryRate: respiratoryRate ? parseInt(respiratoryRate) : undefined,
+        temperature: temperature ? parseFloat(temperature) : undefined,
+        oxygenSaturation: oxygenSaturation ? parseInt(oxygenSaturation) : undefined,
+      };
+
+      try {
+        const response = await triageService.suggest(
+          {
+            vitalSigns,
+            chiefComplaint: chiefComplaint.trim() || undefined,
+            discriminators,
+          },
+          { signal: controller.signal }
+        );
+
+        setSuggestedColorBackend(response.suggestedColor);
+        setSuggestionJustification(response.justification);
+
+        // Preenche cor se o usuário ainda não escolheu manualmente
+        if (!userSelectedColor) {
+          setTriageColor(response.suggestedColor);
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          setSuggestionError(err.message || 'Não foi possível sugerir a cor automaticamente.');
+        }
+      } finally {
+        setIsSuggesting(false);
+      }
+    }, 400); // debounce para evitar chamadas em excesso
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [
+    bloodPressureSys,
+    bloodPressureDia,
+    heartRate,
+    respiratoryRate,
+    temperature,
+    oxygenSaturation,
+    glasgow,
+    chiefComplaint,
+    discriminators,
+    userSelectedColor,
+  ]);
+
+  // Sugestão simples (frontend) como fallback visual
+  useEffect(() => {
+    if (!triageColor && suggestedColor) {
+      setTriageColor(suggestedColor);
+    }
+  }, [suggestedColor, triageColor]);
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -295,15 +395,80 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
           <div className="space-y-4 pt-4 border-t">
             <h3 className="text-lg font-semibold">Classificação Manchester</h3>
 
+            {/* Chief Complaint */}
+            <div className="space-y-2">
+              <Label htmlFor="chiefComplaint">Queixa principal (opcional)</Label>
+              <Input
+                id="chiefComplaint"
+                value={chiefComplaint}
+                onChange={(e) => setChiefComplaint(e.target.value)}
+                placeholder="Ex: Dor torácica, falta de ar, trauma..."
+              />
+            </div>
+
+            {/* Discriminators */}
+            <div className="space-y-2">
+              <Label>Discriminadores clínicos</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[
+                  { key: 'cardiacArrest', label: 'Parada cardiorrespiratória' },
+                  { key: 'activeSeizure', label: 'Convulsão ativa' },
+                  { key: 'severeBleeding', label: 'Hemorragia grave' },
+                  { key: 'severeTrauma', label: 'Trauma grave / politrauma' },
+                  { key: 'strokeSymptoms', label: 'Sinais de AVC agudo' },
+                  { key: 'chestPain', label: 'Dor torácica típica' },
+                  { key: 'shortnessOfBreath', label: 'Dispneia' },
+                  { key: 'immunosuppressed', label: 'Imunossuprimido' },
+                  { key: 'pregnant', label: 'Gestante' },
+                  { key: 'severePain', label: 'Dor intensa (EVA ≥ 8)' },
+                  { key: 'moderatePain', label: 'Dor moderada (EVA 6-7)' },
+                  { key: 'highFeverImmunosuppressed', label: 'Febre > 39°C imunossuprimido' },
+                ].map((item) => (
+                  <div key={item.key} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={item.key}
+                      checked={(discriminators as any)[item.key]}
+                      onCheckedChange={(checked) =>
+                        setDiscriminators((prev) => ({
+                          ...prev,
+                          [item.key]: Boolean(checked),
+                        }))
+                      }
+                    />
+                    <Label htmlFor={item.key} className="text-sm">
+                      {item.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Suggested Color Alert */}
-            {suggestedColor && (
-              <Alert>
+            {(suggestedColorBackend || suggestedColor) && (
+              <Alert variant={suggestionError ? 'destructive' : 'default'}>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Sugestão:</strong> Com base nos sinais vitais, recomendamos classificação{' '}
-                  <strong className={MANCHESTER_COLORS[suggestedColor].textColor}>
-                    {MANCHESTER_COLORS[suggestedColor].label}
-                  </strong>
+                  {suggestionError && <span>{suggestionError}</span>}
+                  {!suggestionError && (
+                    <>
+                      <strong>Sugestão automática:</strong>{' '}
+                      <strong
+                        className={
+                          suggestedColorBackend
+                            ? MANCHESTER_COLORS[suggestedColorBackend].textColor
+                            : MANCHESTER_COLORS[suggestedColor!].textColor
+                        }
+                      >
+                        {suggestedColorBackend
+                          ? MANCHESTER_COLORS[suggestedColorBackend].label
+                          : suggestedColor
+                          ? MANCHESTER_COLORS[suggestedColor].label
+                          : '—'}
+                      </strong>{' '}
+                      {isSuggesting ? '(calculando...)' : '(pré-selecionada, ajuste se necessário)'}
+                      {suggestionJustification && <div>{suggestionJustification}</div>}
+                    </>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
@@ -311,7 +476,13 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
             {/* Manchester Color Selector */}
             <div className="space-y-2">
               <Label htmlFor="color">Cor de Classificação *</Label>
-              <Select value={triageColor} onValueChange={(value) => setTriageColor(value as ManchesterColor)}>
+              <Select
+                value={triageColor}
+                onValueChange={(value) => {
+                  setUserSelectedColor(true);
+                  setTriageColor(value as ManchesterColor);
+                }}
+              >
                 <SelectTrigger id="color">
                   <SelectValue placeholder="Selecione a cor" />
                 </SelectTrigger>

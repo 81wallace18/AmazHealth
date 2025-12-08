@@ -21,6 +21,7 @@ import type { TriageBoardItem, ManchesterColor } from '@/types/triage';
 import { getManchesterColorInfo, formatWaitingTime } from '@/types/triage';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Consultations() {
   const [patients, setPatients] = useState<TriageBoardItem[]>([]);
@@ -29,6 +30,7 @@ export default function Consultations() {
   const [isLoading, setIsLoading] = useState(true);
   const [showMedicalRecordForm, setShowMedicalRecordForm] = useState(false);
   const [showOutcomeForm, setShowOutcomeForm] = useState(false);
+  const { user, loading: authLoading } = useAuth();
 
   // Carregar fila de pacientes
   useEffect(() => {
@@ -114,6 +116,41 @@ export default function Consultations() {
     };
     return labels[status] || status;
   };
+
+  if (authLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <p className="text-muted-foreground">Carregando contexto do usuário...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!user?.staffId || !user.roles.includes('DOCTOR')) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Consultas indisponíveis</CardTitle>
+            <CardDescription>
+              Para acessar o módulo de consultas é necessário estar vinculado a um profissional médico.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert>
+              <AlertDescription>
+                Cadastre um profissional com papel <strong>DOCTOR</strong> em <strong>Equipe Clínica</strong> e,
+                em seguida, vincule o usuário a esse profissional em <strong>Usuários &amp; Acessos</strong>.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

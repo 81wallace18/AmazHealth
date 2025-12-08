@@ -7,7 +7,9 @@ import api from '@/lib/api';
 import {
   TriageRegisterRequest,
   TriageBoardItem,
-  SectorAssignRequest
+  SectorAssignRequest,
+  TriageSuggestionRequest,
+  TriageSuggestionResponse
 } from '@/types/triage';
 
 const BASE_URL = '/triage';
@@ -72,6 +74,22 @@ export const triageService = {
         throw new Error(error.response.data.message);
       }
       throw new Error('Erro ao atribuir setor');
+    }
+  },
+
+  /**
+   * Suggest Manchester color automatically
+   * POST /api/v1/triage/suggest
+   */
+  async suggest(request: TriageSuggestionRequest, config?: { signal?: AbortSignal }): Promise<TriageSuggestionResponse> {
+    try {
+      const response = await api.post<TriageSuggestionResponse>(`${BASE_URL}/suggest`, request, config);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Erro ao sugerir classificação');
     }
   }
 };

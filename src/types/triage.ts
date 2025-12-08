@@ -65,6 +65,42 @@ export interface SectorAssignRequest {
 }
 
 /**
+ * Discriminadores clínicos para sugestão automática.
+ */
+export interface TriageDiscriminators {
+  cardiacArrest?: boolean;
+  activeSeizure?: boolean;
+  severeBleeding?: boolean;
+  severeTrauma?: boolean;
+  chestPain?: boolean;
+  strokeSymptoms?: boolean;
+  shortnessOfBreath?: boolean;
+  immunosuppressed?: boolean;
+  pregnant?: boolean;
+  severePain?: boolean;
+  moderatePain?: boolean;
+  highFeverImmunosuppressed?: boolean;
+}
+
+/**
+ * Requisição para sugestão automática de cor Manchester.
+ */
+export interface TriageSuggestionRequest {
+  vitalSigns: VitalSigns;
+  chiefComplaint?: string;
+  discriminators?: TriageDiscriminators;
+}
+
+/**
+ * Resposta do backend com a sugestão de cor.
+ */
+export interface TriageSuggestionResponse {
+  suggestedColor: ManchesterColor;
+  justification: string;
+  matchedRules: string[];
+}
+
+/**
  * Manchester Color Display Info
  */
 export interface ManchesterColorInfo {

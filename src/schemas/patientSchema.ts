@@ -62,8 +62,16 @@ export const patientSchema = z.object({
     .or(z.literal('')),
 
   cns: z.string()
-    .max(15, 'CNS deve ter no máximo 15 caracteres')
     .optional()
+    .refine(
+      (val) => {
+        if (!val || val === '') return true;
+        // Remove caracteres não numéricos e valida se tem 15 dígitos
+        const cleaned = val.replace(/\D/g, '');
+        return cleaned.length === 15;
+      },
+      { message: 'CNS deve ter 15 dígitos' }
+    )
     .or(z.literal('')),
 
   rg: z.string()

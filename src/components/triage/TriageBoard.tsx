@@ -26,6 +26,13 @@ interface TriageBoardProps {
   autoRefresh?: boolean;
   onRefresh?: () => void;
   onAssignSector?: (visitId: string, patientName: string) => void;
+  onStartAttendance?: (visitId: string, patientName: string) => void;
+  /**
+   * Define se o usuário atual pode atribuir/setorizar pacientes.
+   * Ex.: enfermeiros/admin podem, médicos não.
+   */
+  canAssignSector?: boolean;
+  canStartAttendance?: boolean;
   isRefreshing?: boolean;
   isPaused?: boolean;
   isManualPause?: boolean;
@@ -38,6 +45,9 @@ export function TriageBoard({
   autoRefresh = true,
   onRefresh,
   onAssignSector,
+  canAssignSector = true,
+  onStartAttendance,
+  canStartAttendance = false,
   isRefreshing = false,
   isPaused = false,
   isManualPause = false,
@@ -110,7 +120,7 @@ export function TriageBoard({
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
           {/* Render columns in priority order: RED, ORANGE, YELLOW, GREEN, BLUE */}
           {(['RED', 'ORANGE', 'YELLOW', 'GREEN', 'BLUE'] as ManchesterColor[]).map((color) => {
             const colorInfo = MANCHESTER_COLORS[color];
@@ -129,7 +139,7 @@ export function TriageBoard({
                     Máx: {colorInfo.maxWaitTime === 0 ? 'Imediato' : `${colorInfo.maxWaitTime}min`}
                   </p>
                 </CardHeader>
-                <CardContent className="p-3 space-y-2 min-h-[200px]">
+                <CardContent className="p-4 space-y-3 min-h-[220px]">
                   {columnPatients.length === 0 ? (
                     <p className="text-sm text-gray-400 text-center py-4">
                       Nenhum paciente
@@ -141,7 +151,7 @@ export function TriageBoard({
                       return (
                         <div
                           key={patient.visitId}
-                          className={`p-3 rounded-lg border ${
+                          className={`p-4 rounded-xl border shadow-sm ${
                             exceeded
                               ? 'bg-red-50 border-red-300'
                               : patient.status === 'IN_ATTENDANCE'
@@ -190,15 +200,27 @@ export function TriageBoard({
                         </p>
                       )}
 
-                      {onAssignSector && patient.status === 'AWAITING_DOCTOR' && (
-                        <div className="mt-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onAssignSector(patient.visitId, patient.patientName)}
-                          >
-                            Definir setor
-                          </Button>
+                      {patient.status === 'AWAITING_DOCTOR' && (
+                        <div className="mt-3 flex gap-2">
+                          {onAssignSector && canAssignSector && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onAssignSector(patient.visitId, patient.patientName)}
+                              className="flex-1"
+                            >
+                              Definir setor
+                            </Button>
+                          )}
+                          {onStartAttendance && canStartAttendance && (
+                            <Button
+                              size="sm"
+                              onClick={() => onStartAttendance(patient.visitId, patient.patientName)}
+                              className="flex-1"
+                            >
+                              Iniciar atendimento
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>

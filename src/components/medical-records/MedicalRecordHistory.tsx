@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import DOMPurify from 'dompurify';
 import {
   Card,
   CardContent,
@@ -397,12 +398,12 @@ export function MedicalRecordHistory({
                       </div>
                     )}
 
-                    {/* Notas (HTML do Tiptap) */}
+                    {/* Notas (HTML do Tiptap) - Sanitizado contra XSS */}
                     <div>
                       <h4 className="font-medium text-sm mb-1">Notas do Registro</h4>
                       <div
                         className="prose prose-sm max-w-none text-muted-foreground"
-                        dangerouslySetInnerHTML={{ __html: record.notes }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(record.notes) }}
                       />
                     </div>
 

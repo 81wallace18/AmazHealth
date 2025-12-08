@@ -226,6 +226,12 @@ export function AttendanceOutcomeForm({
                           </SelectContent>
                         </Select>
                         <FormMessage />
+                        {!loadingDoctors && doctors.length === 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Nenhum médico ativo encontrado. Cadastre um profissional com papel{' '}
+                            <strong>DOCTOR</strong> em <strong>Equipe Clínica</strong> antes de registrar internações.
+                          </p>
+                        )}
                       </FormItem>
                     )}
                   />
