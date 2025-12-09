@@ -12,7 +12,9 @@ import {
   TestTube,
   Leaf,
   Building,
-  Activity
+  Activity,
+  DoorOpen,
+  Bed
 } from "lucide-react";
 import {
   Sidebar,
@@ -25,6 +27,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/useAuth";
 
 const navigationItems = [
   {
@@ -110,6 +113,20 @@ const navigationItems = [
     url: "/users",
     icon: UserPlus,
     group: "Gestão"
+  },
+  {
+    title: "Setores & Enfermarias",
+    url: "/facilities",
+    icon: DoorOpen,
+    group: "Administração",
+    adminOnly: true
+  },
+  {
+    title: "Gestão de Leitos",
+    url: "/beds",
+    icon: Bed,
+    group: "Administração",
+    adminOnly: true
   }
 ];
 
@@ -124,6 +141,7 @@ const groupedItems = navigationItems.reduce((acc, item) => {
 export function AppSidebar() {
   const isMobile = useIsMobile();
   const location = useLocation();
+  const { user } = useAuth();
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -131,6 +149,22 @@ export function AppSidebar() {
     }
     return location.pathname.startsWith(path);
   };
+
+  // Filtrar itens baseado nas roles do usuário
+  const filteredItems = navigationItems.filter(item => {
+    if (item.adminOnly) {
+      return user?.roles?.includes('admin');
+    }
+    return true;
+  });
+
+  const filteredGroupedItems = filteredItems.reduce((acc, item) => {
+    if (!acc[item.group]) {
+      acc[item.group] = [];
+    }
+    acc[item.group].push(item);
+    return acc;
+  }, {} as Record<string, typeof navigationItems>);
 
   return (
     <Sidebar
@@ -152,7 +186,7 @@ export function AppSidebar() {
         </div>
 
         {/* Navigation Groups */}
-        {Object.entries(groupedItems).map(([groupName, items]) => (
+        {Object.entries(filteredGroupedItems).map(([groupName, items]) => (
           <SidebarGroup key={groupName}>
             <SidebarGroupLabel className="text-primary font-semibold">
               {groupName}

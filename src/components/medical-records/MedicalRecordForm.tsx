@@ -155,9 +155,23 @@ export function MedicalRecordForm({
           description: 'Apenas o autor pode editar este registro nas primeiras 24h.',
         });
       } else if (error.response?.status === 400) {
-        const errorMsg = error.response?.data?.message || JSON.stringify(error.response?.data);
+        // Tratamento melhorado de erros de validação
+        const errorData = error.response?.data;
+        let errorMsg = 'Verifique os campos obrigatórios.';
+
+        if (typeof errorData === 'string') {
+          errorMsg = errorData;
+        } else if (errorData?.message) {
+          errorMsg = errorData.message;
+        } else if (errorData?.details && Array.isArray(errorData.details)) {
+          errorMsg = errorData.details.map((d: any) => d.message || d).join(', ');
+        } else if (errorData?.error) {
+          errorMsg = errorData.error;
+        }
+
         toast.error('Erro de validação', {
           description: errorMsg,
+          duration: 5000,
         });
       } else {
         toast.error('Erro ao salvar', {

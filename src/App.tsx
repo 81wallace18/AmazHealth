@@ -23,6 +23,8 @@ import Billing from "./pages/Billing";
 import Reports from "./pages/Reports";
 import Staff from "./pages/Staff";
 import UserManagement from "./pages/UserManagement";
+import FacilityManagement from "./pages/FacilityManagement";
+import BedManagement from "./pages/BedManagement";
 import Auth from "./pages/Auth";
 import ActivateAccount from "./pages/ActivateAccount";
 import NotFound from "./pages/NotFound";
@@ -58,7 +60,7 @@ function AuthListener() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -69,11 +71,40 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/auth" replace />;
   }
-  
+
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loading, user } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Verifica se o usuário tem role ADMIN
+  if (!user?.roles?.includes('admin')) {
+    toast.error('Acesso negado', {
+      description: 'Esta página é restrita a administradores.',
+    });
+    return <Navigate to="/" replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -135,6 +166,16 @@ const App = () => (
             <Route path="reports" element={<Reports />} />
             <Route path="staff" element={<Staff />} />
             <Route path="users" element={<UserManagement />} />
+            <Route path="facilities" element={
+              <AdminRoute>
+                <FacilityManagement />
+              </AdminRoute>
+            } />
+            <Route path="beds" element={
+              <AdminRoute>
+                <BedManagement />
+              </AdminRoute>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           </Route>
           <Route path="*" element={<NotFound />} />
