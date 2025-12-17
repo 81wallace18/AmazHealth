@@ -27,12 +27,14 @@ interface TriageBoardProps {
   onRefresh?: () => void;
   onAssignSector?: (visitId: string, patientName: string) => void;
   onStartAttendance?: (visitId: string, patientName: string) => void;
+  onReclassify?: (visitId: string, patientName: string) => void;
   /**
    * Define se o usuário atual pode atribuir/setorizar pacientes.
    * Ex.: enfermeiros/admin podem, médicos não.
    */
   canAssignSector?: boolean;
   canStartAttendance?: boolean;
+  canReclassify?: boolean;
   isRefreshing?: boolean;
   isPaused?: boolean;
   isManualPause?: boolean;
@@ -48,6 +50,8 @@ export function TriageBoard({
   canAssignSector = true,
   onStartAttendance,
   canStartAttendance = false,
+  onReclassify,
+  canReclassify = false,
   isRefreshing = false,
   isPaused = false,
   isManualPause = false,
@@ -201,13 +205,13 @@ export function TriageBoard({
                       )}
 
                       {patient.status === 'AWAITING_DOCTOR' && (
-                        <div className="mt-3 flex gap-2">
+                        <div className="mt-3 flex flex-col gap-2">
                           {onAssignSector && canAssignSector && (
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => onAssignSector(patient.visitId, patient.patientName)}
-                              className="flex-1"
+                              className="w-full"
                             >
                               Definir setor
                             </Button>
@@ -216,9 +220,19 @@ export function TriageBoard({
                             <Button
                               size="sm"
                               onClick={() => onStartAttendance(patient.visitId, patient.patientName)}
-                              className="flex-1"
+                              className="w-full"
                             >
                               Iniciar atendimento
+                            </Button>
+                          )}
+                          {onReclassify && canReclassify && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => onReclassify(patient.visitId, patient.patientName)}
+                              className="w-full"
+                            >
+                              Reclassificar
                             </Button>
                           )}
                         </div>
