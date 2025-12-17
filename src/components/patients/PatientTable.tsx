@@ -78,7 +78,7 @@ export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel,
                         </Badge>
                       ) : '-'}
                     </TableCell>
-                    <TableCell>{new Date(patient.updatedAt).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell>{patient.updatedAt ? new Date(patient.updatedAt).toLocaleDateString('pt-BR') : '-'}</TableCell>
                     <TableCell>
                       <Badge 
                         variant="outline" 
@@ -89,16 +89,22 @@ export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel,
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          aria-label="Iniciar atendimento"
-                          onClick={() => onStartAttendance?.(patient)}
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                        >
-                          <UserPlus className="h-4 w-4 mr-1" />
-                          Atender
-                        </Button>
+                        {patient.hasActiveAttendance ? (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                            Em atendimento
+                          </Badge>
+                        ) : (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            aria-label="Iniciar atendimento"
+                            onClick={() => onStartAttendance?.(patient)}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <UserPlus className="h-4 w-4 mr-1" />
+                            Atender
+                          </Button>
+                        )}
                         <Button variant="ghost" size="sm" aria-label="Ver detalhes" onClick={() => onView?.(patient)}>
                           <Eye className="h-4 w-4" />
                         </Button>

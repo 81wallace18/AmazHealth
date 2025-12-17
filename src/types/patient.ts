@@ -101,6 +101,7 @@ export interface Patient {
   // Status e Controle
   status: PatientStatus;
   similarityScore?: number;
+  hasActiveAttendance?: boolean;
   createdAt: string;
   updatedAt: string;
 }
