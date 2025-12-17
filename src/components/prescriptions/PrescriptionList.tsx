@@ -33,6 +33,7 @@ const statusLabels: Record<PrescriptionStatus, string> = {
   DRAFT: 'Rascunho',
   ACTIVE: 'Ativa',
   DISPENSED: 'Dispensada',
+  REJECTED: 'Recusada',
   CANCELLED: 'Cancelada',
   EXPIRED: 'Expirada',
 };
@@ -41,6 +42,7 @@ const statusStyles: Record<PrescriptionStatus, string> = {
   DRAFT: 'bg-gray-100 text-gray-800',
   ACTIVE: 'bg-blue-100 text-blue-800',
   DISPENSED: 'bg-green-100 text-green-800',
+  REJECTED: 'bg-orange-100 text-orange-800',
   CANCELLED: 'bg-red-100 text-red-800',
   EXPIRED: 'bg-amber-100 text-amber-900',
 };
@@ -218,4 +220,3 @@ const medicationTypes: Record<string, string> = {
   CONTROLLED: 'Controlado',
   BLOOD_COMPONENT: 'Hemocomponente',
 };
-

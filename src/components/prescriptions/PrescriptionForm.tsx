@@ -24,12 +24,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import prescriptionService from '@/services/prescriptionService';
+import pharmacyService from '@/services/pharmacyService';
 import type { MedicationType, Prescription } from '@/types/prescription';
+import type { Medicine } from '@/types/pharmacy';
 import type { Staff } from '@/services/staffService';
 import staffService from '@/services/staffService';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   ControlledDrugForm,
   type ControlledDrugFormData,
@@ -46,9 +59,8 @@ const medicationTypes: { value: MedicationType; label: string }[] = [
 const prescriptionStatuses = ['DRAFT', 'ACTIVE'] as const;
 
 const itemSchema = z.object({
-  // ID é gerado automaticamente; o campo existe apenas para visualização
-  medicineId: z.string().optional().or(z.literal('')),
-  medicineName: z.string().min(2, 'Nome do medicamento é obrigatório'),
+  medicineId: z.string().uuid('Selecione um medicamento'),
+  medicineName: z.string().min(2, 'Medicamento é obrigatório'),
   medicineDescription: z.string().optional(),
   medicationType: z.enum(medicationTypes.map((m) => m.value) as [MedicationType, ...MedicationType[]]),
   dosage: z.string().min(1, 'Informe a dosagem'),
@@ -69,6 +81,100 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+interface MedicineComboboxProps {
+  value?: string;
+  selectedLabel?: string;
+  disabled?: boolean;
+  onSelect: (medicine: Medicine) => void;
+}
+
+function MedicineCombobox({ value, selectedLabel, disabled, onSelect }: MedicineComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Medicine[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setResults([]);
+      return;
+    }
+
+    const handle = window.setTimeout(async () => {
+      setIsLoading(true);
+      try {
+        const response = await pharmacyService.searchMedicines(trimmed, 0, 20);
+        setResults(response.content ?? []);
+      } catch (error) {
+        console.error('Erro ao buscar medicamentos:', error);
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 250);
+
+    return () => window.clearTimeout(handle);
+  }, [open, query]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className={cn('w-full justify-between', !value && 'text-muted-foreground')}
+        >
+          {selectedLabel || 'Selecione um medicamento'}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[420px] p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Buscar por nome, código, genérico..."
+            value={query}
+            onValueChange={setQuery}
+          />
+          <CommandList>
+            <CommandEmpty>{isLoading ? 'Buscando...' : 'Nenhum medicamento encontrado.'}</CommandEmpty>
+            <CommandGroup heading="Resultados">
+              {results.map((medicine) => {
+                const label = `${medicine.medicineName}${medicine.strength ? ` — ${medicine.strength}` : ''}`;
+                return (
+                  <CommandItem
+                    key={medicine.id}
+                    value={medicine.id}
+                    onSelect={() => {
+                      onSelect(medicine);
+                      setOpen(false);
+                      setQuery('');
+                    }}
+                  >
+                    <Check className={cn('mr-2 h-4 w-4', value === medicine.id ? 'opacity-100' : 'opacity-0')} />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{label}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {medicine.medicineCode}
+                        {medicine.genericName ? ` · ${medicine.genericName}` : ''}
+                      </span>
+                    </div>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 interface PrescriptionFormProps {
   open: boolean;
@@ -99,20 +205,13 @@ export function PrescriptionForm({
     null
   );
 
-  const generateUuid = () => {
-    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-      return crypto.randomUUID();
-    }
-    return '00000000-0000-0000-0000-000000000000';
-  };
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       status: 'ACTIVE',
       items: [
         {
-          medicineId: generateUuid(),
+          medicineId: '',
           medicineName: '',
           medicationType: 'COMMON',
           dosage: '',
@@ -238,10 +337,7 @@ export function PrescriptionForm({
         status: values.status,
         notes: values.notes?.trim() || undefined,
         items: values.items.map((item) => ({
-          medicineId:
-            item.medicineId && item.medicineId.length === 36
-              ? item.medicineId
-              : generateUuid(),
+          medicineId: item.medicineId,
           medicineName: item.medicineName,
           medicineDescription: item.medicineDescription?.trim() || undefined,
           medicationType: item.medicationType,
@@ -374,7 +470,7 @@ export function PrescriptionForm({
                     variant="outline"
                     onClick={() =>
                       append({
-                        medicineId: generateUuid(),
+                        medicineId: '',
                         medicineName: '',
                         medicationType: 'COMMON',
                         dosage: '',
@@ -411,12 +507,21 @@ export function PrescriptionForm({
                         name={`items.${index}.medicineId`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>ID do medicamento (gerado automaticamente)</FormLabel>
+                            <FormLabel>Medicamento</FormLabel>
                             <FormControl>
-                              <Input
-                                {...field}
-                                readOnly
-                                onChange={field.onChange}
+                              <MedicineCombobox
+                                value={field.value}
+                                selectedLabel={form.getValues(`items.${index}.medicineName`)}
+                                onSelect={(medicine) => {
+                                  form.setValue(`items.${index}.medicineId`, medicine.id, { shouldValidate: true });
+                                  form.setValue(`items.${index}.medicineName`, medicine.medicineName, { shouldValidate: true });
+                                  if (!form.getValues(`items.${index}.medicineDescription`)) {
+                                    const desc = [medicine.genericName, medicine.strength].filter(Boolean).join(' ');
+                                    if (desc) {
+                                      form.setValue(`items.${index}.medicineDescription`, desc);
+                                    }
+                                  }
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -429,9 +534,9 @@ export function PrescriptionForm({
                         name={`items.${index}.medicineName`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nome comercial</FormLabel>
+                            <FormLabel>Nome</FormLabel>
                             <FormControl>
-                              <Input placeholder="Nome do medicamento" {...field} />
+                              <Input placeholder="Selecione um medicamento acima" {...field} readOnly />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

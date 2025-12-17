@@ -1,4 +1,4 @@
-export type PrescriptionStatus = 'DRAFT' | 'ACTIVE' | 'DISPENSED' | 'CANCELLED' | 'EXPIRED';
+export type PrescriptionStatus = 'DRAFT' | 'ACTIVE' | 'DISPENSED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED';
 
 export type MedicationType = 'COMMON' | 'ANTIBIOTIC' | 'CONTROLLED' | 'BLOOD_COMPONENT';
 
