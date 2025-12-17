@@ -37,6 +37,11 @@ class AdmissionService {
     return response.data;
   }
 
+  async findByAttendanceId(attendanceId: string): Promise<Admission> {
+    const response = await api.get<Admission>(`/admissions/by-attendance/${attendanceId}`);
+    return response.data;
+  }
+
   async findAll(filters?: AdmissionFilters): Promise<PaginatedResponse<Admission>> {
     const params = {
       page: filters?.page ?? 0,

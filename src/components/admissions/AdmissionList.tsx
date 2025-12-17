@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,6 +14,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSearchParams } from 'react-router-dom';
 
 import { admissionService } from '@/services/admissionService';
 import type { Admission, AdmissionStatus, Bed } from '@/types/admission';
@@ -86,6 +87,8 @@ export function AdmissionList() {
   const [dischargeAdmission, setDischargeAdmission] = useState<Admission | null>(null);
 
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const attendanceIdToOpen = searchParams.get('attendanceId');
 
   const admissionsQuery = useQuery({
     queryKey: ['admissions', { page, statusFilter }],
@@ -104,6 +107,34 @@ export function AdmissionList() {
       };
     },
   });
+
+  useEffect(() => {
+    if (!attendanceIdToOpen) {
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const admission = await admissionService.findByAttendanceId(attendanceIdToOpen);
+        if (cancelled) return;
+        setDetailsAdmission(admission);
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Erro ao buscar internação pelo atendimento:', error);
+        toast.error('Não foi possível localizar a internação vinculada a este atendimento.');
+      } finally {
+        if (cancelled) return;
+        const next = new URLSearchParams(searchParams);
+        next.delete('attendanceId');
+        setSearchParams(next, { replace: true });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attendanceIdToOpen, searchParams, setSearchParams]);
 
   const admissions = useMemo(() => {
     const list = admissionsQuery.data?.content ?? [];
