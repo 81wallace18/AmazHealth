@@ -44,36 +44,11 @@ export function validateCPF(cpf: string): boolean {
 /**
  * Valida CNS (Cartão Nacional de Saúde)
  * @param cns - CNS com ou sem formatação
- * @returns true se válido, false caso contrário
+ * @returns true se válido (menos de 15 caracteres), false caso contrário
  */
 export function validateCNS(cns: string): boolean {
   if (!cns) return false;
-
-  // Remove caracteres não numéricos
-  const cleaned = cns.replace(/\D/g, '');
-
-  // CNS deve ter 15 dígitos
-  if (cleaned.length !== 15) return false;
-
-  // CNS começando com 1 ou 2 (definitivo)
-  if (cleaned[0] === '1' || cleaned[0] === '2') {
-    let sum = 0;
-    for (let i = 0; i < 15; i++) {
-      sum += parseInt(cleaned[i]) * (15 - i);
-    }
-    return sum % 11 === 0;
-  }
-
-  // CNS começando com 7, 8 ou 9 (provisório)
-  if (cleaned[0] === '7' || cleaned[0] === '8' || cleaned[0] === '9') {
-    let sum = 0;
-    for (let i = 0; i < 15; i++) {
-      sum += parseInt(cleaned[i]) * (15 - i);
-    }
-    return sum % 11 === 0;
-  }
-
-  return false;
+  return cns.length < 15;
 }
 
 /**

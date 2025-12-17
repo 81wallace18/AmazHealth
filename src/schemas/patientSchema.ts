@@ -66,11 +66,11 @@ export const patientSchema = z.object({
     .refine(
       (val) => {
         if (!val || val === '') return true;
-        // Remove caracteres não numéricos e valida se tem 15 dígitos
+        // Remove espaços e caracteres não numéricos, valida se tem até 15 dígitos
         const cleaned = val.replace(/\D/g, '');
-        return cleaned.length === 15;
+        return cleaned.length <= 15;
       },
-      { message: 'CNS deve ter 15 dígitos' }
+      { message: 'CNS deve ter no máximo 15 dígitos' }
     )
     .or(z.literal('')),
 
