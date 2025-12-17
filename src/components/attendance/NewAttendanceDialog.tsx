@@ -135,7 +135,11 @@ export function NewAttendanceDialog({
               </div>
               <div>
                 <p className="text-muted-foreground">CPF/CNS</p>
-                <p className="font-mono">{patient.cpf || patient.cns || "-"}</p>
+                <p className="font-mono">
+                  {patient.cpf && patient.cns
+                    ? `${patient.cpf} / ${patient.cns}`
+                    : patient.cpf || patient.cns || "-"}
+                </p>
               </div>
             </div>
           </CardContent>
