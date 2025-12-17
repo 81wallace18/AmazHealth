@@ -20,6 +20,7 @@ const statusLabels: Record<PrescriptionStatus, string> = {
   DRAFT: "Rascunho",
   ACTIVE: "Ativa",
   DISPENSED: "Dispensada",
+  REJECTED: "Recusada",
   CANCELLED: "Cancelada",
   EXPIRED: "Expirada"
 };

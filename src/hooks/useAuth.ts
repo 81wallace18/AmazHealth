@@ -21,6 +21,9 @@ interface User {
   organizations?: OrganizationInfo[];
 }
 
+const normalizeRoles = (roles?: string[]) =>
+  (roles ?? []).filter(Boolean).map((role) => role.toUpperCase());
+
 const mapAuthUser = (authUser: AuthResponse['user']): User => ({
   id: authUser.id,
   username: authUser.username,
@@ -30,7 +33,7 @@ const mapAuthUser = (authUser: AuthResponse['user']): User => ({
   organizationName: authUser.organizationName,
   staffId: authUser.staffId ?? null,
   activeSectorId: authUser.activeSectorId ?? null,
-  roles: authUser.roles ?? [],
+  roles: normalizeRoles(authUser.roles),
 });
 
 const mapProfileToUser = (profile: MeResponse): User => ({
@@ -42,7 +45,7 @@ const mapProfileToUser = (profile: MeResponse): User => ({
   organizationName: profile.activeOrganizationName,
   staffId: profile.staffId ?? null,
   activeSectorId: profile.activeSectorId ?? null,
-  roles: profile.activeRoles ?? [],
+  roles: normalizeRoles(profile.activeRoles),
   organizations: profile.organizations,
 });
 
@@ -82,9 +85,7 @@ export function useAuth() {
       if (storedUserRaw && accessToken) {
         try {
           const parsed: User = JSON.parse(storedUserRaw);
-          if (!parsed.roles) {
-            parsed.roles = [];
-          }
+          parsed.roles = normalizeRoles(parsed.roles);
           setUser(parsed);
 
           const profile = await authService.getProfile();

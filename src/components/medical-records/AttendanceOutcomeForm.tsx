@@ -24,7 +24,7 @@ import attendanceService from '@/services/attendanceService';
 import staffService, { type Staff } from '@/services/staffService';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
-import { AdmissionForm } from '@/components/admissions/AdmissionForm';
+import { useNavigate } from 'react-router-dom';
 
 const outcomeOptions = [
   { value: 'ALTA', label: 'Alta' },
@@ -76,16 +76,14 @@ export function AttendanceOutcomeForm({
   open,
   onOpenChange,
   attendanceId,
-  patientId,
   patientName,
   attendanceNumber,
   onSuccess,
 }: AttendanceOutcomeFormProps) {
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [doctors, setDoctors] = useState<Staff[]>([]);
   const [loadingDoctors, setLoadingDoctors] = useState(false);
-  const [showAdmissionForm, setShowAdmissionForm] = useState(false);
-  const [pendingReason, setPendingReason] = useState<string | undefined>();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -129,9 +127,8 @@ export function AttendanceOutcomeForm({
       toast.success('Atendimento finalizado com sucesso.');
       onSuccess?.();
       onOpenChange(false);
-      if (values.outcome === 'INTERNACAO' && patientId) {
-        setPendingReason(values.admissionReason?.trim() || undefined);
-        setShowAdmissionForm(true);
+      if (values.outcome === 'INTERNACAO') {
+        navigate(`/admissions?attendanceId=${attendanceId}`);
       }
       form.reset({ outcome: 'ALTA', notes: '' });
     } catch (error: any) {
@@ -264,20 +261,6 @@ export function AttendanceOutcomeForm({
           </Form>
         </DialogContent>
       </Dialog>
-
-      {patientId && (
-        <AdmissionForm
-          open={showAdmissionForm}
-          onOpenChange={setShowAdmissionForm}
-          defaultPatientId={patientId}
-          defaultAttendanceId={attendanceId}
-          defaultReason={pendingReason}
-          onSuccess={() => {
-            setShowAdmissionForm(false);
-            toast.success('Internação criada com sucesso.');
-          }}
-        />
-      )}
     </>
   );
 }

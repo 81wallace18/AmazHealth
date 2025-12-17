@@ -98,7 +98,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   // Verifica se o usuário tem role ADMIN
-  if (!user?.roles?.includes('admin')) {
+  if (!user?.roles?.includes('ADMIN')) {
     toast.error('Acesso negado', {
       description: 'Esta página é restrita a administradores.',
     });

@@ -12,6 +12,7 @@ import { pharmacyService } from "@/services/pharmacyService";
 import type { MedicineStock } from "@/types/pharmacy";
 import type { Prescription, PrescriptionItem } from "@/types/prescription";
 import { useToast } from "@/hooks/use-toast";
+import prescriptionService from "@/services/prescriptionService";
 
 interface DispensationFormProps {
   open: boolean;
@@ -109,7 +110,12 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
         };
       });
 
-      await pharmacyService.dispensePrescriptionItems(payload);
+      await prescriptionService.validateByPharmacy(prescription.id, {
+        approved: true,
+        observations: "Dispensação registrada na farmácia.",
+        notes: "",
+        items: payload
+      });
       toast({
         title: "Dispensação registrada",
         description: "A prescrição foi marcada como dispensada."

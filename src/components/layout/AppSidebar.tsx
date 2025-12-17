@@ -153,7 +153,7 @@ export function AppSidebar() {
   // Filtrar itens baseado nas roles do usuário
   const filteredItems = navigationItems.filter(item => {
     if (item.adminOnly) {
-      return user?.roles?.includes('admin');
+      return user?.roles?.includes('ADMIN');
     }
     return true;
   });

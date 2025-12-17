@@ -75,20 +75,24 @@ export default function Consultations() {
   const handleStartAttendance = async (patient: TriageBoardItem) => {
     setSelectedPatient(patient);
 
-    // Buscar o attendance pelo visitId
     try {
+      await triageService.startAttendance(patient.visitId);
+
+      // Buscar o attendance pelo visitId
       const found = await attendanceService.findByVisitId(patient.visitId);
 
       if (!found) {
         toast.error('Atendimento não encontrado para esta visita');
         console.error('Attendance não encontrado para visitId:', patient.visitId);
+        setSelectedPatient(null);
         return;
       }
 
       setAttendance(found);
     } catch (error) {
       console.error('Erro ao buscar atendimento:', error);
-      toast.error('Erro ao buscar dados do atendimento');
+      toast.error(error instanceof Error ? error.message : 'Erro ao iniciar/buscar dados do atendimento');
+      setSelectedPatient(null);
     }
   };
 
