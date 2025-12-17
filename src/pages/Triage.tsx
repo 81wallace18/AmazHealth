@@ -25,6 +25,8 @@ import { Label } from '@/components/ui/label';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
+import { ManchesterColor, MANCHESTER_COLORS } from '@/types/triage';
 
 export default function Triage() {
   const [patients, setPatients] = useState<TriageBoardItem[]>([]);
@@ -34,6 +36,7 @@ export default function Triage() {
   const { user, loading: authLoading } = useAuth();
   const [sectors, setSectors] = useState<Sector[]>([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [isAssignSectorOpen, setIsAssignSectorOpen] = useState(false);
   const [assigningVisitId, setAssigningVisitId] = useState<string | null>(null);
@@ -43,6 +46,15 @@ export default function Triage() {
   const [isAssigningSector, setIsAssigningSector] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
   const [manualAutoRefreshPause, setManualAutoRefreshPause] = useState(false);
+
+  // Reclassify Dialog State
+  const [isReclassifyOpen, setIsReclassifyOpen] = useState(false);
+  const [reclassifyVisitId, setReclassifyVisitId] = useState<string | null>(null);
+  const [reclassifyPatientName, setReclassifyPatientName] = useState('');
+  const [reclassifyColor, setReclassifyColor] = useState<ManchesterColor>('GREEN');
+  const [reclassifyReason, setReclassifyReason] = useState('');
+  const [reclassifyError, setReclassifyError] = useState<string | null>(null);
+  const [isReclassifying, setIsReclassifying] = useState(false);
 
   // Triage Form State
   const [isTriageFormOpen, setIsTriageFormOpen] = useState(false);
@@ -180,12 +192,64 @@ export default function Triage() {
     }
   };
 
+  const handleOpenReclassify = (visitId: string, patientName: string) => {
+    setReclassifyVisitId(visitId);
+    setReclassifyPatientName(patientName);
+    setReclassifyColor('GREEN');
+    setReclassifyReason('');
+    setReclassifyError(null);
+    setIsReclassifyOpen(true);
+  };
+
+  const handleReclassifyDialogChange = (open: boolean) => {
+    setIsReclassifyOpen(open);
+    if (!open) {
+      setReclassifyVisitId(null);
+      setReclassifyPatientName('');
+      setReclassifyReason('');
+      setReclassifyError(null);
+      setIsReclassifying(false);
+    }
+  };
+
+  const handleReclassify = async () => {
+    if (!reclassifyVisitId) return;
+    if (!reclassifyReason || reclassifyReason.trim().length < 5) {
+      setReclassifyError('Informe o motivo da reclassificação (mínimo 5 caracteres).');
+      return;
+    }
+
+    try {
+      setIsReclassifying(true);
+      await triageService.reclassify(reclassifyVisitId, {
+        triageColor: reclassifyColor,
+        reason: reclassifyReason.trim(),
+      });
+      await loadTriageBoard();
+      handleReclassifyDialogChange(false);
+      toast({
+        title: 'Reclassificação registrada',
+        description: `${reclassifyPatientName} foi reclassificado para ${MANCHESTER_COLORS[reclassifyColor].label}.`,
+      });
+    } catch (err: any) {
+      const message = err?.message || 'Erro ao reclassificar triagem';
+      setReclassifyError(message);
+      toast({
+        title: 'Falha ao reclassificar',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsReclassifying(false);
+    }
+  };
+
   // Manual refresh
   const handleManualRefresh = () => {
     setIsLoading(true);
     loadTriageBoard();
   };
-  const modalPause = isTriageFormOpen || isAssignSectorOpen;
+  const modalPause = isTriageFormOpen || isAssignSectorOpen || isReclassifyOpen;
   const autoRefreshEnabled = !manualAutoRefreshPause && !modalPause;
   const isPollingPaused = !autoRefreshEnabled;
 
@@ -259,11 +323,26 @@ export default function Triage() {
         onRefresh={loadTriageBoard}
         canAssignSector={user?.roles?.includes('NURSE') || user?.roles?.includes('ADMIN')}
         canStartAttendance={user?.roles?.includes('DOCTOR')}
+        canReclassify={user?.roles?.includes('NURSE') || user?.roles?.includes('ADMIN')}
+        onReclassify={handleOpenReclassify}
         onStartAttendance={(visitId, patientName) => {
-          toast({
-            title: 'Iniciar atendimento',
-            description: `Visita ${patientName} (${visitId}) pronta para atendimento médico.`,
-          });
+          void (async () => {
+            try {
+              await triageService.startAttendance(visitId);
+              await loadTriageBoard();
+              toast({
+                title: 'Atendimento iniciado',
+                description: `${patientName} está em atendimento.`,
+              });
+              navigate('/consultations');
+            } catch (err: any) {
+              toast({
+                title: 'Não foi possível iniciar atendimento',
+                description: err?.message || 'Erro ao iniciar atendimento.',
+                variant: 'destructive',
+              });
+            }
+          })();
         }}
         isRefreshing={isRefreshing}
         onAssignSector={handleOpenAssignSector}
@@ -272,6 +351,70 @@ export default function Triage() {
         disableToggle={modalPause}
         onToggleAutoRefresh={() => setManualAutoRefreshPause((prev) => !prev)}
       />
+
+      <Dialog open={isReclassifyOpen} onOpenChange={handleReclassifyDialogChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reclassificar triagem</DialogTitle>
+            <DialogDescription>
+              Atualize a cor Manchester para <strong>{reclassifyPatientName}</strong> e informe o motivo.
+            </DialogDescription>
+          </DialogHeader>
+
+          {reclassifyError && (
+            <Alert variant="destructive" className="mb-3">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{reclassifyError}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="space-y-2">
+            <Label>Nova cor</Label>
+            <Select
+              value={reclassifyColor}
+              onValueChange={(value) => {
+                setReclassifyColor(value as ManchesterColor);
+                setReclassifyError(null);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {(['RED', 'ORANGE', 'YELLOW', 'GREEN', 'BLUE'] as ManchesterColor[]).map((color) => (
+                  <SelectItem key={color} value={color}>
+                    {MANCHESTER_COLORS[color].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reclassify-reason">Motivo *</Label>
+            <Textarea
+              id="reclassify-reason"
+              value={reclassifyReason}
+              onChange={(event) => {
+                setReclassifyReason(event.target.value);
+                setReclassifyError(null);
+              }}
+              rows={4}
+              placeholder="Descreva o motivo clínico/operacional da reclassificação."
+            />
+            <p className="text-xs text-muted-foreground">Obrigatório — mínimo 5 caracteres.</p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleReclassifyDialogChange(false)} disabled={isReclassifying}>
+              Cancelar
+            </Button>
+            <Button onClick={handleReclassify} disabled={isReclassifying}>
+              {isReclassifying ? 'Salvando...' : 'Reclassificar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isAssignSectorOpen} onOpenChange={handleAssignDialogChange}>
         <DialogContent className="max-w-md">

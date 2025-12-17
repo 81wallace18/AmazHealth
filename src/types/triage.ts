@@ -39,6 +39,16 @@ export interface TriageRegisterRequest {
 }
 
 /**
+ * Triage Reclassify Request
+ * POST /api/v1/triage/visits/{visitId}/reclassify
+ */
+export interface TriageReclassifyRequest {
+  triageColor: ManchesterColor;
+  reason: string;
+  vitalSigns?: VitalSigns;
+}
+
+/**
  * Triage Board Item DTO
  * Matches backend TriageBoardDTO
  */

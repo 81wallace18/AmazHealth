@@ -8,6 +8,7 @@ import {
   TriageRegisterRequest,
   TriageBoardItem,
   SectorAssignRequest,
+  TriageReclassifyRequest,
   TriageSuggestionRequest,
   TriageSuggestionResponse
 } from '@/types/triage';
@@ -74,6 +75,36 @@ export const triageService = {
         throw new Error(error.response.data.message);
       }
       throw new Error('Erro ao atribuir setor');
+    }
+  },
+
+  /**
+   * Start medical attendance for a visit (locks and sets IN_ATTENDANCE)
+   * POST /api/v1/triage/visits/{visitId}/start-attendance
+   */
+  async startAttendance(visitId: string): Promise<void> {
+    try {
+      await api.post(`${BASE_URL}/visits/${visitId}/start-attendance`);
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Erro ao iniciar atendimento');
+    }
+  },
+
+  /**
+   * Reclassify Manchester color for an already triaged visit
+   * POST /api/v1/triage/visits/{visitId}/reclassify
+   */
+  async reclassify(visitId: string, request: TriageReclassifyRequest): Promise<void> {
+    try {
+      await api.post(`${BASE_URL}/visits/${visitId}/reclassify`, request);
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Erro ao reclassificar triagem');
     }
   },
 
