@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export function AppHeader() {
   const { user, signOut } = useAuth();
@@ -46,7 +47,16 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          onClick={() => {
+            toast.info("Notificações em breve.", {
+              description: "Este painel será ativado nas próximas versões.",
+            });
+          }}
+        >
           <Bell className="h-5 w-5" />
           <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
             3

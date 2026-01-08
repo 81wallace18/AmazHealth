@@ -32,13 +32,19 @@ interface PatientFormProps {
   onSubmit: (data: any) => Promise<void>;
   loading?: boolean;
   initialData?: Partial<Patient>;
+  showClinicalSection?: boolean;
 }
 
 /**
  * Formulário completo de cadastro de pacientes (US-A2)
  * Integrado com React Hook Form + Zod + Validação de Duplicatas
  */
-export function PatientFormNew({ onSubmit, loading = false, initialData }: PatientFormProps) {
+export function PatientFormNew({
+  onSubmit,
+  loading = false,
+  initialData,
+  showClinicalSection = true,
+}: PatientFormProps) {
   const { toast } = useToast();
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [duplicates, setDuplicates] = useState<Patient[]>([]);
@@ -563,54 +569,55 @@ export function PatientFormNew({ onSubmit, loading = false, initialData }: Patie
               </div>
             </div>
 
-            {/* SEÇÃO 7: DADOS CLÍNICOS */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold border-b pb-2">⚕️ Dados Clínicos</h3>
+            {showClinicalSection && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">⚕️ Dados Clínicos</h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bloodType">Tipo Sanguíneo</Label>
+                    <Select onValueChange={(value) => setValue('bloodType', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BloodTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="bloodType">Tipo Sanguíneo</Label>
-                  <Select onValueChange={(value) => setValue('bloodType', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BloodTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="allergies">Alergias Conhecidas</Label>
+                  <Textarea
+                    id="allergies"
+                    {...register('allergies')}
+                    placeholder="Descreva alergias a medicamentos, alimentos ou outras substâncias..."
+                    rows={3}
+                  />
+                  {errors.allergies && (
+                    <p className="text-sm text-destructive">{errors.allergies.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="medicalHistory">Histórico Médico</Label>
+                  <Textarea
+                    id="medicalHistory"
+                    {...register('medicalHistory')}
+                    placeholder="Histórico de doenças, cirurgias, tratamentos anteriores..."
+                    rows={4}
+                  />
+                  {errors.medicalHistory && (
+                    <p className="text-sm text-destructive">{errors.medicalHistory.message}</p>
+                  )}
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="allergies">Alergias Conhecidas</Label>
-                <Textarea
-                  id="allergies"
-                  {...register('allergies')}
-                  placeholder="Descreva alergias a medicamentos, alimentos ou outras substâncias..."
-                  rows={3}
-                />
-                {errors.allergies && (
-                  <p className="text-sm text-destructive">{errors.allergies.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="medicalHistory">Histórico Médico</Label>
-                <Textarea
-                  id="medicalHistory"
-                  {...register('medicalHistory')}
-                  placeholder="Histórico de doenças, cirurgias, tratamentos anteriores..."
-                  rows={4}
-                />
-                {errors.medicalHistory && (
-                  <p className="text-sm text-destructive">{errors.medicalHistory.message}</p>
-                )}
-              </div>
-            </div>
+            )}
 
             {/* Botões de ação */}
             <div className="flex justify-end gap-4 pt-6 border-t">

@@ -268,7 +268,11 @@ export default function Patients() {
                 Preencha os dados abaixo para registrar um novo paciente no sistema.
               </DialogDescription>
             </DialogHeader>
-            <PatientFormNew onSubmit={handleAddPatient} loading={loading} />
+            <PatientFormNew
+              onSubmit={handleAddPatient}
+              loading={loading}
+              showClinicalSection={false}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -325,7 +329,12 @@ export default function Patients() {
             </DialogDescription>
           </DialogHeader>
           {selectedPatient && (
-            <PatientFormNew onSubmit={handleUpdatePatient} loading={loading} initialData={selectedPatient} />
+            <PatientFormNew
+              onSubmit={handleUpdatePatient}
+              loading={loading}
+              initialData={selectedPatient}
+              showClinicalSection={false}
+            />
           )}
         </DialogContent>
       </Dialog>
