@@ -9,6 +9,15 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { useAuth } from "./hooks/useAuth";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import { AUTH_LOGOUT_EVENT } from "./lib/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Dashboard from "./pages/Dashboard";
 import Hospital from "./pages/Hospital";
 import Consultations from "./pages/Consultations";
@@ -28,17 +37,31 @@ import BedManagement from "./pages/BedManagement";
 import Auth from "./pages/Auth";
 import ActivateAccount from "./pages/ActivateAccount";
 import NotFound from "./pages/NotFound";
+import ReceptionTriage from "./pages/ReceptionTriage";
+import ReceptionQueue from "./pages/ReceptionQueue";
 
 const queryClient = new QueryClient();
 
 function AuthListener() {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   // Timeout de sessão automático (15 minutos de inatividade)
-  useSessionTimeout({
-    timeout: 15 * 60 * 1000, // 15 minutos
-    warningTime: 60 * 1000,  // Avisa 1 minuto antes
+  const { showWarning, resetTimer, timeLeftMs } = useSessionTimeout({
+    timeout: 60 * 60 * 1000, // 60 minutos
+    warningTime: 5 * 60 * 1000,  // Avisa 5 minutos antes
+    onTimeout: () => {
+      signOut({
+        silent: true,
+        reason: 'Sessão expirada por inatividade. Faça login novamente.',
+        redirectTo: '/auth',
+      });
+    },
   });
+
+  const minutes = Math.floor(timeLeftMs / 60000);
+  const seconds = Math.floor((timeLeftMs % 60000) / 1000);
+  const countdownLabel = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
   useEffect(() => {
     const handleLogout = (event: Event) => {
@@ -55,7 +78,22 @@ function AuthListener() {
     };
   }, [navigate]);
 
-  return null;
+  return (
+    <AlertDialog open={showWarning}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Sessão expirando</AlertDialogTitle>
+          <AlertDialogDescription>
+            Você ficará desconectado em {countdownLabel} por inatividade. Clique em
+            continuar para manter a sessão ativa.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction onClick={resetTimer}>Continuar sessão</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -108,6 +146,43 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RoleRoute({
+  children,
+  allowedRoles,
+  redirectTo = "/",
+}: {
+  children: React.ReactNode;
+  allowedRoles: string[];
+  redirectTo?: string;
+}) {
+  const { isAuthenticated, loading, user } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  const hasAccess = allowedRoles.some((role) => user?.roles?.includes(role));
+  if (!hasAccess) {
+    toast.error('Acesso negado', {
+      description: 'Você não tem permissão para acessar esta página.',
+    });
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
   
@@ -128,6 +203,8 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   
   return <>{children}</>;
 }
+
+const NON_RECEPTION_ROLES = ['ADMIN', 'DOCTOR', 'NURSE', 'PHARMACIST', 'STAFF'];
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -152,20 +229,78 @@ const App = () => (
               <AppLayout />
             </ProtectedRoute>
           }>
-            <Route index element={<Dashboard />} />
-            <Route path="hospital" element={<Hospital />} />
-            <Route path="consultations" element={<Consultations />} />
+            <Route index element={
+              <RoleRoute allowedRoles={NON_RECEPTION_ROLES} redirectTo="/patients">
+                <Dashboard />
+              </RoleRoute>
+            } />
+            <Route path="hospital" element={
+              <RoleRoute allowedRoles={NON_RECEPTION_ROLES} redirectTo="/patients">
+                <Hospital />
+              </RoleRoute>
+            } />
+            <Route path="consultations" element={
+              <RoleRoute allowedRoles={NON_RECEPTION_ROLES} redirectTo="/patients">
+                <Consultations />
+              </RoleRoute>
+            } />
             <Route path="patients" element={<Patients />} />
-            <Route path="triage" element={<Triage />} />
+            <Route path="triage" element={
+              <RoleRoute allowedRoles={NON_RECEPTION_ROLES} redirectTo="/patients">
+                <Triage />
+              </RoleRoute>
+            } />
             <Route path="appointments" element={<Appointments />} />
-            <Route path="medical-records" element={<MedicalRecords />} />
-            <Route path="admissions" element={<Admissions />} />
-            <Route path="laboratory" element={<Laboratory />} />
-            <Route path="pharmacy" element={<Pharmacy />} />
-            <Route path="billing" element={<Billing />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="staff" element={<Staff />} />
-            <Route path="users" element={<UserManagement />} />
+            <Route path="medical-records" element={
+              <RoleRoute allowedRoles={NON_RECEPTION_ROLES} redirectTo="/patients">
+                <MedicalRecords />
+              </RoleRoute>
+            } />
+            <Route path="admissions" element={
+              <RoleRoute allowedRoles={NON_RECEPTION_ROLES} redirectTo="/patients">
+                <Admissions />
+              </RoleRoute>
+            } />
+            <Route path="laboratory" element={
+              <RoleRoute allowedRoles={NON_RECEPTION_ROLES} redirectTo="/patients">
+                <Laboratory />
+              </RoleRoute>
+            } />
+            <Route path="pharmacy" element={
+              <RoleRoute allowedRoles={NON_RECEPTION_ROLES} redirectTo="/patients">
+                <Pharmacy />
+              </RoleRoute>
+            } />
+            <Route path="billing" element={
+              <RoleRoute allowedRoles={NON_RECEPTION_ROLES} redirectTo="/patients">
+                <Billing />
+              </RoleRoute>
+            } />
+            <Route path="reports" element={
+              <RoleRoute allowedRoles={NON_RECEPTION_ROLES} redirectTo="/patients">
+                <Reports />
+              </RoleRoute>
+            } />
+            <Route path="staff" element={
+              <RoleRoute allowedRoles={NON_RECEPTION_ROLES} redirectTo="/patients">
+                <Staff />
+              </RoleRoute>
+            } />
+            <Route path="users" element={
+              <RoleRoute allowedRoles={NON_RECEPTION_ROLES} redirectTo="/patients">
+                <UserManagement />
+              </RoleRoute>
+            } />
+            <Route path="reception/triage" element={
+              <RoleRoute allowedRoles={['ADMIN', 'RECEPTIONIST']} redirectTo="/patients">
+                <ReceptionTriage />
+              </RoleRoute>
+            } />
+            <Route path="reception/queue" element={
+              <RoleRoute allowedRoles={['ADMIN', 'RECEPTIONIST']} redirectTo="/patients">
+                <ReceptionQueue />
+              </RoleRoute>
+            } />
             <Route path="facilities" element={
               <AdminRoute>
                 <FacilityManagement />

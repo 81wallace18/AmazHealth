@@ -130,18 +130,39 @@ const navigationItems = [
   }
 ];
 
-const groupedItems = navigationItems.reduce((acc, item) => {
-  if (!acc[item.group]) {
-    acc[item.group] = [];
+const receptionItems = [
+  {
+    title: "Pacientes",
+    url: "/patients",
+    icon: Users,
+    group: "Recepção"
+  },
+  {
+    title: "Agendamentos",
+    url: "/appointments",
+    icon: Calendar,
+    group: "Recepção"
+  },
+  {
+    title: "Triagem (Lista)",
+    url: "/reception/triage",
+    icon: Activity,
+    group: "Recepção"
+  },
+  {
+    title: "Andamento",
+    url: "/reception/queue",
+    icon: BarChart3,
+    group: "Recepção"
   }
-  acc[item.group].push(item);
-  return acc;
-}, {} as Record<string, typeof navigationItems>);
+];
 
 export function AppSidebar() {
   const isMobile = useIsMobile();
   const location = useLocation();
   const { user } = useAuth();
+  const isReceptionistOnly = user?.roles?.length === 1 && user?.roles?.includes('RECEPTIONIST');
+  const menuItems = isReceptionistOnly ? receptionItems : navigationItems;
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -151,7 +172,7 @@ export function AppSidebar() {
   };
 
   // Filtrar itens baseado nas roles do usuário
-  const filteredItems = navigationItems.filter(item => {
+  const filteredItems = menuItems.filter(item => {
     if (item.adminOnly) {
       return user?.roles?.includes('ADMIN');
     }

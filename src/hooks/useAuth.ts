@@ -204,21 +204,32 @@ export function useAuth() {
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (options?: { reason?: string; silent?: boolean; redirectTo?: string }) => {
+    const reason = options?.reason;
+    const silent = options?.silent ?? false;
+    const redirectTo = options?.redirectTo ?? '/auth';
+
     try {
       setLoading(true);
       await authService.logout();
 
       clearSession();
-      toast.success('Logout realizado com sucesso!');
+      if (reason) {
+        toast.error(reason);
+      } else if (!silent) {
+        toast.success('Logout realizado com sucesso!');
+      }
 
       // Redireciona para login
-      navigate('/auth', { replace: true });
+      navigate(redirectTo, { replace: true });
     } catch (error) {
       // Mesmo com erro no backend, limpa localmente e redireciona
       console.error('[useAuth] Erro ao fazer logout no backend:', error);
       clearSession();
-      navigate('/auth', { replace: true });
+      if (reason) {
+        toast.error(reason);
+      }
+      navigate(redirectTo, { replace: true });
     } finally {
       setLoading(false);
     }

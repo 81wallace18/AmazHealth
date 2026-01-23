@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from './useAuth';
-import { toast } from 'sonner';
 
 interface UseSessionTimeoutOptions {
   /**
@@ -20,6 +19,11 @@ interface UseSessionTimeoutOptions {
    * @default ['mousedown', 'keydown', 'scroll', 'touchstart']
    */
   events?: string[];
+
+  /**
+   * Callback executado quando a sessão expira.
+   */
+  onTimeout?: () => void;
 }
 
 /**
@@ -45,34 +49,48 @@ export function useSessionTimeout(options: UseSessionTimeoutOptions = {}) {
     timeout = 15 * 60 * 1000, // 15 minutos default
     warningTime = 60 * 1000, // 1 minuto default
     events = ['mousedown', 'keydown', 'scroll', 'touchstart'],
+    onTimeout,
   } = options;
 
   const { signOut, isAuthenticated } = useAuth();
   const [showWarning, setShowWarning] = useState(false);
+  const [timeLeftMs, setTimeLeftMs] = useState(warningTime);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const warningRef = useRef<NodeJS.Timeout>();
+  const countdownRef = useRef<NodeJS.Timeout>();
 
   const resetTimer = () => {
     // Limpa timers existentes
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (warningRef.current) clearTimeout(warningRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
 
     setShowWarning(false);
+    setTimeLeftMs(warningTime);
 
     // Timer de aviso
     warningRef.current = setTimeout(() => {
       setShowWarning(true);
-      toast.warning('Sessão expirando!', {
-        description: `Você será deslogado em ${warningTime / 1000} segundos por inatividade.`,
-        duration: warningTime,
-      });
+      setTimeLeftMs(warningTime);
+      countdownRef.current = setInterval(() => {
+        setTimeLeftMs((prev) => {
+          if (prev <= 1000) {
+            if (countdownRef.current) clearInterval(countdownRef.current);
+            return 0;
+          }
+          return prev - 1000;
+        });
+      }, 1000);
     }, timeout - warningTime);
 
     // Timer de logout
     timeoutRef.current = setTimeout(() => {
       console.log('[SessionTimeout] Deslogando por inatividade');
-      toast.error('Sessão expirada por inatividade');
-      signOut();
+      if (onTimeout) {
+        onTimeout();
+      } else {
+        signOut();
+      }
     }, timeout);
   };
 
@@ -94,15 +112,17 @@ export function useSessionTimeout(options: UseSessionTimeoutOptions = {}) {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       if (warningRef.current) clearTimeout(warningRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
 
       events.forEach((event) => {
         window.removeEventListener(event, resetTimer);
       });
     };
-  }, [isAuthenticated, timeout, warningTime]);
+  }, [isAuthenticated, timeout, warningTime, events, onTimeout, signOut]);
 
   return {
     showWarning,
     resetTimer,
+    timeLeftMs,
   };
 }
