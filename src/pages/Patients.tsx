@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ToastAction } from "@/components/ui/toast";
 import { usePatientsSpring } from "@/hooks/usePatientsSpring";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { PatientFormNew } from "@/components/forms/PatientFormNew";
 import { PatientStats } from "@/components/patients/PatientStats";
 import { PatientFilters } from "@/components/patients/PatientFilters";
@@ -14,11 +16,191 @@ import { PatientDetails } from "@/components/patients/PatientDetails";
 import { PatientsEmptyState } from "@/components/patients/PatientsEmptyState";
 import { PatientIdentification } from "@/components/patients/PatientIdentification";
 import { NewAttendanceDialog } from "@/components/attendance/NewAttendanceDialog";
+import { ReceptionPatientTable } from "@/components/reception/ReceptionPatientTable";
 import attendanceService from "@/services/attendanceService";
 import { patientService } from "@/services/patientService";
+import receptionService from "@/services/receptionService";
 import type { Patient, PatientIdentification as PatientIdentificationInfo } from "@/types/patient";
+import type { ReceptionPatientListItem } from "@/types/reception";
 
-export default function Patients() {
+function ReceptionPatientsPage() {
+  const { toast } = useToast();
+  const [patients, setPatients] = useState<ReceptionPatientListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [isLoadingPatient, setIsLoadingPatient] = useState(false);
+
+  useEffect(() => {
+    document.title = "Recepção | Pacientes";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', 'Recepção: lista operacional de pacientes');
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadPatients = async () => {
+      try {
+        setLoading(true);
+        const response = await receptionService.listPatients({
+          page: 0,
+          size: 50,
+          query: searchTerm.trim() || undefined,
+        });
+        if (!cancelled) {
+          setPatients(response.content);
+        }
+      } catch (error) {
+        console.error('Error loading reception patients:', error);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    const timer = setTimeout(loadPatients, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchTerm]);
+
+  const handleAddPatient = async (data: any) => {
+    try {
+      await patientService.create(data);
+      setIsFormOpen(false);
+      const response = await receptionService.listPatients({ page: 0, size: 50 });
+      setPatients(response.content);
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Erro ao salvar paciente. Tente novamente.';
+      toast({
+        title: "Erro ao salvar",
+        description: message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditOpen = async (patient: ReceptionPatientListItem) => {
+    try {
+      setIsLoadingPatient(true);
+      let resolvedPatientId = patient.patientId;
+      if (!resolvedPatientId) {
+        const searchResult = await patientService.search({
+          query: patient.patientCode,
+          page: 0,
+          size: 1,
+        });
+        resolvedPatientId = searchResult.content[0]?.id;
+      }
+      if (!resolvedPatientId) {
+        throw new Error("Paciente não encontrado para edição.");
+      }
+      const fullPatient = await patientService.getById(resolvedPatientId);
+      setSelectedPatient(fullPatient);
+      setIsEditOpen(true);
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Erro ao carregar paciente.';
+      toast({
+        title: "Erro ao abrir cadastro",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPatient(false);
+    }
+  };
+
+  const handleUpdatePatient = async (data: any) => {
+    if (!selectedPatient) return;
+    try {
+      await patientService.update(selectedPatient.id, data);
+      setIsEditOpen(false);
+      setSelectedPatient(null);
+      const response = await receptionService.listPatients({ page: 0, size: 50 });
+      setPatients(response.content);
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Erro ao atualizar paciente.';
+      toast({
+        title: "Erro ao atualizar",
+        description: message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Pacientes</h1>
+          <p className="text-muted-foreground">Lista operacional para recepção</p>
+        </div>
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-primary hover:bg-primary/90">
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Paciente
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Cadastrar novo paciente</DialogTitle>
+              <DialogDescription>
+                Preencha os dados abaixo para registrar um novo paciente no sistema.
+              </DialogDescription>
+            </DialogHeader>
+            <PatientFormNew
+              onSubmit={handleAddPatient}
+              loading={loading}
+              showClinicalSection={false}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="max-w-md">
+        <Input
+          placeholder="Buscar por nome ou código..."
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+        />
+      </div>
+
+      {loading ? (
+        <div className="text-muted-foreground">Carregando pacientes...</div>
+      ) : patients.length === 0 ? (
+        <div className="text-muted-foreground">Nenhum paciente encontrado.</div>
+      ) : (
+        <ReceptionPatientTable patients={patients} onEdit={handleEditOpen} />
+      )}
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar paciente</DialogTitle>
+            <DialogDescription>
+              Atualize os dados cadastrais e salve as alterações.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedPatient && (
+            <PatientFormNew
+              onSubmit={handleUpdatePatient}
+              loading={loading || isLoadingPatient}
+              initialData={selectedPatient}
+              showClinicalSection={false}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function ClinicalPatientsPage() {
   const { patients, loading, addPatient, updatePatient, deletePatient, refetch } = usePatientsSpring();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -360,4 +542,10 @@ export default function Patients() {
       />
     </div>
   );
+}
+
+export default function Patients() {
+  const { user } = useAuth();
+  const isReceptionistOnly = user?.roles?.length === 1 && user?.roles?.includes('RECEPTIONIST');
+  return isReceptionistOnly ? <ReceptionPatientsPage /> : <ClinicalPatientsPage />;
 }
