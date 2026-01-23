@@ -19,7 +19,9 @@ import wardService, { CreateWardRequest } from '@/services/wardService';
 // Schema de validação para setor
 const sectorSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
+  code: z.string().min(3, 'Code deve ter pelo menos 3 caracteres'),
   type: z.string().min(1, 'Tipo é obrigatório'),
+  category: z.enum(['AREA', 'SERVICE']),
 });
 
 // Schema de validação para ward
@@ -83,7 +85,9 @@ export default function FacilityManagement() {
     resolver: zodResolver(sectorSchema),
     defaultValues: {
       name: '',
+      code: '',
       type: '',
+      category: 'AREA',
     },
   });
 
@@ -172,6 +176,8 @@ export default function FacilityManagement() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Categoria</TableHead>
                       <TableHead>Tipo</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -179,6 +185,8 @@ export default function FacilityManagement() {
                     {sectorsQuery.data?.map((sector) => (
                       <TableRow key={sector.id}>
                         <TableCell className="font-medium">{sector.name}</TableCell>
+                        <TableCell className="font-mono text-xs">{sector.code}</TableCell>
+                        <TableCell>{sector.category}</TableCell>
                         <TableCell>{sector.type}</TableCell>
                       </TableRow>
                     ))}
@@ -261,6 +269,40 @@ export default function FacilityManagement() {
                     <FormControl>
                       <Input placeholder="Ex: Recepção PA" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={sectorForm.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Code *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: RED_ROOM" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={sectorForm.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a categoria" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="AREA">Área</SelectItem>
+                        <SelectItem value="SERVICE">Serviço</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

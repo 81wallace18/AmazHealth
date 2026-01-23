@@ -101,10 +101,10 @@ export function TriageQueue({ patients, onStartTriage }: TriageQueueProps) {
                   Iniciar Triagem
                 </Button>
               </div>
-              {patient.sectorName && (
+              {patient.areaName && (
                 <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
                   <MapPin className="h-3 w-3" />
-                  <span>Setor sugerido: {patient.sectorName}</span>
+                  <span>Área sugerida: {patient.areaName}</span>
                 </div>
               )}
             </div>

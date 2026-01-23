@@ -34,8 +34,13 @@ export interface VitalSigns {
  */
 export interface TriageRegisterRequest {
   vitalSigns: VitalSigns;
+  complaintCategory?: TriageComplaintCategory;
+  complaintText?: string;
+  painScore?: number;
+  discriminators?: TriageDiscriminators;
   triageColor: ManchesterColor;
   triageJustification: string;
+  overrideReason?: string;
 }
 
 /**
@@ -61,8 +66,10 @@ export interface TriageBoardItem {
   entryTime: string;                // ISO 8601 timestamp (visitDate)
   triageTime: string | null;        // ISO 8601 timestamp (triageAt)
   waitingTimeMinutes: number;       // Tempo de espera em minutos
-  sectorId?: string | null;
-  sectorName?: string | null;
+  areaId?: string | null;
+  areaName?: string | null;
+  serviceId?: string | null;
+  serviceName?: string | null;
 }
 
 /**
@@ -98,6 +105,9 @@ export interface TriageDiscriminators {
 export interface TriageSuggestionRequest {
   vitalSigns: VitalSigns;
   chiefComplaint?: string;
+  complaintCategory?: TriageComplaintCategory;
+  complaintText?: string;
+  painScore?: number;
   discriminators?: TriageDiscriminators;
 }
 
@@ -108,7 +118,18 @@ export interface TriageSuggestionResponse {
   suggestedColor: ManchesterColor;
   justification: string;
   matchedRules: string[];
+  physiologyScore?: number | null;
+  ageGroup?: string | null;
 }
+
+export type TriageComplaintCategory =
+  | 'CHEST_PAIN'
+  | 'DYSPNEA'
+  | 'FEVER'
+  | 'TRAUMA'
+  | 'NEURO'
+  | 'ABDOMINAL'
+  | 'OTHER';
 
 /**
  * Manchester Color Display Info

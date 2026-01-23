@@ -78,6 +78,28 @@ export const triageService = {
     }
   },
 
+  async assignArea(visitId: string, areaId: string, reason: string): Promise<void> {
+    try {
+      await api.put(`${BASE_URL}/visits/${visitId}/area`, { areaId, reason });
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Erro ao atribuir área');
+    }
+  },
+
+  async assignService(visitId: string, serviceId: string, reason: string): Promise<void> {
+    try {
+      await api.put(`${BASE_URL}/visits/${visitId}/service`, { serviceId, reason });
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Erro ao atribuir serviço');
+    }
+  },
+
   /**
    * Start medical attendance for a visit (locks and sets IN_ATTENDANCE)
    * POST /api/v1/triage/visits/{visitId}/start-attendance
@@ -115,6 +137,22 @@ export const triageService = {
   async suggest(request: TriageSuggestionRequest, config?: { signal?: AbortSignal }): Promise<TriageSuggestionResponse> {
     try {
       const response = await api.post<TriageSuggestionResponse>(`${BASE_URL}/suggest`, request, config);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Erro ao sugerir classificação');
+    }
+  },
+
+  async suggestForVisit(
+    visitId: string,
+    request: TriageSuggestionRequest,
+    config?: { signal?: AbortSignal }
+  ): Promise<TriageSuggestionResponse> {
+    try {
+      const response = await api.post<TriageSuggestionResponse>(`${BASE_URL}/visits/${visitId}/suggest`, request, config);
       return response.data;
     } catch (error: any) {
       if (error.response?.data?.message) {

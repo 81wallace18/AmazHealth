@@ -30,6 +30,7 @@ import {
   MANCHESTER_COLORS,
   validateVitalSigns,
   TriageDiscriminators,
+  TriageComplaintCategory,
 } from '@/types/triage';
 import { triageService } from '@/services/triageService';
 import { AlertCircle, Heart, Activity, Thermometer, Wind, Droplet, Brain } from 'lucide-react';
@@ -55,7 +56,9 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
   const [glasgow, setGlasgow] = useState('');
 
   // Queixa e discriminadores
-  const [chiefComplaint, setChiefComplaint] = useState('');
+  const [complaintCategory, setComplaintCategory] = useState<TriageComplaintCategory | ''>('');
+  const [complaintText, setComplaintText] = useState('');
+  const [painScore, setPainScore] = useState('');
   const [discriminators, setDiscriminators] = useState<TriageDiscriminators>({
     cardiacArrest: false,
     activeSeizure: false,
@@ -74,10 +77,13 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
   // Manchester Classification State
   const [triageColor, setTriageColor] = useState<ManchesterColor | ''>('');
   const [triageJustification, setTriageJustification] = useState('');
+  const [overrideReason, setOverrideReason] = useState('');
   const [userSelectedColor, setUserSelectedColor] = useState(false);
 
   const [suggestedColorBackend, setSuggestedColorBackend] = useState<ManchesterColor | null>(null);
   const [suggestionJustification, setSuggestionJustification] = useState<string | null>(null);
+  const [suggestedPhysiologyScore, setSuggestedPhysiologyScore] = useState<number | null>(null);
+  const [suggestedAgeGroup, setSuggestedAgeGroup] = useState<string | null>(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
 
@@ -123,11 +129,23 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
       return;
     }
 
+    if (suggestedColorBackend && triageColor !== suggestedColorBackend) {
+      if (!overrideReason || overrideReason.trim().length < 5) {
+        setError('Justificativa de override é obrigatória quando a cor difere da sugestão.');
+        return;
+      }
+    }
+
     // Build request
     const request: TriageRegisterRequest = {
       vitalSigns,
+      complaintCategory: complaintCategory || undefined,
+      complaintText: complaintText.trim() || undefined,
+      painScore: painScore ? parseInt(painScore) : undefined,
+      discriminators,
       triageColor,
       triageJustification: triageJustification.trim(),
+      overrideReason: overrideReason.trim() || undefined,
     };
 
     try {
@@ -178,6 +196,8 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
     if (!shouldSuggest) {
       setSuggestedColorBackend(null);
       setSuggestionJustification(null);
+      setSuggestedPhysiologyScore(null);
+      setSuggestedAgeGroup(null);
       return () => controller.abort();
     }
 
@@ -195,10 +215,13 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
       };
 
       try {
-        const response = await triageService.suggest(
+        const response = await triageService.suggestForVisit(
+          visitId,
           {
             vitalSigns,
-            chiefComplaint: chiefComplaint.trim() || undefined,
+            complaintCategory: complaintCategory || undefined,
+            complaintText: complaintText.trim() || undefined,
+            painScore: painScore ? parseInt(painScore) : undefined,
             discriminators,
           },
           { signal: controller.signal }
@@ -206,6 +229,8 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
 
         setSuggestedColorBackend(response.suggestedColor);
         setSuggestionJustification(response.justification);
+        setSuggestedPhysiologyScore(response.physiologyScore ?? null);
+        setSuggestedAgeGroup(response.ageGroup ?? null);
 
         // Preenche cor se o usuário ainda não escolheu manualmente
         if (!userSelectedColor) {
@@ -232,9 +257,12 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
     temperature,
     oxygenSaturation,
     glasgow,
-    chiefComplaint,
+    complaintCategory,
+    complaintText,
+    painScore,
     discriminators,
     userSelectedColor,
+    visitId,
   ]);
 
   // Sugestão simples (frontend) como fallback visual
@@ -395,14 +423,50 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
           <div className="space-y-4 pt-4 border-t">
             <h3 className="text-lg font-semibold">Classificação Manchester</h3>
 
-            {/* Chief Complaint */}
+            {/* Complaint Category */}
             <div className="space-y-2">
-              <Label htmlFor="chiefComplaint">Queixa principal (opcional)</Label>
+              <Label htmlFor="complaintCategory">Categoria da queixa</Label>
+              <Select
+                value={complaintCategory}
+                onValueChange={(value) => setComplaintCategory(value as TriageComplaintCategory)}
+              >
+                <SelectTrigger id="complaintCategory">
+                  <SelectValue placeholder="Selecione a categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CHEST_PAIN">Dor torácica</SelectItem>
+                  <SelectItem value="DYSPNEA">Dispneia</SelectItem>
+                  <SelectItem value="FEVER">Febre</SelectItem>
+                  <SelectItem value="TRAUMA">Trauma</SelectItem>
+                  <SelectItem value="NEURO">Neurológico</SelectItem>
+                  <SelectItem value="ABDOMINAL">Dor abdominal</SelectItem>
+                  <SelectItem value="OTHER">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Complaint Text */}
+            <div className="space-y-2">
+              <Label htmlFor="complaintText">Queixa principal (opcional)</Label>
               <Input
-                id="chiefComplaint"
-                value={chiefComplaint}
-                onChange={(e) => setChiefComplaint(e.target.value)}
+                id="complaintText"
+                value={complaintText}
+                onChange={(e) => setComplaintText(e.target.value)}
                 placeholder="Ex: Dor torácica, falta de ar, trauma..."
+              />
+            </div>
+
+            {/* Pain Score */}
+            <div className="space-y-2">
+              <Label htmlFor="painScore">Escala de dor (0-10)</Label>
+              <Input
+                id="painScore"
+                type="number"
+                value={painScore}
+                onChange={(e) => setPainScore(e.target.value)}
+                min="0"
+                max="10"
+                placeholder="0"
               />
             </div>
 
@@ -467,6 +531,14 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
                       </strong>{' '}
                       {isSuggesting ? '(calculando...)' : '(pré-selecionada, ajuste se necessário)'}
                       {suggestionJustification && <div>{suggestionJustification}</div>}
+                      {(suggestedPhysiologyScore !== null || suggestedAgeGroup) && (
+                        <div className="text-xs text-muted-foreground">
+                          {suggestedPhysiologyScore !== null && (
+                            <span>Score fisiológico: {suggestedPhysiologyScore} </span>
+                          )}
+                          {suggestedAgeGroup && <span>({suggestedAgeGroup})</span>}
+                        </div>
+                      )}
                     </>
                   )}
                 </AlertDescription>
@@ -518,6 +590,23 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
                 {triageJustification.length}/10 caracteres mínimos
               </p>
             </div>
+
+            {/* Override Reason */}
+            {suggestedColorBackend && triageColor && triageColor !== suggestedColorBackend && (
+              <div className="space-y-2">
+                <Label htmlFor="overrideReason">Justificativa de override *</Label>
+                <Textarea
+                  id="overrideReason"
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  placeholder="Explique por que a cor foi diferente da sugestão."
+                  rows={3}
+                />
+                <p className="text-sm text-gray-500">
+                  Obrigatório — mínimo 5 caracteres.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Actions */}

@@ -93,7 +93,7 @@ export default function Triage() {
   useEffect(() => {
     const fetchSectors = async () => {
       try {
-        const data = await sectorService.list();
+        const data = await sectorService.list('AREA');
         setSectors(data);
       } catch (err) {
         console.error('Error loading sectors:', err);
@@ -154,36 +154,33 @@ export default function Triage() {
 
   const handleAssignSector = async () => {
     if (!assigningVisitId || !selectedSectorId) {
-      setAssignError('Selecione um setor.');
+      setAssignError('Selecione uma área.');
       return;
     }
 
     if (!sectorReason || sectorReason.trim().length < 5) {
-      setAssignError('Informe o motivo da mudança de setor (mínimo 5 caracteres).');
+      setAssignError('Informe o motivo da mudança de área (mínimo 5 caracteres).');
       return;
     }
 
     try {
       setIsAssigningSector(true);
-      await triageService.assignSector(assigningVisitId, {
-        sectorId: selectedSectorId,
-        reason: sectorReason.trim(),
-      });
+      await triageService.assignArea(assigningVisitId, selectedSectorId, sectorReason.trim());
       await loadTriageBoard();
       const sector = sectors.find((item) => item.id === selectedSectorId);
       setAssignError(null);
       handleAssignDialogChange(false);
       toast({
-        title: 'Setor definido',
+        title: 'Área definida',
         description: sector
           ? `${assigningPatientName} foi encaminhado para ${sector.name}.`
-          : 'Setor atualizado com sucesso.',
+          : 'Área atualizada com sucesso.',
       });
     } catch (err: any) {
-      const message = err.message || 'Erro ao atribuir setor';
+      const message = err.message || 'Erro ao atribuir área';
       setAssignError(message);
       toast({
-        title: 'Falha ao definir setor',
+        title: 'Falha ao definir área',
         description: message,
         variant: 'destructive',
       });
@@ -271,7 +268,7 @@ export default function Triage() {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Para acessar o módulo de triagem é necessário vincular o usuário a um profissional da equipe.
-            Cadastre o usuário em <strong>Staff</strong> e associe-o ao setor apropriado antes de prosseguir.
+            Cadastre o usuário em <strong>Staff</strong> e associe-o à área apropriada antes de prosseguir.
           </AlertDescription>
         </Alert>
       </div>
@@ -321,7 +318,7 @@ export default function Triage() {
         patients={patients}
         autoRefresh={autoRefreshEnabled}
         onRefresh={loadTriageBoard}
-        canAssignSector={user?.roles?.includes('NURSE') || user?.roles?.includes('ADMIN')}
+        canAssignSector={user?.roles?.includes('DOCTOR') || user?.roles?.includes('ADMIN')}
         canStartAttendance={user?.roles?.includes('DOCTOR')}
         canReclassify={user?.roles?.includes('NURSE') || user?.roles?.includes('ADMIN')}
         onReclassify={handleOpenReclassify}
@@ -419,9 +416,9 @@ export default function Triage() {
       <Dialog open={isAssignSectorOpen} onOpenChange={handleAssignDialogChange}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Definir setor</DialogTitle>
+          <DialogTitle>Definir área</DialogTitle>
             <DialogDescription>
-              Selecione o setor de destino para <strong>{assigningPatientName}</strong>.
+              Selecione a área de destino para <strong>{assigningPatientName}</strong>.
             </DialogDescription>
           </DialogHeader>
 
@@ -434,7 +431,7 @@ export default function Triage() {
 
           {sectors.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Nenhum setor disponível nesta organização.
+              Nenhuma área disponível nesta organização.
             </p>
           ) : (
             <Select
@@ -445,7 +442,7 @@ export default function Triage() {
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione o setor" />
+                <SelectValue placeholder="Selecione a área" />
               </SelectTrigger>
               <SelectContent>
                 {sectors.map((sector) => (
@@ -470,7 +467,7 @@ export default function Triage() {
                 setAssignError(null);
               }}
               rows={4}
-              placeholder="Explique por que o paciente está sendo direcionado para este setor."
+              placeholder="Explique por que o paciente está sendo direcionado para esta área."
             />
             <p className="text-xs text-muted-foreground">
               Obrigatório — mínimo 5 caracteres.

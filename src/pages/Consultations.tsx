@@ -10,6 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MedicalRecordHistory } from '@/components/medical-records/MedicalRecordHistory';
@@ -17,7 +20,9 @@ import { MedicalRecordForm } from '@/components/medical-records/MedicalRecordFor
 import { AttendanceOutcomeForm } from '@/components/medical-records/AttendanceOutcomeForm';
 import { triageService } from '@/services/triageService';
 import attendanceService, { type Attendance } from '@/services/attendanceService';
+import { sectorService } from '@/services/sectorService';
 import type { TriageBoardItem, ManchesterColor } from '@/types/triage';
+import type { Sector } from '@/types/sector';
 import { getManchesterColorInfo, formatWaitingTime } from '@/types/triage';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -30,6 +35,11 @@ export default function Consultations() {
   const [isLoading, setIsLoading] = useState(true);
   const [showMedicalRecordForm, setShowMedicalRecordForm] = useState(false);
   const [showOutcomeForm, setShowOutcomeForm] = useState(false);
+  const [services, setServices] = useState<Sector[]>([]);
+  const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
+  const [serviceReason, setServiceReason] = useState('');
+  const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [pendingPatient, setPendingPatient] = useState<TriageBoardItem | null>(null);
   const { user, loading: authLoading } = useAuth();
 
   // Carregar fila de pacientes
@@ -39,6 +49,22 @@ export default function Consultations() {
     const interval = setInterval(loadPatients, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const data = await sectorService.list('SERVICE');
+        setServices(data);
+      } catch (error) {
+        console.error('Erro ao carregar serviços:', error);
+        toast.error('Erro ao carregar serviços');
+      }
+    };
+
+    if (!authLoading && user) {
+      fetchServices();
+    }
+  }, [authLoading, user]);
 
   const loadPatients = async () => {
     try {
@@ -73,6 +99,14 @@ export default function Consultations() {
   };
 
   const handleStartAttendance = async (patient: TriageBoardItem) => {
+    if (!patient.serviceId) {
+      setPendingPatient(patient);
+      setSelectedServiceId('');
+      setServiceReason('');
+      setIsServiceDialogOpen(true);
+      return;
+    }
+
     setSelectedPatient(patient);
 
     try {
@@ -93,6 +127,30 @@ export default function Consultations() {
       console.error('Erro ao buscar atendimento:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao iniciar/buscar dados do atendimento');
       setSelectedPatient(null);
+    }
+  };
+
+  const handleConfirmService = async () => {
+    if (!pendingPatient) return;
+
+    if (!selectedServiceId) {
+      toast.error('Selecione um serviço.');
+      return;
+    }
+
+    if (!serviceReason || serviceReason.trim().length < 5) {
+      toast.error('Informe o motivo (mínimo 5 caracteres).');
+      return;
+    }
+
+    try {
+      await triageService.assignService(pendingPatient.visitId, selectedServiceId, serviceReason.trim());
+      setIsServiceDialogOpen(false);
+      const updated = { ...pendingPatient, serviceId: selectedServiceId };
+      setPendingPatient(null);
+      await handleStartAttendance(updated);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao definir serviço');
     }
   };
 
@@ -218,10 +276,13 @@ export default function Consultations() {
                   <span>Aguardando: {formatWaitingTime(patient.waitingTimeMinutes)}</span>
                 </div>
 
-                {patient.sectorName && (
+                {patient.areaName && (
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{patient.sectorName}</span>
+                    <span>
+                      {patient.areaName}
+                      {patient.serviceName ? ` · ${patient.serviceName}` : ' · Serviço não definido'}
+                    </span>
                   </div>
                 )}
 
@@ -327,6 +388,55 @@ export default function Consultations() {
               </AlertDescription>
             </Alert>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Definir serviço</DialogTitle>
+            <DialogDescription>
+              Selecione a especialidade para iniciar o atendimento.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Serviço *</Label>
+              <Select
+                value={selectedServiceId}
+                onValueChange={(value) => setSelectedServiceId(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o serviço" />
+                </SelectTrigger>
+                <SelectContent>
+                  {services.map((service) => (
+                    <SelectItem key={service.id} value={service.id}>
+                      {service.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Motivo *</Label>
+              <Textarea
+                value={serviceReason}
+                onChange={(event) => setServiceReason(event.target.value)}
+                rows={3}
+                placeholder="Informe o motivo da escolha do serviço."
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsServiceDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleConfirmService}>Confirmar</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

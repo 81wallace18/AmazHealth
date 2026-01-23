@@ -169,10 +169,13 @@ export function TriageBoard({
                             <p className="text-xs text-gray-500">{patient.patientCode}</p>
                           </div>
 
-                      {/* Sector */}
+                      {/* Area/Service */}
                       <div className="mt-2 flex items-center gap-2 text-xs text-gray-600">
                         <MapPin className="h-3 w-3" />
-                        <span>{patient.sectorName ?? 'Setor não definido'}</span>
+                        <span>
+                          {patient.areaName ?? 'Área não definida'}
+                          {patient.serviceName ? ` · ${patient.serviceName}` : ''}
+                        </span>
                       </div>
 
                       {/* Status Badge */}
@@ -213,7 +216,7 @@ export function TriageBoard({
                               onClick={() => onAssignSector(patient.visitId, patient.patientName)}
                               className="w-full"
                             >
-                              Definir setor
+                              Definir área
                             </Button>
                           )}
                           {onStartAttendance && canStartAttendance && (
