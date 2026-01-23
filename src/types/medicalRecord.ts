@@ -23,6 +23,7 @@ export interface MedicalRecordRequest {
   treatment?: string;
   primaryDiagnosisCode?: string;
   primaryDiagnosisDescription?: string;
+  primaryDiagnosisSystem?: 'ICD10' | 'ICD11';
   secondaryDiagnosisCodes?: string[];
 
   // Campo obrigatório
@@ -50,6 +51,7 @@ export interface MedicalRecordResponse {
   treatment?: string;
   primaryDiagnosisCode?: string;
   primaryDiagnosisDescription?: string;
+  primaryDiagnosisSystem?: 'ICD10' | 'ICD11';
   secondaryDiagnosisCodes?: string[];
 
   notes: string;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -32,7 +32,8 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { medicalRecordService } from '@/services/medicalRecordService';
-import { icd10Service, type Icd10Entry } from '@/services/icd10Service';
+import { DiagnosisPicker } from '@/components/medical-records/DiagnosisPicker';
+import type { IcdSystem } from '@/types/icd';
 import type { RecordType } from '@/types/medicalRecord';
 import { RECORD_TYPE_LABELS } from '@/types/medicalRecord';
 import { Loader2, FileText } from 'lucide-react';
@@ -60,6 +61,7 @@ const formSchema = z.object({
   treatment: z.string().optional(),
   primaryDiagnosisCode: z.string().optional(),
   primaryDiagnosisDescription: z.string().optional(),
+  primaryDiagnosisSystem: z.enum(['ICD10', 'ICD11']).optional(),
   secondaryDiagnosisCodes: z.array(z.string()).optional(),
 
   // Obrigatório
@@ -113,11 +115,7 @@ export function MedicalRecordForm({
 }: MedicalRecordFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('soap');
-  const [icdQuery, setIcdQuery] = useState('');
-  const [icdResults, setIcdResults] = useState<Icd10Entry[]>([]);
-  const [isSearchingIcd, setIsSearchingIcd] = useState(false);
   const [secondaryCodeInput, setSecondaryCodeInput] = useState('');
-  const [icdSearchError, setIcdSearchError] = useState<string | null>(null);
 
   const isEditing = !!recordId;
 
@@ -128,6 +126,7 @@ export function MedicalRecordForm({
       recordType: 'EVOLUTION',
       notes: '',
       ...defaultValues,
+      primaryDiagnosisSystem: defaultValues?.primaryDiagnosisSystem ?? 'ICD10',
       secondaryDiagnosisCodes: defaultValues?.secondaryDiagnosisCodes ?? [],
     },
   });
@@ -183,35 +182,6 @@ export function MedicalRecordForm({
       setIsLoading(false);
     }
   }
-
-  const handleSearchIcd = async () => {
-    if (!icdQuery.trim()) return;
-    setIsSearchingIcd(true);
-    setIcdSearchError(null);
-    try {
-      const results = await icd10Service.search(icdQuery);
-      setIcdResults(results);
-    } catch (error) {
-      setIcdSearchError('Não foi possível buscar CID-10.');
-      toast.error('Não foi possível buscar CID-10.');
-    } finally {
-      setIsSearchingIcd(false);
-    }
-  };
-
-  // busca automática com debounce enquanto o usuário digita (a partir de 3 caracteres)
-  useEffect(() => {
-    if (icdQuery.trim().length < 3) {
-      setIcdResults([]);
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      void handleSearchIcd();
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [icdQuery]);
 
   const addSecondaryCode = () => {
     const code = secondaryCodeInput.trim();
@@ -362,11 +332,11 @@ export function MedicalRecordForm({
                     <FormItem>
                       <FormLabel>A - Diagnóstico / Hipótese Diagnóstica</FormLabel>
                       <FormDescription className="text-xs">
-                        Separe a descrição clínica do código CID-10 para maior rastreabilidade.
+                        Separe a descrição clínica do código CID-10/CID-11 para maior rastreabilidade.
                       </FormDescription>
                       <FormControl>
                         <Textarea
-                          placeholder="CID-10, diagnóstico clínico..."
+                          placeholder="CID-10/CID-11, diagnóstico clínico..."
                           className="resize-none"
                           rows={2}
                           {...field}
@@ -377,14 +347,37 @@ export function MedicalRecordForm({
                   )}
                 />
 
-                {/* CID-10 primário */}
+                {/* P - Plano */}
+                <FormField
+                  control={form.control}
+                  name="treatment"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>P - Plano / Conduta</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Tratamento, medicações, exames solicitados..."
+                          className="resize-none"
+                          rows={3}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Plano terapêutico e orientações
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* CID primário */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="primaryDiagnosisCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>CID-10 Primário</FormLabel>
+                        <FormLabel>CID Primário</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="Ex: I64"
@@ -401,7 +394,7 @@ export function MedicalRecordForm({
                     name="primaryDiagnosisDescription"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Descrição CID-10 Primário</FormLabel>
+                        <FormLabel>Descrição CID Primário</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="Ex: Acidente vascular cerebral..."
@@ -414,48 +407,29 @@ export function MedicalRecordForm({
                   />
                 </div>
 
-                {/* Busca CID-10 */}
-                <div className="space-y-2">
-                  <FormLabel>Buscar CID-10</FormLabel>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Digite termo ou código (ex: acidente vascular, I64)"
-                      value={icdQuery}
-                      onChange={(e) => setIcdQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleSearchIcd())}
-                    />
-                    <Button type="button" variant="secondary" onClick={handleSearchIcd} disabled={isSearchingIcd}>
-                      {isSearchingIcd ? 'Buscando...' : 'Buscar'}
-                    </Button>
-                  </div>
-                  {icdSearchError && (
-                    <p className="text-xs text-destructive">{icdSearchError}</p>
-                  )}
-                  {icdResults.length > 0 && (
-                    <div className="border rounded-md p-2 space-y-2 max-h-48 overflow-y-auto">
-                      {icdResults.map((item) => (
-                        <div key={item.code} className="flex items-center justify-between gap-2 text-sm">
-                          <div>
-                            <div className="font-semibold">{item.code}</div>
-                            <div className="text-muted-foreground">{item.description}</div>
-                          </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              form.setValue('primaryDiagnosisCode', item.code);
-                              form.setValue('primaryDiagnosisDescription', item.description);
-                              setIcdResults([]);
-                            }}
-                          >
-                            Usar
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {/* Busca CID */}
+                <FormField
+                  control={form.control}
+                  name="primaryDiagnosisSystem"
+                  render={({ field }) => {
+                    const systemValue = (field.value ?? 'ICD10') as IcdSystem;
+                    return (
+                      <FormItem>
+                        <FormLabel>Buscar CID</FormLabel>
+                        <DiagnosisPicker
+                          system={systemValue}
+                          onSystemChange={field.onChange}
+                          onSelect={(item) => {
+                            form.setValue('primaryDiagnosisSystem', item.system);
+                            form.setValue('primaryDiagnosisCode', item.code);
+                            form.setValue('primaryDiagnosisDescription', item.description);
+                          }}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
 
                 {/* CID-10 secundários */}
                 <div className="space-y-2">
@@ -497,28 +471,6 @@ export function MedicalRecordForm({
                   />
                 </div>
 
-                {/* P - Plano */}
-                <FormField
-                  control={form.control}
-                  name="treatment"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>P - Plano / Conduta</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Tratamento, medicações, exames solicitados..."
-                          className="resize-none"
-                          rows={3}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Plano terapêutico e orientações
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </TabsContent>
 
               {/* Aba Texto Livre (Obrigatório) */}
