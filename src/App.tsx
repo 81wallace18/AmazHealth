@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import { useAuth } from "./hooks/useAuth";
+import { RequireCapability } from "./components/RequireCapability";
 import Dashboard from "./pages/Dashboard";
 import Hospital from "./pages/Hospital";
 import Consultations from "./pages/Consultations";
@@ -20,6 +21,7 @@ import Staff from "./pages/Staff";
 import UserManagement from "./pages/UserManagement";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { Unauthorized } from "./pages/Unauthorized";
 
 const queryClient = new QueryClient();
 
@@ -84,19 +86,60 @@ const App = () => (
           }>
             <Route index element={<Dashboard />} />
             <Route path="hospital" element={<Hospital />} />
-            <Route path="consultations" element={<Consultations />} />
-            <Route path="patients" element={<Patients />} />
+            <Route path="consultations" element={
+              <RequireCapability capability="canReadAttendance">
+                <Consultations />
+              </RequireCapability>
+            } />
+            <Route path="patients" element={
+              <RequireCapability capability="canListPatients">
+                <Patients />
+              </RequireCapability>
+            } />
             <Route path="appointments" element={<Appointments />} />
-            <Route path="medical-records" element={<MedicalRecords />} />
-            <Route path="admissions" element={<Admissions />} />
-            <Route path="laboratory" element={<Laboratory />} />
-            <Route path="pharmacy" element={<Pharmacy />} />
-            <Route path="billing" element={<Billing />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="staff" element={<Staff />} />
-            <Route path="users" element={<UserManagement />} />
+            <Route path="medical-records" element={
+              <RequireCapability capability="canReadAttendance">
+                <MedicalRecords />
+              </RequireCapability>
+            } />
+            <Route path="admissions" element={
+              <RequireCapability capability="canReadAttendance">
+                <Admissions />
+              </RequireCapability>
+            } />
+            <Route path="laboratory" element={
+              <RequireCapability capabilities={["canRequestExams", "canReadExamResults"]}>
+                <Laboratory />
+              </RequireCapability>
+            } />
+            <Route path="pharmacy" element={
+              <RequireCapability capabilities={["canManageStock", "canReadPharmacyGlobal"]}>
+                <Pharmacy />
+              </RequireCapability>
+            } />
+            <Route path="billing" element={
+              <RequireCapability capability="canAccessFinancial">
+                <Billing />
+              </RequireCapability>
+            } />
+            <Route path="reports" element={
+              <RequireCapability capability="canViewReports">
+                <Reports />
+              </RequireCapability>
+            } />
+            <Route path="staff" element={
+              <RequireCapability capability="canListStaff">
+                <Staff />
+              </RequireCapability>
+            } />
+            <Route path="users" element={
+              <RequireCapability capability="canManageRoles">
+                <UserManagement />
+              </RequireCapability>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           </Route>
+          <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
