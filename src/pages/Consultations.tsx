@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConsultations } from "@/hooks/useConsultations";
+import { useCapabilities } from "@/auth/useCapabilities";
 
 const statusColors = {
   "completed": "bg-emerald-500/10 text-emerald-700 border-emerald-200",
@@ -31,6 +32,7 @@ const typeLabels = {
 
 export default function Consultations() {
   const { consultations, loading, updateConsultationStatus } = useConsultations();
+  const { can } = useCapabilities();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
@@ -99,7 +101,11 @@ export default function Consultations() {
           <h1 className="text-3xl font-bold text-foreground">Consultas</h1>
           <p className="text-muted-foreground">Gerenciamento de consultas médicas</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
+        <Button 
+          className="bg-primary hover:bg-primary/90"
+          disabled={!can.canStartAttendance}
+          title={!can.canStartAttendance ? "Você não tem permissão para iniciar atendimentos" : ""}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Nova Consulta
         </Button>
@@ -264,6 +270,7 @@ export default function Consultations() {
                             variant="ghost" 
                             size="sm" 
                             title="Atualizar status"
+                            disabled={!can.canStartAttendance}
                             onClick={() => {
                               const nextStatus = consultation.status === 'scheduled' ? 'in_progress' : 
                                                consultation.status === 'in_progress' ? 'completed' : 'scheduled';

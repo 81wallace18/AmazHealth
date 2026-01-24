@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useMedicalRecords } from "@/hooks/useMedicalRecords";
+import { useCapabilities } from "@/auth/useCapabilities";
 
 const statusColors = {
   "consultation": "bg-blue-500/10 text-blue-700 border-blue-200",
@@ -29,6 +30,7 @@ const statusLabels = {
 
 export default function MedicalRecords() {
   const { records, loading, createRecord } = useMedicalRecords();
+  const { can } = useCapabilities();
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -92,7 +94,11 @@ export default function MedicalRecords() {
         </div>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button 
+              className="bg-primary hover:bg-primary/90"
+              disabled={!can.canRecordEvolution}
+              title={!can.canRecordEvolution ? "Você não tem permissão para registrar prontuários" : ""}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Novo Prontuário
             </Button>

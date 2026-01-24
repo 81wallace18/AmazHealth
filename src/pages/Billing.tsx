@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBillsManagement } from "@/hooks/useBillsManagement";
+import { useCapabilities } from "@/auth/useCapabilities";
 
 const statusColors = {
   "paid": "bg-emerald-500/10 text-emerald-700 border-emerald-200",
@@ -35,6 +36,7 @@ const statusLabels = {
 
 export default function Billing() {
   const { bills, loading, updateBillStatus } = useBillsManagement();
+  const { can } = useCapabilities();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -105,7 +107,11 @@ export default function Billing() {
           <h1 className="text-3xl font-bold text-foreground">Faturamento</h1>
           <p className="text-muted-foreground">Gestão financeira e cobrança de serviços</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
+        <Button 
+          className="bg-primary hover:bg-primary/90"
+          disabled={!can.canManageBilling}
+          title={!can.canManageBilling ? "Você não tem permissão para gerenciar faturamento" : ""}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Nova Fatura
         </Button>

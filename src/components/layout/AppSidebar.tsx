@@ -24,8 +24,18 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCapabilities } from "@/auth/useCapabilities";
+import { UserCapabilities } from "@/auth/capabilities";
 
-const navigationItems = [
+interface NavigationItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  group: string;
+  requiredCapabilities?: (keyof UserCapabilities)[];
+}
+
+const navigationItems: NavigationItem[] = [
   {
     title: "Dashboard",
     url: "/",
@@ -36,87 +46,92 @@ const navigationItems = [
     title: "Pacientes",
     url: "/patients",
     icon: Users,
-    group: "Atendimento"
+    group: "Atendimento",
+    requiredCapabilities: ["canListPatients"]
   },
   {
     title: "Agendamentos",
     url: "/appointments",
     icon: Calendar,
-    group: "Atendimento"
+    group: "Atendimento",
+    requiredCapabilities: ["canReadAttendance"]
   },
   {
     title: "Prontuários",
     url: "/medical-records",
     icon: FileText,
-    group: "Atendimento"
+    group: "Atendimento",
+    requiredCapabilities: ["canReadAttendance"]
   },
   {
     title: "Consultas",
     url: "/consultations",
     icon: Stethoscope,
-    group: "Atendimento"
+    group: "Atendimento",
+    requiredCapabilities: ["canStartAttendance", "canReadAttendance"]
   },
   {
     title: "Gestão Hospitalar",
     url: "/hospital",
     icon: Building,
-    group: "Hospitalização"
+    group: "Hospitalização",
+    requiredCapabilities: ["canAdmitPatient", "canViewTriageBoard"]
   },
   {
     title: "Internação",
     url: "/admissions",
     icon: BedDouble,
-    group: "Hospitalização"
+    group: "Hospitalização",
+    requiredCapabilities: ["canAdmitPatient"]
   },
   {
     title: "Laboratório",
     url: "/laboratory",
     icon: TestTube,
-    group: "Exames"
+    group: "Exames",
+    requiredCapabilities: ["canRequestExams", "canReadExamResults", "canInputExamResults"]
   },
   {
     title: "Farmácia",
     url: "/pharmacy",
     icon: Pill,
-    group: "Medicamentos"
+    group: "Medicamentos",
+    requiredCapabilities: ["canReadPrescription", "canManageStock", "canDispenseMedication"]
   },
   {
     title: "Faturamento",
     url: "/billing",
     icon: CreditCard,
-    group: "Financeiro"
+    group: "Financeiro",
+    requiredCapabilities: ["canAccessFinancial", "canManageBilling"]
   },
   {
     title: "Relatórios",
     url: "/reports",
     icon: BarChart3,
-    group: "Gestão"
+    group: "Gestão",
+    requiredCapabilities: ["canViewReports"]
   },
   {
     title: "Equipe",
     url: "/staff",
     icon: Users,
-    group: "Gestão"
+    group: "Gestão",
+    requiredCapabilities: ["canListStaff"]
   },
   {
     title: "Usuários",
     url: "/users",
     icon: UserPlus,
-    group: "Gestão"
+    group: "Gestão",
+    requiredCapabilities: ["canManageRoles"]
   }
 ];
-
-const groupedItems = navigationItems.reduce((acc, item) => {
-  if (!acc[item.group]) {
-    acc[item.group] = [];
-  }
-  acc[item.group].push(item);
-  return acc;
-}, {} as Record<string, typeof navigationItems>);
 
 export function AppSidebar() {
   const isMobile = useIsMobile();
   const location = useLocation();
+  const { canAny } = useCapabilities();
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -124,6 +139,24 @@ export function AppSidebar() {
     }
     return location.pathname.startsWith(path);
   };
+
+  // Filter navigation items based on user capabilities
+  const filteredNavigationItems = navigationItems.filter(item => {
+    // If no capabilities required, show to everyone
+    if (!item.requiredCapabilities || item.requiredCapabilities.length === 0) {
+      return true;
+    }
+    // Show if user has ANY of the required capabilities
+    return canAny(item.requiredCapabilities);
+  });
+
+  const groupedItems = filteredNavigationItems.reduce((acc, item) => {
+    if (!acc[item.group]) {
+      acc[item.group] = [];
+    }
+    acc[item.group].push(item);
+    return acc;
+  }, {} as Record<string, NavigationItem[]>);
 
   return (
     <Sidebar

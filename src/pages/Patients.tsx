@@ -8,9 +8,11 @@ import { PatientStats } from "@/components/patients/PatientStats";
 import { PatientFilters } from "@/components/patients/PatientFilters";
 import { PatientTable } from "@/components/patients/PatientTable";
 import { PatientDetails } from "@/components/patients/PatientDetails";
+import { useCapabilities } from "@/auth/useCapabilities";
 
 export default function Patients() {
   const { patients, loading, addPatient, updatePatient, deletePatient } = usePatients();
+  const { can } = useCapabilities();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState("all");
@@ -97,7 +99,11 @@ export default function Patients() {
         </div>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button 
+              className="bg-primary hover:bg-primary/90"
+              disabled={!can.canCreatePatients}
+              title={!can.canCreatePatients ? "Você não tem permissão para criar pacientes" : ""}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Novo Paciente
             </Button>

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useLaboratory } from "@/hooks/useLaboratory";
+import { useCapabilities } from "@/auth/useCapabilities";
 
 const statusColors = {
   "pending": "bg-amber-500/10 text-amber-700 border-amber-200",
@@ -33,6 +34,7 @@ const priorityColors = {
 
 export default function Laboratory() {
   const { orders, loading, createTestOrder } = useLaboratory();
+  const { can } = useCapabilities();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -85,7 +87,11 @@ export default function Laboratory() {
         </div>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button 
+              className="bg-primary hover:bg-primary/90"
+              disabled={!can.canRequestExams}
+              title={!can.canRequestExams ? "Você não tem permissão para solicitar exames" : ""}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Novo Exame
             </Button>
@@ -273,7 +279,12 @@ export default function Laboratory() {
                               <Download className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button variant="ghost" size="sm" title="Editar">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            title="Editar"
+                            disabled={!can.canInputExamResults}
+                          >
                             <FileText className="h-4 w-4" />
                           </Button>
                         </div>

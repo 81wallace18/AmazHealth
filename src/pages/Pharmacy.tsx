@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useCapabilities } from "@/auth/useCapabilities";
 
 // Dados simulados de medicamentos
 const medications = [
@@ -109,6 +110,7 @@ const statusColors = {
 };
 
 export default function Pharmacy() {
+  const { can } = useCapabilities();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -154,7 +156,11 @@ export default function Pharmacy() {
           <h1 className="text-3xl font-bold text-foreground">Farmácia</h1>
           <p className="text-muted-foreground">Gestão de medicamentos e estoque</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
+        <Button 
+          className="bg-primary hover:bg-primary/90"
+          disabled={!can.canManageStock}
+          title={!can.canManageStock ? "Você não tem permissão para gerenciar estoque" : ""}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Novo Medicamento
         </Button>
@@ -335,10 +341,20 @@ export default function Pharmacy() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" title="Movimentar estoque">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          title="Movimentar estoque"
+                          disabled={!can.canManageStock}
+                        >
                           <Package className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" title="Comprar">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          title="Comprar"
+                          disabled={!can.canManageStock}
+                        >
                           <ShoppingCart className="h-4 w-4" />
                         </Button>
                       </div>
