@@ -1,460 +1,299 @@
-import { useState, useEffect } from 'react';
-import { Stethoscope, Clock, MapPin, User, FileText, CheckCircle2, XCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MedicalRecordHistory } from '@/components/medical-records/MedicalRecordHistory';
-import { MedicalRecordForm } from '@/components/medical-records/MedicalRecordForm';
-import { AttendanceOutcomeForm } from '@/components/medical-records/AttendanceOutcomeForm';
-import { triageService } from '@/services/triageService';
-import attendanceService, { type Attendance } from '@/services/attendanceService';
-import { sectorService } from '@/services/sectorService';
-import type { TriageBoardItem, ManchesterColor } from '@/types/triage';
-import type { Sector } from '@/types/sector';
-import { getManchesterColorInfo, formatWaitingTime } from '@/types/triage';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
+import { useState } from "react";
+import { Calendar, Clock, User, Stethoscope, FileText, Plus, Search } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useConsultations } from "@/hooks/useConsultations";
+import { useCapabilities } from "@/auth/useCapabilities";
+
+const statusColors = {
+  "completed": "bg-emerald-500/10 text-emerald-700 border-emerald-200",
+  "in_progress": "bg-blue-500/10 text-blue-700 border-blue-200",
+  "scheduled": "bg-amber-500/10 text-amber-700 border-amber-200",
+  "cancelled": "bg-red-500/10 text-red-700 border-red-200"
+};
+
+const statusLabels = {
+  "completed": "Concluída",
+  "in_progress": "Em andamento",
+  "scheduled": "Agendada",
+  "cancelled": "Cancelada"
+};
+
+const typeLabels = {
+  "consultation": "Consulta",
+  "follow_up": "Retorno",
+  "emergency": "Emergência"
+};
 
 export default function Consultations() {
-  const [patients, setPatients] = useState<TriageBoardItem[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<TriageBoardItem | null>(null);
-  const [attendance, setAttendance] = useState<Attendance | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showMedicalRecordForm, setShowMedicalRecordForm] = useState(false);
-  const [showOutcomeForm, setShowOutcomeForm] = useState(false);
-  const [services, setServices] = useState<Sector[]>([]);
-  const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
-  const [serviceReason, setServiceReason] = useState('');
-  const [selectedServiceId, setSelectedServiceId] = useState('');
-  const [pendingPatient, setPendingPatient] = useState<TriageBoardItem | null>(null);
-  const { user, loading: authLoading } = useAuth();
+  const { consultations, loading, updateConsultationStatus } = useConsultations();
+  const { can } = useCapabilities();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [specialtyFilter, setSpecialtyFilter] = useState("all");
 
-  // Carregar fila de pacientes
-  useEffect(() => {
-    loadPatients();
-    // Atualizar a cada 30 segundos
-    const interval = setInterval(loadPatients, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const filteredConsultations = consultations.filter(consultation => {
+    const patientName = `${consultation.patients?.first_name} ${consultation.patients?.last_name}`;
+    const doctorName = `${consultation.staff?.first_name} ${consultation.staff?.last_name}`;
+    
+    const matchesSearch = patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (consultation.staff?.specialization || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || consultation.status === statusFilter;
+    const matchesSpecialty = specialtyFilter === "all" || consultation.staff?.specialization === specialtyFilter;
+    
+    return matchesSearch && matchesStatus && matchesSpecialty;
+  });
 
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const data = await sectorService.list('SERVICE');
-        setServices(data);
-      } catch (error) {
-        console.error('Erro ao carregar serviços:', error);
-        toast.error('Erro ao carregar serviços');
-      }
-    };
-
-    if (!authLoading && user) {
-      fetchServices();
-    }
-  }, [authLoading, user]);
-
-  const loadPatients = async () => {
-    try {
-      const board = await triageService.getTriageBoard();
-
-      // Filtrar apenas pacientes aguardando atendimento ou em atendimento
-      const filtered = board.filter(
-        p => p.status === 'AWAITING_DOCTOR' || p.status === 'IN_ATTENDANCE'
-      );
-
-      // Ordenar por prioridade (cor Manchester) e tempo de espera
-      filtered.sort((a, b) => {
-        // Prioridade por cor
-        const colorA = a.triageColor ? getManchesterColorInfo(a.triageColor).priority : 999;
-        const colorB = b.triageColor ? getManchesterColorInfo(b.triageColor).priority : 999;
-
-        if (colorA !== colorB) {
-          return colorA - colorB;
-        }
-
-        // Se mesma prioridade, por tempo de espera
-        return b.waitingTimeMinutes - a.waitingTimeMinutes;
-      });
-
-      setPatients(filtered);
-    } catch (error) {
-      console.error('Erro ao carregar fila:', error);
-      toast.error('Erro ao carregar fila de atendimento');
-    } finally {
-      setIsLoading(false);
-    }
+  const todayStats = {
+    total: consultations.length,
+    concluidas: consultations.filter(c => c.status === "completed").length,
+    emAndamento: consultations.filter(c => c.status === "in_progress").length,
+    agendadas: consultations.filter(c => c.status === "scheduled").length
   };
 
-  const handleStartAttendance = async (patient: TriageBoardItem) => {
-    if (!patient.serviceId) {
-      setPendingPatient(patient);
-      setSelectedServiceId('');
-      setServiceReason('');
-      setIsServiceDialogOpen(true);
-      return;
-    }
+  const uniqueSpecialties = [...new Set(consultations.map(c => c.staff?.specialization).filter(Boolean))];
 
-    setSelectedPatient(patient);
-
-    try {
-      await triageService.startAttendance(patient.visitId);
-
-      // Buscar o attendance pelo visitId
-      const found = await attendanceService.findByVisitId(patient.visitId);
-
-      if (!found) {
-        toast.error('Atendimento não encontrado para esta visita');
-        console.error('Attendance não encontrado para visitId:', patient.visitId);
-        setSelectedPatient(null);
-        return;
-      }
-
-      setAttendance(found);
-    } catch (error) {
-      console.error('Erro ao buscar atendimento:', error);
-      toast.error(error instanceof Error ? error.message : 'Erro ao iniciar/buscar dados do atendimento');
-      setSelectedPatient(null);
-    }
+  const formatDateTime = (dateTimeString: string) => {
+    const date = new Date(dateTimeString);
+    const dateStr = date.toLocaleDateString('pt-BR');
+    const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return { date: dateStr, time: timeStr };
   };
 
-  const handleConfirmService = async () => {
-    if (!pendingPatient) return;
-
-    if (!selectedServiceId) {
-      toast.error('Selecione um serviço.');
-      return;
-    }
-
-    if (!serviceReason || serviceReason.trim().length < 5) {
-      toast.error('Informe o motivo (mínimo 5 caracteres).');
-      return;
-    }
-
-    try {
-      await triageService.assignService(pendingPatient.visitId, selectedServiceId, serviceReason.trim());
-      setIsServiceDialogOpen(false);
-      const updated = { ...pendingPatient, serviceId: selectedServiceId };
-      setPendingPatient(null);
-      await handleStartAttendance(updated);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao definir serviço');
-    }
-  };
-
-  const handleCloseDialog = () => {
-    setSelectedPatient(null);
-    setAttendance(null);
-    setShowMedicalRecordForm(false);
-  };
-
-  const getManchesterBadge = (color: ManchesterColor | null) => {
-    if (!color) return null;
-
-    const info = getManchesterColorInfo(color);
+  if (loading) {
     return (
-      <Badge className={cn(info.bgColor, info.textColor, "font-semibold")}>
-        {info.label}
-      </Badge>
-    );
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      'AWAITING_DOCTOR': 'Aguardando Atendimento',
-      'IN_ATTENDANCE': 'Em Atendimento',
-    };
-    return labels[status] || status;
-  };
-
-  if (authLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="flex items-center justify-center py-12">
-            <p className="text-muted-foreground">Carregando contexto do usuário...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!user?.staffId || !user.roles.includes('DOCTOR')) {
-    return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Consultas indisponíveis</CardTitle>
-            <CardDescription>
-              Para acessar o módulo de consultas é necessário estar vinculado a um profissional médico.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert>
-              <AlertDescription>
-                Cadastre um profissional com papel <strong>DOCTOR</strong> em <strong>Equipe Clínica</strong> e,
-                em seguida, vincule o usuário a esse profissional em <strong>Usuários &amp; Acessos</strong>.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="flex items-center justify-center py-12">
-            <p className="text-muted-foreground">Carregando fila de atendimento...</p>
-          </CardContent>
-        </Card>
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64 mt-2" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-3 w-20 mt-1" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Stethoscope className="h-8 w-8" />
-          Consultas
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Fila de atendimento - {patients.length} paciente(s)
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Consultas</h1>
+          <p className="text-muted-foreground">Gerenciamento de consultas médicas</p>
+        </div>
+        <Button 
+          className="bg-primary hover:bg-primary/90"
+          disabled={!can.canStartAttendance}
+          title={!can.canStartAttendance ? "Você não tem permissão para iniciar atendimentos" : ""}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Consulta
+        </Button>
       </div>
 
-      {/* Fila de Pacientes */}
-      {patients.length === 0 ? (
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Stethoscope className="h-16 w-16 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground text-center">
-              Nenhum paciente aguardando atendimento no momento
-            </p>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">{todayStats.total}</div>
+            <p className="text-xs text-muted-foreground">consultas registradas</p>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {patients.map((patient) => (
-            <Card
-              key={patient.visitId}
-              className={cn(
-                "cursor-pointer transition-all hover:shadow-md",
-                patient.status === 'IN_ATTENDANCE' && "border-primary"
-              )}
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">{patient.patientName}</CardTitle>
-                    <CardDescription className="mt-1">
-                      {patient.patientCode}
-                    </CardDescription>
-                  </div>
-                  {patient.triageColor && getManchesterBadge(patient.triageColor)}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>Aguardando: {formatWaitingTime(patient.waitingTimeMinutes)}</span>
-                </div>
 
-                {patient.areaName && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>
-                      {patient.areaName}
-                      {patient.serviceName ? ` · ${patient.serviceName}` : ' · Serviço não definido'}
-                    </span>
-                  </div>
-                )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
+            <Stethoscope className="h-4 w-4 text-emerald-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600">{todayStats.concluidas}</div>
+            <p className="text-xs text-muted-foreground">finalizadas</p>
+          </CardContent>
+        </Card>
 
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span>{getStatusLabel(patient.status)}</span>
-                </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
+            <Clock className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{todayStats.emAndamento}</div>
+            <p className="text-xs text-muted-foreground">em atendimento</p>
+          </CardContent>
+        </Card>
 
-                <Button
-                  onClick={() => handleStartAttendance(patient)}
-                  className="w-full mt-2"
-                  variant={patient.status === 'IN_ATTENDANCE' ? 'secondary' : 'default'}
-                >
-                  {patient.status === 'IN_ATTENDANCE' ? 'Continuar Atendimento' : 'Iniciar Atendimento'}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Agendadas</CardTitle>
+            <User className="h-4 w-4 text-amber-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">{todayStats.agendadas}</div>
+            <p className="text-xs text-muted-foreground">aguardando</p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Dialog de Atendimento */}
-      <Dialog open={!!selectedPatient} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Stethoscope className="h-5 w-5" />
-              Atendimento - {selectedPatient?.patientName}
-              {selectedPatient?.triageColor && (
-                <span className="ml-2">
-                  {getManchesterBadge(selectedPatient.triageColor)}
-                </span>
-              )}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedPatient?.patientCode}
-            </DialogDescription>
-          </DialogHeader>
-
-          {attendance && attendance.visitId ? (
-            <Tabs defaultValue="prontuario" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="prontuario">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Prontuário
-                </TabsTrigger>
-                <TabsTrigger value="finalizar">
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Finalizar
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="prontuario" className="space-y-4">
-                <div className="flex justify-end">
-                  <Button onClick={() => setShowMedicalRecordForm(true)}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Novo Registro
-                  </Button>
-                </div>
-
-                <MedicalRecordHistory
-                  patientId={attendance.patientId}
-                  patientName={selectedPatient?.patientName || ''}
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtros</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por paciente, médico ou especialidade..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
                 />
-
-                <MedicalRecordForm
-                  open={showMedicalRecordForm}
-                  onOpenChange={setShowMedicalRecordForm}
-                  visitId={attendance.visitId}
-                  patientName={selectedPatient?.patientName || ''}
-                  onSuccess={() => {
-                    setShowMedicalRecordForm(false);
-                    toast.success('Registro salvo no prontuário');
-                  }}
-                />
-              </TabsContent>
-
-              <TabsContent value="finalizar" className="space-y-4">
-                <Alert>
-                  <AlertDescription>
-                    Finalize o atendimento selecionando o desfecho apropriado.
-                  </AlertDescription>
-                </Alert>
-
-                <div className="space-y-4">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={handleCloseDialog}>
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Cancelar
-                    </Button>
-                    <Button onClick={() => setShowOutcomeForm(true)}>
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Finalizar atendimento
-                    </Button>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <Alert>
-              <AlertDescription>
-                Carregando dados do atendimento...
-              </AlertDescription>
-            </Alert>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Definir serviço</DialogTitle>
-            <DialogDescription>
-              Selecione a especialidade para iniciar o atendimento.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Serviço *</Label>
-              <Select
-                value={selectedServiceId}
-                onValueChange={(value) => setSelectedServiceId(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o serviço" />
-                </SelectTrigger>
-                <SelectContent>
-                  {services.map((service) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              </div>
             </div>
-
-            <div className="space-y-2">
-              <Label>Motivo *</Label>
-              <Textarea
-                value={serviceReason}
-                onChange={(event) => setServiceReason(event.target.value)}
-                rows={3}
-                placeholder="Informe o motivo da escolha do serviço."
-              />
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsServiceDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleConfirmService}>Confirmar</Button>
-            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="scheduled">Agendada</SelectItem>
+                <SelectItem value="in_progress">Em andamento</SelectItem>
+                <SelectItem value="completed">Concluída</SelectItem>
+                <SelectItem value="cancelled">Cancelada</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Especialidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Especialidades</SelectItem>
+                {uniqueSpecialties.map(specialty => (
+                  <SelectItem key={specialty} value={specialty}>{specialty}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
 
-      {attendance && (
-        <AttendanceOutcomeForm
-          open={showOutcomeForm}
-          onOpenChange={setShowOutcomeForm}
-          attendanceId={attendance.id}
-           patientId={attendance.patientId}
-          patientName={selectedPatient?.patientName || ''}
-          attendanceNumber={attendance.attendanceNumber}
-          onSuccess={() => {
-            setShowOutcomeForm(false);
-            handleCloseDialog();
-            loadPatients();
-          }}
-        />
-      )}
+      {/* Consultations Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Lista de Consultas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Paciente</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Médico</TableHead>
+                  <TableHead>Especialidade</TableHead>
+                  <TableHead>Data/Hora</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Queixa</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredConsultations.map((consultation) => {
+                  const dateTime = formatDateTime(consultation.visit_date);
+                  const patientName = `${consultation.patients?.first_name} ${consultation.patients?.last_name}`;
+                  const doctorName = `${consultation.staff?.first_name} ${consultation.staff?.last_name}`;
+                  
+                  return (
+                    <TableRow key={consultation.id}>
+                      <TableCell className="font-medium">
+                        <div>
+                          <div className="font-semibold">{patientName}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Código: {consultation.patients?.patient_code}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{consultation.visit_code}</TableCell>
+                      <TableCell>{doctorName}</TableCell>
+                      <TableCell>{consultation.staff?.specialization || '-'}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{dateTime.date}</div>
+                          <div className="text-sm text-muted-foreground">{dateTime.time}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{typeLabels[consultation.visit_type] || consultation.visit_type}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline" 
+                          className={statusColors[consultation.status]}
+                        >
+                          {statusLabels[consultation.status] || consultation.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-48 truncate">
+                        {consultation.chief_complaint}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="sm" title="Ver prontuário">
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            title="Atualizar status"
+                            disabled={!can.canStartAttendance}
+                            onClick={() => {
+                              const nextStatus = consultation.status === 'scheduled' ? 'in_progress' : 
+                                               consultation.status === 'in_progress' ? 'completed' : 'scheduled';
+                              updateConsultationStatus(consultation.id, nextStatus);
+                            }}
+                          >
+                            <Stethoscope className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+          {filteredConsultations.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhuma consulta encontrada
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

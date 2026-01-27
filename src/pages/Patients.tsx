@@ -1,261 +1,42 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ToastAction } from "@/components/ui/toast";
-import { usePatientsSpring } from "@/hooks/usePatientsSpring";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { PatientFormNew } from "@/components/forms/PatientFormNew";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { usePatients } from "@/hooks/usePatients";
+import { PatientForm } from "@/components/forms/PatientForm";
 import { PatientStats } from "@/components/patients/PatientStats";
 import { PatientFilters } from "@/components/patients/PatientFilters";
 import { PatientTable } from "@/components/patients/PatientTable";
 import { PatientDetails } from "@/components/patients/PatientDetails";
-import { PatientsEmptyState } from "@/components/patients/PatientsEmptyState";
-import { PatientIdentification } from "@/components/patients/PatientIdentification";
-import { NewAttendanceDialog } from "@/components/attendance/NewAttendanceDialog";
-import { ReceptionPatientTable } from "@/components/reception/ReceptionPatientTable";
-import attendanceService from "@/services/attendanceService";
-import { patientService } from "@/services/patientService";
-import receptionService from "@/services/receptionService";
-import type { Patient, PatientIdentification as PatientIdentificationInfo } from "@/types/patient";
-import type { ReceptionPatientListItem } from "@/types/reception";
+import { useCapabilities } from "@/auth/useCapabilities";
 
-function ReceptionPatientsPage() {
-  const { toast } = useToast();
-  const [patients, setPatients] = useState<ReceptionPatientListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [isLoadingPatient, setIsLoadingPatient] = useState(false);
-
-  useEffect(() => {
-    document.title = "Recepção | Pacientes";
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', 'Recepção: lista operacional de pacientes');
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const loadPatients = async () => {
-      try {
-        setLoading(true);
-        const response = await receptionService.listPatients({
-          page: 0,
-          size: 50,
-          query: searchTerm.trim() || undefined,
-        });
-        if (!cancelled) {
-          setPatients(response.content);
-        }
-      } catch (error) {
-        console.error('Error loading reception patients:', error);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    const timer = setTimeout(loadPatients, 300);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [searchTerm]);
-
-  const handleAddPatient = async (data: any) => {
-    try {
-      await patientService.create(data);
-      setIsFormOpen(false);
-      const response = await receptionService.listPatients({ page: 0, size: 50 });
-      setPatients(response.content);
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Erro ao salvar paciente. Tente novamente.';
-      toast({
-        title: "Erro ao salvar",
-        description: message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleEditOpen = async (patient: ReceptionPatientListItem) => {
-    try {
-      setIsLoadingPatient(true);
-      let resolvedPatientId = patient.patientId;
-      if (!resolvedPatientId) {
-        const searchResult = await patientService.search({
-          query: patient.patientCode,
-          page: 0,
-          size: 1,
-        });
-        resolvedPatientId = searchResult.content[0]?.id;
-      }
-      if (!resolvedPatientId) {
-        throw new Error("Paciente não encontrado para edição.");
-      }
-      const fullPatient = await patientService.getById(resolvedPatientId);
-      setSelectedPatient(fullPatient);
-      setIsEditOpen(true);
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Erro ao carregar paciente.';
-      toast({
-        title: "Erro ao abrir cadastro",
-        description: message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingPatient(false);
-    }
-  };
-
-  const handleUpdatePatient = async (data: any) => {
-    if (!selectedPatient) return;
-    try {
-      await patientService.update(selectedPatient.id, data);
-      setIsEditOpen(false);
-      setSelectedPatient(null);
-      const response = await receptionService.listPatients({ page: 0, size: 50 });
-      setPatients(response.content);
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Erro ao atualizar paciente.';
-      toast({
-        title: "Erro ao atualizar",
-        description: message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Pacientes</h1>
-          <p className="text-muted-foreground">Lista operacional para recepção</p>
-        </div>
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Paciente
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Cadastrar novo paciente</DialogTitle>
-              <DialogDescription>
-                Preencha os dados abaixo para registrar um novo paciente no sistema.
-              </DialogDescription>
-            </DialogHeader>
-            <PatientFormNew
-              onSubmit={handleAddPatient}
-              loading={loading}
-              showClinicalSection={false}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="max-w-md">
-        <Input
-          placeholder="Buscar por nome ou código..."
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-        />
-      </div>
-
-      {loading ? (
-        <div className="text-muted-foreground">Carregando pacientes...</div>
-      ) : patients.length === 0 ? (
-        <div className="text-muted-foreground">Nenhum paciente encontrado.</div>
-      ) : (
-        <ReceptionPatientTable patients={patients} onEdit={handleEditOpen} />
-      )}
-
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar paciente</DialogTitle>
-            <DialogDescription>
-              Atualize os dados cadastrais e salve as alterações.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedPatient && (
-            <PatientFormNew
-              onSubmit={handleUpdatePatient}
-              loading={loading || isLoadingPatient}
-              initialData={selectedPatient}
-              showClinicalSection={false}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-function ClinicalPatientsPage() {
-  const { patients, loading, addPatient, updatePatient, deletePatient, refetch } = usePatientsSpring();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+export default function Patients() {
+  const { patients, loading, addPatient, updatePatient, deletePatient } = usePatients();
+  const { can } = useCapabilities();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState("all");
-  const [dateOfBirthFilter, setDateOfBirthFilter] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isPrintLabelOpen, setIsPrintLabelOpen] = useState(false);
-  const [isNewAttendanceOpen, setIsNewAttendanceOpen] = useState(false);
-  const [currentAttendanceNumber, setCurrentAttendanceNumber] = useState<string | undefined>();
-  const [currentAttendanceId, setCurrentAttendanceId] = useState<string | undefined>();
-  const [identificationInfo, setIdentificationInfo] = useState<PatientIdentificationInfo | null>(null);
-  const [isLoadingIdentification, setIsLoadingIdentification] = useState(false);
 
   useEffect(() => {
-    document.title = "Recepção PA | Pronto Atendimento";
+    document.title = "Pacientes | Gestão de Pacientes";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', 'Recepção Pronto Atendimento: buscar, cadastrar e iniciar atendimento');
+    if (meta) meta.setAttribute('content', 'Gestão de pacientes: cadastro, filtros e atualização');
   }, []);
 
-  useEffect(() => {
-    if (!isPrintLabelOpen) {
-      setIdentificationInfo(null);
-      setIsLoadingIdentification(false);
-      setCurrentAttendanceNumber(undefined);
-      setCurrentAttendanceId(undefined);
-    }
-  }, [isPrintLabelOpen]);
-
   const filteredPatients = patients.filter(patient => {
-    const fullName = `${patient.firstName} ${patient.lastName}`;
+    const fullName = `${patient.first_name} ${patient.last_name}`;
     const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.patientCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.cpf?.includes(searchTerm) ||
-                         patient.cns?.includes(searchTerm);
+                         patient.patient_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         patient.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || patient.status === statusFilter;
     const matchesGender = genderFilter === "all" || patient.gender === genderFilter;
-    const matchesDateOfBirth = !dateOfBirthFilter || patient.dateOfBirth === dateOfBirthFilter;
-
-    return matchesSearch && matchesStatus && matchesGender && matchesDateOfBirth;
+    
+    return matchesSearch && matchesStatus && matchesGender;
   });
-
-  const hasActiveFilters = searchTerm !== "" || statusFilter !== "all" || genderFilter !== "all" || dateOfBirthFilter !== "";
-
-  const handleClearFilters = () => {
-    setSearchTerm("");
-    setStatusFilter("all");
-    setGenderFilter("all");
-    setDateOfBirthFilter("");
-  };
 
   const handleAddPatient = async (data: any) => {
     try {
@@ -266,12 +47,12 @@ function ClinicalPatientsPage() {
     }
   };
 
-  const openView = (patient: Patient) => {
+  const openView = (patient: any) => {
     setSelectedPatient(patient);
     setIsViewOpen(true);
   };
 
-  const openEdit = (patient: Patient) => {
+  const openEdit = (patient: any) => {
     setSelectedPatient(patient);
     setIsEditOpen(true);
   };
@@ -287,7 +68,7 @@ function ClinicalPatientsPage() {
     }
   };
 
-  const handleDeletePatient = async (patient: Patient) => {
+  const handleDeletePatient = async (patient: any) => {
     if (!patient) return;
     const confirmed = window.confirm('Confirmar exclusão deste paciente?');
     if (!confirmed) return;
@@ -295,126 +76,6 @@ function ClinicalPatientsPage() {
       await deletePatient(patient.id);
     } catch (error) {
       console.error('Error deleting patient:', error);
-    }
-  };
-
-  const fetchIdentification = async (patientId: string) => {
-    setIsLoadingIdentification(true);
-    try {
-      const data = await patientService.getIdentification(patientId);
-      setIdentificationInfo(data);
-      setCurrentAttendanceNumber((prev) => data.attendanceNumber ?? prev);
-      setCurrentAttendanceId((prev) => data.attendanceId ?? prev);
-    } catch (error) {
-      console.error('Error fetching identification data:', error);
-    } finally {
-      setIsLoadingIdentification(false);
-    }
-  };
-
-  const handlePrintLabel = (patient: Patient) => {
-    setSelectedPatient(patient);
-    setIdentificationInfo(null);
-    setCurrentAttendanceNumber(undefined);
-    setCurrentAttendanceId(undefined);
-    setIsPrintLabelOpen(true);
-    void fetchIdentification(patient.id);
-  };
-
-  const handlePrint = async () => {
-    if (!selectedPatient) return;
-
-    try {
-      await patientService.printIdentification(
-        selectedPatient.id,
-        currentAttendanceNumber ?? identificationInfo?.attendanceNumber
-      );
-    } catch (error) {
-      console.error('Error logging print:', error);
-    } finally {
-      await fetchIdentification(selectedPatient.id);
-    }
-  };
-
-  const handleReprint = async () => {
-    if (!selectedPatient) return;
-    const attendanceId = identificationInfo?.attendanceId || currentAttendanceId;
-    if (!attendanceId) {
-      toast({
-        title: "Não foi possível reimprimir",
-        description: "Nenhum atendimento ativo foi encontrado para este paciente.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const updatedInfo = await attendanceService.reprintLabel(
-        attendanceId,
-        'Reimpressão solicitada manualmente'
-      );
-      setIdentificationInfo(updatedInfo);
-      setCurrentAttendanceNumber(updatedInfo.attendanceNumber ?? currentAttendanceNumber);
-      setCurrentAttendanceId(updatedInfo.attendanceId ?? currentAttendanceId);
-      toast({
-        title: "Etiqueta reimpressa",
-        description: "A ação foi registrada no log de auditoria.",
-      });
-    } catch (error: any) {
-      console.error('Error logging reprint:', error);
-      const message = error.response?.data?.message || 'Erro ao reimprimir etiqueta. Tente novamente.';
-      toast({
-        title: "Erro ao reimprimir",
-        description: message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleStartAttendance = (patient: Patient) => {
-    setSelectedPatient(patient);
-    setIsNewAttendanceOpen(true);
-  };
-
-  const handleCreateAttendance = async (data: any) => {
-    if (!selectedPatient) return;
-
-    try {
-      const attendance = await attendanceService.create({
-        patientId: selectedPatient.id,
-        ...data,
-      });
-
-      // Armazena o número de atendimento para a etiqueta
-      setCurrentAttendanceNumber(attendance.attendanceNumber);
-      setCurrentAttendanceId(attendance.id);
-      setIdentificationInfo(null);
-
-      // Fecha o modal de novo atendimento
-      setIsNewAttendanceOpen(false);
-
-      // Abre automaticamente o modal de impressão de etiqueta
-      setIsPrintLabelOpen(true);
-
-      void fetchIdentification(selectedPatient.id);
-
-      toast({
-        title: "Atendimento criado",
-        description: "Paciente encaminhado para a triagem Manchester.",
-        action: (
-          <ToastAction altText="Ir para triagem" onClick={() => navigate("/triage")}>
-            Ir para triagem
-          </ToastAction>
-        ),
-      });
-    } catch (error: any) {
-      console.error('Error creating attendance:', error);
-      const message = error.response?.data?.message || error.message || 'Erro ao criar atendimento';
-      toast({
-        title: "Erro ao criar atendimento",
-        description: message,
-        variant: "destructive",
-      });
     }
   };
 
@@ -438,23 +99,17 @@ function ClinicalPatientsPage() {
         </div>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button 
+              className="bg-primary hover:bg-primary/90"
+              disabled={!can.canCreatePatients}
+              title={!can.canCreatePatients ? "Você não tem permissão para criar pacientes" : ""}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Novo Paciente
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Cadastrar novo paciente</DialogTitle>
-              <DialogDescription>
-                Preencha os dados abaixo para registrar um novo paciente no sistema.
-              </DialogDescription>
-            </DialogHeader>
-            <PatientFormNew
-              onSubmit={handleAddPatient}
-              loading={loading}
-              showClinicalSection={false}
-            />
+            <PatientForm onSubmit={handleAddPatient} loading={loading} />
           </DialogContent>
         </Dialog>
       </div>
@@ -468,84 +123,28 @@ function ClinicalPatientsPage() {
         setStatusFilter={setStatusFilter}
         genderFilter={genderFilter}
         setGenderFilter={setGenderFilter}
-        dateOfBirthFilter={dateOfBirthFilter}
-        setDateOfBirthFilter={setDateOfBirthFilter}
-        onClearFilters={handleClearFilters}
       />
 
-      {filteredPatients.length === 0 ? (
-        <PatientsEmptyState
-          hasFilters={hasActiveFilters}
-          onClearFilters={handleClearFilters}
-          onAddPatient={() => setIsFormOpen(true)}
-        />
-      ) : (
-        <PatientTable
-          patients={filteredPatients}
-          onView={openView}
-          onEdit={openEdit}
-          onDelete={handleDeletePatient}
-          onPrintLabel={handlePrintLabel}
-          onStartAttendance={handleStartAttendance}
-        />
-      )}
+      <PatientTable 
+        patients={filteredPatients}
+        onView={openView}
+        onEdit={openEdit}
+        onDelete={handleDeletePatient}
+      />
 
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detalhes do paciente</DialogTitle>
-            <DialogDescription>
-              Consulte as informações cadastradas para o paciente selecionado.
-            </DialogDescription>
-          </DialogHeader>
           {selectedPatient && <PatientDetails patient={selectedPatient} />}
         </DialogContent>
       </Dialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar paciente</DialogTitle>
-            <DialogDescription>
-              Atualize os dados necessários e salve as alterações realizadas.
-            </DialogDescription>
-          </DialogHeader>
           {selectedPatient && (
-            <PatientFormNew
-              onSubmit={handleUpdatePatient}
-              loading={loading}
-              initialData={selectedPatient}
-              showClinicalSection={false}
-            />
+            <PatientForm onSubmit={handleUpdatePatient} loading={loading} initialData={selectedPatient} />
           )}
         </DialogContent>
       </Dialog>
-
-      <PatientIdentification
-        patient={selectedPatient}
-        open={isPrintLabelOpen}
-        onOpenChange={setIsPrintLabelOpen}
-        onPrint={handlePrint}
-        onReprint={handleReprint}
-        attendanceNumber={currentAttendanceNumber ?? identificationInfo?.attendanceNumber}
-        printedAt={identificationInfo?.printedAt}
-        printedBy={identificationInfo?.printedBy}
-        isLoading={isLoadingIdentification}
-      />
-
-      <NewAttendanceDialog
-        patient={selectedPatient}
-        open={isNewAttendanceOpen}
-        onOpenChange={setIsNewAttendanceOpen}
-        onSubmit={handleCreateAttendance}
-        loading={loading}
-      />
     </div>
   );
-}
-
-export default function Patients() {
-  const { user } = useAuth();
-  const isReceptionistOnly = user?.roles?.length === 1 && user?.roles?.includes('RECEPTIONIST');
-  return isReceptionistOnly ? <ReceptionPatientsPage /> : <ClinicalPatientsPage />;
 }

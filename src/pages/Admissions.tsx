@@ -1,46 +1,130 @@
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
-
-import { AdmissionForm } from '@/components/admissions/AdmissionForm';
-import { AdmissionList } from '@/components/admissions/AdmissionList';
-import { BedBoardMap } from '@/components/admissions/BedBoardMap';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAdmissions } from "@/hooks/useAdmissions";
+import { useHospital } from "@/hooks/useHospital";
+import { AdmissionForm } from "@/components/forms/AdmissionForm";
+import { AdmissionTable } from "@/components/admissions/AdmissionTable";
+import { AdmissionStats } from "@/components/admissions/AdmissionStats";
+import { useCapabilities } from "@/auth/useCapabilities";
 
 export default function Admissions() {
-  const [showAdmissionForm, setShowAdmissionForm] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const { admissions, loading, addAdmission, dischargePatient, refetch } = useAdmissions();
+  const { wards, beds, loading: hospitalLoading } = useHospital();
+  const { can } = useCapabilities();
+
+  const handleAddAdmission = async (data: any) => {
+    try {
+      await addAdmission(data);
+      setShowForm(false);
+      refetch();
+    } catch (error) {
+      console.error('Error adding admission:', error);
+    }
+  };
+
+  const handleDischarge = async (admissionId: string, dischargeData: any) => {
+    try {
+      await dischargePatient(admissionId, dischargeData);
+      refetch();
+    } catch (error) {
+      console.error('Error discharging patient:', error);
+    }
+  };
+
+  if (loading || hospitalLoading) {
+    return <div className="flex items-center justify-center h-64">Carregando...</div>;
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Internação</h1>
-          <p className="text-sm text-muted-foreground">
-            Acompanhe internações, aloque leitos e mantenha o mapa hospitalar atualizado.
+          <h1 className="text-3xl font-bold">Internações</h1>
+          <p className="text-muted-foreground">
+            Gerencie internações hospitalares e leitos
           </p>
         </div>
-        <Button onClick={() => setShowAdmissionForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+        <Button 
+          onClick={() => setShowForm(true)}
+          disabled={!can.canAdmitPatient}
+          title={!can.canAdmitPatient ? "Você não tem permissão para internar pacientes" : ""}
+        >
+          <Plus className="mr-2 h-4 w-4" />
           Nova Internação
         </Button>
       </div>
 
-      <Tabs defaultValue="admissions" className="space-y-4">
+      <AdmissionStats admissions={admissions} />
+
+      <Tabs defaultValue="list" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="admissions">Internações</TabsTrigger>
-          <TabsTrigger value="mapa">Mapa de Leitos</TabsTrigger>
+          <TabsTrigger value="list">Lista de Internações</TabsTrigger>
+          <TabsTrigger value="wards">Enfermarias</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="admissions">
-          <AdmissionList />
+        <TabsContent value="list" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Internações Ativas</CardTitle>
+              <CardDescription>
+                Lista de todos os pacientes internados
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AdmissionTable 
+                admissions={admissions} 
+                onDischarge={handleDischarge}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        <TabsContent value="mapa">
-          <BedBoardMap />
+        <TabsContent value="wards" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {wards.map((ward) => (
+              <Card key={ward.id}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">{ward.name}</CardTitle>
+                  <CardDescription>{ward.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Capacidade:</span>
+                      <span>{ward.capacity} leitos</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Ocupação:</span>
+                      <span>{ward.current_occupancy}/{ward.capacity}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Status:</span>
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        ward.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {ward.status}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
 
-      <AdmissionForm open={showAdmissionForm} onOpenChange={setShowAdmissionForm} />
+      {showForm && (
+        <AdmissionForm
+          wards={wards}
+          beds={beds}
+          onSubmit={handleAddAdmission}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
     </div>
   );
 }

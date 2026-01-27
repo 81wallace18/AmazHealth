@@ -1,498 +1,374 @@
-import { useEffect, useState } from 'react';
-import { Search, FileText, AlertCircle, ClipboardList, Receipt } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { MedicalRecordHistory } from '@/components/medical-records/MedicalRecordHistory';
-import { MedicalRecordForm } from '@/components/medical-records/MedicalRecordForm';
-import { LabTestOrderForm } from '@/components/medical-records/LabTestOrderForm';
-import { LabTestList } from '@/components/medical-records/LabTestList';
-import { AttendanceOutcomeForm } from '@/components/medical-records/AttendanceOutcomeForm';
-import { PrescriptionForm } from '@/components/prescriptions/PrescriptionForm';
-import { PrescriptionList } from '@/components/prescriptions/PrescriptionList';
-import { patientService } from '@/services/patientService';
-import attendanceService, { type Attendance } from '@/services/attendanceService';
-import type { Patient } from '@/types/patient';
-import { cn } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from "react";
+import { FileText, Plus, Search, User, Calendar, Eye, Download, Edit, AlertTriangle, Heart, Activity } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { useMedicalRecords } from "@/hooks/useMedicalRecords";
+import { useCapabilities } from "@/auth/useCapabilities";
+
+const statusColors = {
+  "consultation": "bg-blue-500/10 text-blue-700 border-blue-200",
+  "examination": "bg-green-500/10 text-green-700 border-green-200", 
+  "procedure": "bg-yellow-500/10 text-yellow-700 border-yellow-200",
+  "surgery": "bg-red-500/10 text-red-700 border-red-200",
+  "discharge": "bg-gray-500/10 text-gray-700 border-gray-200"
+};
+
+const statusLabels = {
+  "consultation": "Consulta",
+  "examination": "Exame",
+  "procedure": "Procedimento", 
+  "surgery": "Cirurgia",
+  "discharge": "Alta"
+};
 
 export default function MedicalRecords() {
-  const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Patient[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [attendances, setAttendances] = useState<Attendance[]>([]);
-  const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isLoadingAttendances, setIsLoadingAttendances] = useState(false);
-  const [showRecordForm, setShowRecordForm] = useState(false);
-  const [labOrderOpen, setLabOrderOpen] = useState(false);
-  const [labTestsVersion, setLabTestsVersion] = useState(0);
-  const [prescriptionFormOpen, setPrescriptionFormOpen] = useState(false);
-  const [prescriptionsVersion, setPrescriptionsVersion] = useState(0);
-  const [activeTab, setActiveTab] = useState<'records' | 'lab-tests' | 'prescriptions'>('records');
-  const [showOutcomeForm, setShowOutcomeForm] = useState(false);
+  const { records, loading, createRecord } = useMedicalRecords();
+  const { can } = useCapabilities();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
-    setLabTestsVersion((prev) => prev + 1);
-    setPrescriptionsVersion((prev) => prev + 1);
-  }, [selectedPatient?.id, selectedAttendance?.id]);
+    document.title = "Prontuários Médicos | Gestão de Prontuários";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', 'Gestão de prontuários médicos: registros, consultas e histórico médico');
+  }, []);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  const filteredRecords = records.filter(record => {
+    const patientName = record.patient ? `${record.patient.first_name} ${record.patient.last_name}` : '';
+    const doctorName = record.doctor ? `${record.doctor.first_name} ${record.doctor.last_name}` : '';
+    const matchesSearch = patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         record.diagnosis?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         record.chief_complaint?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === "all" || record.record_type === typeFilter;
+    
+    return matchesSearch && matchesType;
+  });
 
-    setIsSearching(true);
-    setSearchResults([]);
-    setSelectedPatient(null);
-    setAttendances([]);
-    setSelectedAttendance(null);
-
-    try {
-      const response = await patientService.search({
-        query: searchQuery,
-        page: 0,
-        size: 10
-      });
-
-      setSearchResults(response.content);
-
-      if (response.content.length === 0) {
-        // toast.error não está importado, então não vou usar
-        alert('Nenhum paciente encontrado');
-      }
-    } catch (error) {
-      console.error('Erro ao buscar paciente:', error);
-      alert('Erro ao buscar paciente');
-    } finally {
-      setIsSearching(false);
-    }
+  const stats = {
+    total: records.length,
+    consultas: records.filter(r => r.record_type === "consultation").length,
+    exames: records.filter(r => r.record_type === "examination").length,
+    atualizadosHoje: records.filter(r => {
+      const today = new Date().toISOString().split('T')[0];
+      const recordDate = new Date(r.created_at).toISOString().split('T')[0];
+      return recordDate === today;
+    }).length
   };
 
-  const handleSelectPatient = async (patient: Patient) => {
-    setSelectedPatient(patient);
-    setSearchResults([]); // Limpa os resultados da busca
-    setIsLoadingAttendances(true);
-    setAttendances([]);
-    setSelectedAttendance(null);
-
-    try {
-      const patientAttendances = await attendanceService.findByPatient(patient.id);
-
-      // Filtrar apenas atendimentos não finalizados/cancelados
-      const activeAttendances = patientAttendances.filter(
-        att => att.status !== 'FINALIZADO' && att.status !== 'CANCELADO'
-      );
-
-      setAttendances(activeAttendances);
-
-      // Se houver apenas 1 atendimento ativo, seleciona automaticamente
-      if (activeAttendances.length === 1) {
-        setSelectedAttendance(activeAttendances[0]);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar atendimentos:', error);
-      alert('Erro ao buscar atendimentos do paciente');
-    } finally {
-      setIsLoadingAttendances(false);
-    }
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
-  const getStatusLabel = (status: Attendance['status']) => {
-    const labels: Record<Attendance['status'], string> = {
-      'AGUARDANDO_TRIAGEM': 'Aguardando Triagem',
-      'EM_TRIAGEM': 'Em Triagem',
-      'AGUARDANDO_ATENDIMENTO': 'Aguardando Atendimento',
-      'EM_ATENDIMENTO': 'Em Atendimento',
-      'AGUARDANDO_EXAMES': 'Aguardando Exames',
-      'FINALIZADO': 'Finalizado',
-      'CANCELADO': 'Cancelado'
-    };
-    return labels[status] || status;
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-BR');
   };
 
-  const getStatusColor = (status: Attendance['status']) => {
-    const colors: Record<Attendance['status'], string> = {
-      'AGUARDANDO_TRIAGEM': 'bg-yellow-100 text-yellow-800',
-      'EM_TRIAGEM': 'bg-blue-100 text-blue-800',
-      'AGUARDANDO_ATENDIMENTO': 'bg-orange-100 text-orange-800',
-      'EM_ATENDIMENTO': 'bg-green-100 text-green-800',
-      'AGUARDANDO_EXAMES': 'bg-purple-100 text-purple-800',
-      'FINALIZADO': 'bg-gray-100 text-gray-800',
-      'CANCELADO': 'bg-red-100 text-red-800'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
+  const uniqueTypes = [...new Set(records.map(r => r.record_type))];
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">Carregando prontuários...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <FileText className="h-8 w-8" />
-          Prontuários Eletrônicos
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Registros médicos completos dos pacientes
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Prontuários Médicos</h1>
+          <p className="text-muted-foreground">Gestão completa de registros médicos dos pacientes</p>
+        </div>
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              className="bg-primary hover:bg-primary/90"
+              disabled={!can.canRecordEvolution}
+              title={!can.canRecordEvolution ? "Você não tem permissão para registrar prontuários" : ""}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Prontuário
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            {/* MedicalRecordForm component would go here */}
+            <div className="p-6 text-center">
+              <p>Formulário de prontuário em desenvolvimento</p>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Busca */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Buscar Paciente</CardTitle>
-          <CardDescription>
-            Digite o nome, CPF ou código do paciente
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Ex: João Silva, 123.456.789-00, P-2025-001"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
-            <Button onClick={handleSearch} disabled={isSearching}>
-              <Search className="h-4 w-4 mr-2" />
-              {isSearching ? 'Buscando...' : 'Buscar'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Resultados da Busca */}
-      {searchResults.length > 0 && (
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle>Resultados da Busca</CardTitle>
-            <CardDescription>
-              Selecione um paciente para visualizar o prontuário
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Prontuários</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {searchResults.map((patient) => (
-                <div
-                  key={patient.id}
-                  className="p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                  onClick={() => handleSelectPatient(patient)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">
-                        {patient.firstName} {patient.lastName}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        CPF: {patient.cpf} | Código: {patient.patientCode}
-                      </p>
-                    </div>
-                    <Button size="sm" variant="outline">
-                      Selecionar
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div className="text-2xl font-bold text-primary">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">registros no sistema</p>
           </CardContent>
         </Card>
-      )}
 
-      {/* Paciente Selecionado */}
-      {selectedPatient && (
-        <>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Consultas</CardTitle>
+            <Heart className="h-4 w-4 text-emerald-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600">{stats.consultas}</div>
+            <p className="text-xs text-muted-foreground">consultas registradas</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Exames</CardTitle>
+            <FileText className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{stats.exames}</div>
+            <p className="text-xs text-muted-foreground">exames realizados</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Atualizados Hoje</CardTitle>
+            <Activity className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{stats.atualizadosHoje}</div>
+            <p className="text-xs text-muted-foreground">registros modificados</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="list" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="list">Lista de Prontuários</TabsTrigger>
+          <TabsTrigger value="analytics">Relatórios</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list" className="space-y-4">
+          {/* Filters */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>
-                    {selectedPatient.firstName} {selectedPatient.lastName}
-                  </CardTitle>
-                  <CardDescription>
-                    CPF: {selectedPatient.cpf} | Código: {selectedPatient.patientCode}
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedPatient(null);
-                    setAttendances([]);
-                    setSelectedAttendance(null);
-                  }}
-                >
-                  Trocar Paciente
-                </Button>
-              </div>
+              <CardTitle>Filtros</CardTitle>
             </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por paciente, médico ou diagnóstico..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Tipos</SelectItem>
+                    {uniqueTypes.map(type => (
+                      <SelectItem key={type} value={type}>{statusLabels[type as keyof typeof statusLabels]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
           </Card>
 
-          {/* Atendimentos do Paciente */}
-          {isLoadingAttendances ? (
-            <Card>
-              <CardContent className="flex items-center justify-center py-8">
-                <p className="text-muted-foreground">Carregando atendimentos...</p>
-              </CardContent>
-            </Card>
-          ) : attendances.length > 0 ? (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ClipboardList className="h-5 w-5" />
-                    Atendimentos Ativos
-                  </CardTitle>
-                  <CardDescription>
-                    Selecione um atendimento para visualizar ou criar registros no prontuário
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {attendances.map((attendance) => (
-                      <div
-                        key={attendance.id}
-                        className={cn(
-                          "p-4 border rounded-lg cursor-pointer transition-colors",
-                          selectedAttendance?.id === attendance.id
-                            ? "bg-primary/10 border-primary"
-                            : "hover:bg-accent"
-                        )}
-                        onClick={() => setSelectedAttendance(attendance)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{attendance.attendanceNumber}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Tipo: {attendance.type} | Entrada: {new Date(attendance.entryDate).toLocaleDateString('pt-BR')}
-                            </p>
-                            {attendance.chiefComplaint && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Queixa: {attendance.chiefComplaint}
-                              </p>
-                            )}
+          {/* Medical Records Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Prontuários Médicos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Médico Responsável</TableHead>
+                      <TableHead>Tipo de Registro</TableHead>
+                      <TableHead>Queixa Principal</TableHead>
+                      <TableHead>Diagnóstico</TableHead>
+                      <TableHead>Data do Registro</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRecords.map((record) => {
+                      const patientName = record.patient ? `${record.patient.first_name} ${record.patient.last_name}` : 'Paciente não encontrado';
+                      const doctorName = record.doctor ? `Dr(a). ${record.doctor.first_name} ${record.doctor.last_name}` : 'Médico não encontrado';
+                      
+                      return (
+                        <TableRow key={record.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarFallback>{getInitials(patientName)}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-semibold">{patientName}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {record.patient?.patient_code || 'N/A'}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{doctorName}</div>
+                              <div className="text-sm text-muted-foreground">{record.doctor?.staff_code || 'N/A'}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline" 
+                              className={statusColors[record.record_type as keyof typeof statusColors]}
+                            >
+                              {statusLabels[record.record_type as keyof typeof statusLabels]}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-48">
+                              <div className="text-sm">{record.chief_complaint || 'Não informado'}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-48">
+                              <div className="font-medium text-sm">{record.diagnosis || 'Aguardando diagnóstico'}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm">
+                              <Calendar className="h-3 w-3" />
+                              {formatDate(record.record_date)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button variant="ghost" size="sm" title="Visualizar">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" title="Editar">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" title="Download">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <Card>
+            <CardHeader>
+              <CardTitle>Relatórios e Estatísticas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Distribuição por Tipo</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {uniqueTypes.map(type => {
+                        const count = records.filter(r => r.record_type === type).length;
+                        const percentage = records.length > 0 ? ((count / records.length) * 100).toFixed(1) : '0';
+                        return (
+                          <div key={type} className="flex justify-between items-center">
+                            <span className="text-sm">{statusLabels[type as keyof typeof statusLabels]}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{count}</span>
+                              <span className="text-xs text-muted-foreground">({percentage}%)</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className={cn(
-                              "px-2 py-1 rounded-full text-xs font-medium",
-                              getStatusColor(attendance.status)
-                            )}>
-                              {getStatusLabel(attendance.status)}
-                            </span>
-                            {selectedAttendance?.id === attendance.id && (
-                              <span className="text-xs text-primary font-medium">
-                                Selecionado
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Estatísticas Mensais</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Total de registros</span>
+                        <span className="text-sm font-medium">{records.length}</span>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Histórico, registros e exames */}
-              {selectedAttendance && (
-                <Tabs
-                  value={activeTab}
-                  onValueChange={(value) =>
-                    setActiveTab(value as 'records' | 'lab-tests' | 'prescriptions')
-                  }
-                >
-                  <TabsList className="w-full justify-start">
-                    <TabsTrigger value="records">Prontuário</TabsTrigger>
-                    <TabsTrigger value="lab-tests">Exames</TabsTrigger>
-                    <TabsTrigger value="prescriptions">Prescrições</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="records" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle>Prontuário do Paciente</CardTitle>
-                            <CardDescription>
-                              Atendimento: {selectedAttendance.attendanceNumber}
-                            </CardDescription>
-                          </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => setShowOutcomeForm(true)}
-                            disabled={selectedAttendance.status === 'FINALIZADO'}
-                          >
-                            Finalizar atendimento
-                          </Button>
-                          <Button
-                            onClick={() => setShowRecordForm(true)}
-                            disabled={!selectedAttendance.visitId}
-                            title={!selectedAttendance.visitId ? 'Atendimento sem visita associada' : ''}
-                          >
-                            <FileText className="h-4 w-4 mr-2" />
-                            Novo Registro
-                          </Button>
-                        </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Registros hoje</span>
+                        <span className="text-sm font-medium">{stats.atualizadosHoje}</span>
                       </div>
-                    </CardHeader>
-                  </Card>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Média diária</span>
+                        <span className="text-sm font-medium">{(records.length / 30).toFixed(1)}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                    <MedicalRecordHistory
-                      patientId={selectedPatient.id}
-                      patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
-                      patientCode={selectedPatient.patientCode}
-                      attendanceNumber={selectedAttendance.attendanceNumber}
-                    />
-
-                    {selectedAttendance.visitId ? (
-                      <MedicalRecordForm
-                        open={showRecordForm}
-                        onOpenChange={setShowRecordForm}
-                        visitId={selectedAttendance.visitId}
-                        patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
-                        onSuccess={() => {
-                          setShowRecordForm(false);
-                        }}
-                      />
-                    ) : (
-                      showRecordForm && (
-                        <Alert>
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            Este atendimento não possui uma visita associada. Não é possível criar registros no prontuário.
-                          </AlertDescription>
-                        </Alert>
-                      )
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="lab-tests" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle>Exames Laboratoriais</CardTitle>
-                            <CardDescription>
-                              Solicite exames e acompanhe resultados vinculados ao atendimento.
-                            </CardDescription>
-                          </div>
-                          <Button onClick={() => setLabOrderOpen(true)}>
-                            <ClipboardList className="h-4 w-4 mr-2" />
-                            Solicitar exame
-                          </Button>
-                        </div>
-                      </CardHeader>
-                    </Card>
-
-                    <LabTestList
-                      patientId={selectedPatient.id}
-                      visitId={selectedAttendance.visitId}
-                      version={labTestsVersion}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="prescriptions" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle>Prescrições Médicas</CardTitle>
-                            <CardDescription>
-                              Gere novas prescrições e consulte o histórico do paciente.
-                            </CardDescription>
-                          </div>
-                          <Button
-                            onClick={() => setPrescriptionFormOpen(true)}
-                            disabled={!selectedAttendance.visitId}
-                            title={
-                              !selectedAttendance.visitId
-                                ? 'Atendimento sem visita associada'
-                                : undefined
-                            }
-                          >
-                            <Receipt className="h-4 w-4 mr-2" />
-                            Nova prescrição
-                          </Button>
-                        </div>
-                      </CardHeader>
-                    </Card>
-
-                    <PrescriptionList
-                      patientId={selectedPatient.id}
-                      version={prescriptionsVersion}
-                    />
-                  </TabsContent>
-                </Tabs>
-              )}
-            </>
-          ) : (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Este paciente não possui atendimentos ativos. Para criar um registro no prontuário,
-                é necessário primeiro criar um atendimento (entrada) para o paciente.
-              </AlertDescription>
-            </Alert>
-          )}
-        </>
-      )}
-
-      {/* Estado vazio */}
-      {!selectedPatient && searchResults.length === 0 && !isSearching && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground text-center">
-              Busque um paciente para visualizar ou criar registros no prontuário
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {selectedPatient && (
-        <LabTestOrderForm
-          open={labOrderOpen}
-          onOpenChange={setLabOrderOpen}
-          patientId={selectedPatient.id}
-          patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
-          visitId={selectedAttendance?.visitId}
-          onSuccess={() => {
-            setLabOrderOpen(false);
-            setLabTestsVersion((prev) => prev + 1);
-          }}
-        />
-      )}
-
-      {selectedPatient && selectedAttendance && (
-        <PrescriptionForm
-          open={prescriptionFormOpen}
-          onOpenChange={setPrescriptionFormOpen}
-          patientId={selectedPatient.id}
-          patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
-          visitId={selectedAttendance.visitId}
-          attendanceId={selectedAttendance.id}
-          defaultDoctorId={user?.staffId ?? undefined}
-          onSuccess={() => {
-            setPrescriptionsVersion((prev) => prev + 1);
-            setPrescriptionFormOpen(false);
-          }}
-        />
-      )}
-
-      {selectedAttendance && selectedPatient && (
-        <AttendanceOutcomeForm
-          open={showOutcomeForm}
-          onOpenChange={setShowOutcomeForm}
-          attendanceId={selectedAttendance.id}
-          patientId={selectedPatient.id}
-          patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
-          attendanceNumber={selectedAttendance.attendanceNumber}
-          onSuccess={() => {
-            setShowOutcomeForm(false);
-            handleSelectPatient(selectedPatient);
-          }}
-        />
-      )}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Ações Rápidas</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <Button variant="outline" className="w-full justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo Prontuário
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start">
+                        <Download className="h-4 w-4 mr-2" />
+                        Exportar Dados
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Relatório Mensal
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
