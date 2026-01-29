@@ -3,12 +3,9 @@ import type { PatientIdentification } from '@/types/patient';
 
 export interface CreateAttendanceDTO {
   patientId: string;
-  type: 'URGENCIA' | 'AMBULATORIAL';
-  paymentType: 'SUS' | 'CONVENIO' | 'PARTICULAR';
-  healthInsuranceId?: string;
-  healthInsuranceName?: string;
-  healthInsuranceNumber?: string;
-  chiefComplaint?: string;
+  doctorId: string;
+  chiefComplaint: string;
+  visitType: 'URGENCIA' | 'AMBULATORIAL';
 }
 
 export interface Attendance {

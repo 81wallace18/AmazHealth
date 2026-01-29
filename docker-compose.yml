@@ -18,7 +18,7 @@ services:
   backend:
     profiles: ["backend", "dev"]
     build:
-      context: ../AmazHealth-backend
+      context: ../backend
       dockerfile: docker/Dockerfile
     ports:
       - "8080:8080"

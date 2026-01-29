@@ -5,26 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAdmissions } from "@/hooks/useAdmissions";
 import { useHospital } from "@/hooks/useHospital";
-import { AdmissionForm } from "@/components/forms/AdmissionForm";
+import { AdmissionForm } from "@/components/admissions/AdmissionForm";
 import { AdmissionTable } from "@/components/admissions/AdmissionTable";
 import { AdmissionStats } from "@/components/admissions/AdmissionStats";
 import { useCapabilities } from "@/auth/useCapabilities";
 
 export default function Admissions() {
   const [showForm, setShowForm] = useState(false);
-  const { admissions, loading, addAdmission, dischargePatient, refetch } = useAdmissions();
-  const { wards, beds, loading: hospitalLoading } = useHospital();
-  const { can } = useCapabilities();
-
-  const handleAddAdmission = async (data: any) => {
-    try {
-      await addAdmission(data);
-      setShowForm(false);
-      refetch();
-    } catch (error) {
-      console.error('Error adding admission:', error);
-    }
-  };
+  const { admissions, loading, dischargePatient, refetch } = useAdmissions();
+  const { wards, loading: hospitalLoading } = useHospital();
+  const capabilities = useCapabilities();
 
   const handleDischarge = async (admissionId: string, dischargeData: any) => {
     try {
@@ -50,8 +40,8 @@ export default function Admissions() {
         </div>
         <Button 
           onClick={() => setShowForm(true)}
-          disabled={!can.canAdmitPatient}
-          title={!can.canAdmitPatient ? "Você não tem permissão para internar pacientes" : ""}
+          disabled={!capabilities.canAdmitPatient}
+          title={!capabilities.canAdmitPatient ? "Você não tem permissão para internar pacientes" : ""}
         >
           <Plus className="mr-2 h-4 w-4" />
           Nova Internação
@@ -117,14 +107,11 @@ export default function Admissions() {
         </TabsContent>
       </Tabs>
 
-      {showForm && (
-        <AdmissionForm
-          wards={wards}
-          beds={beds}
-          onSubmit={handleAddAdmission}
-          onCancel={() => setShowForm(false)}
-        />
-      )}
+      <AdmissionForm
+        open={showForm}
+        onOpenChange={setShowForm}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }

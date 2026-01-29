@@ -34,7 +34,7 @@ const priorityColors = {
 
 export default function Laboratory() {
   const { orders, loading, createTestOrder } = useLaboratory();
-  const { can } = useCapabilities();
+  const capabilities = useCapabilities();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -89,8 +89,8 @@ export default function Laboratory() {
           <DialogTrigger asChild>
             <Button 
               className="bg-primary hover:bg-primary/90"
-              disabled={!can.canRequestExams}
-              title={!can.canRequestExams ? "Você não tem permissão para solicitar exames" : ""}
+              disabled={!capabilities.canRequestExams}
+              title={!capabilities.canRequestExams ? "Você não tem permissão para solicitar exames" : ""}
             >
               <Plus className="h-4 w-4 mr-2" />
               Novo Exame
@@ -283,7 +283,7 @@ export default function Laboratory() {
                             variant="ghost" 
                             size="sm" 
                             title="Editar"
-                            disabled={!can.canInputExamResults}
+                            disabled={!capabilities.canInputExamResults}
                           >
                             <FileText className="h-4 w-4" />
                           </Button>

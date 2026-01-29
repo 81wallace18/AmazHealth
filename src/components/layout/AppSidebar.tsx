@@ -33,6 +33,7 @@ interface NavigationItem {
   icon: React.ComponentType<{ className?: string }>;
   group: string;
   requiredCapabilities?: (keyof UserCapabilities)[];
+  requiredRoles?: string[];
 }
 
 const navigationItems: NavigationItem[] = [
@@ -69,6 +70,21 @@ const navigationItems: NavigationItem[] = [
     icon: Stethoscope,
     group: "Atendimento",
     requiredCapabilities: ["canStartAttendance", "canReadAttendance"]
+  },
+  {
+    title: "Triagem",
+    url: "/triage",
+    icon: Leaf,
+    group: "Atendimento",
+    requiredCapabilities: ["canReadTriage"]
+  },
+  {
+    title: "Triagem (Recepção)",
+    url: "/reception/triage",
+    icon: UserPlus,
+    group: "Atendimento",
+    requiredCapabilities: ["canCreateAttendance"],
+    requiredRoles: ["RECEPTIONIST", "ADMIN"]
   },
   {
     title: "Gestão Hospitalar",
@@ -131,7 +147,7 @@ const navigationItems: NavigationItem[] = [
 export function AppSidebar() {
   const isMobile = useIsMobile();
   const location = useLocation();
-  const { canAny } = useCapabilities();
+  const { canAny, hasRole } = useCapabilities();
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -144,10 +160,17 @@ export function AppSidebar() {
   const filteredNavigationItems = navigationItems.filter(item => {
     // If no capabilities required, show to everyone
     if (!item.requiredCapabilities || item.requiredCapabilities.length === 0) {
-      return true;
+      if (!item.requiredRoles || item.requiredRoles.length === 0) {
+        return true;
+      }
+      return item.requiredRoles.some(hasRole);
     }
     // Show if user has ANY of the required capabilities
-    return canAny(item.requiredCapabilities);
+    const hasCaps = canAny(item.requiredCapabilities);
+    if (!item.requiredRoles || item.requiredRoles.length === 0) {
+      return hasCaps;
+    }
+    return hasCaps && item.requiredRoles.some(hasRole);
   });
 
   const groupedItems = filteredNavigationItems.reduce((acc, item) => {

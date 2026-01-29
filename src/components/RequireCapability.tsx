@@ -25,6 +25,10 @@ export function RequireCapability({
   const caps = useCapabilities();
   const location = useLocation();
 
+  if (caps.loading) {
+    return null;
+  }
+
   // Check if user has required capability/capabilities
   const hasAccess = capability 
     ? caps.can(capability)

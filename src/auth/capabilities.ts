@@ -378,6 +378,34 @@ export function getCapabilitiesForRole(role: UserRole): UserCapabilities {
   return roleCapabilities[role] || roleCapabilities.RECEPTIONIST;
 }
 
+export function getCapabilitiesForRoles(roles: string[]): UserCapabilities {
+  if (!roles || roles.length === 0) {
+    return roleCapabilities.RECEPTIONIST;
+  }
+
+  const normalized = roles.map(role => role.toUpperCase().trim()).filter(Boolean);
+  if (normalized.includes('ADMIN')) {
+    return roleCapabilities.ADMIN;
+  }
+
+  const emptyCapabilities = Object.keys(roleCapabilities.ADMIN).reduce((acc, key) => {
+    acc[key as keyof UserCapabilities] = false;
+    return acc;
+  }, {} as UserCapabilities);
+
+  let hasValidRole = false;
+  for (const role of normalized) {
+    const capabilities = roleCapabilities[role as UserRole];
+    if (!capabilities) continue;
+    hasValidRole = true;
+    for (const capabilityKey of Object.keys(capabilities) as (keyof UserCapabilities)[]) {
+      emptyCapabilities[capabilityKey] = emptyCapabilities[capabilityKey] || capabilities[capabilityKey];
+    }
+  }
+
+  return hasValidRole ? emptyCapabilities : roleCapabilities.RECEPTIONIST;
+}
+
 export function hasCapability(capabilities: UserCapabilities, capability: keyof UserCapabilities): boolean {
   return capabilities[capability];
 }

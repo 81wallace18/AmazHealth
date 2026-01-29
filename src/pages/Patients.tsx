@@ -1,25 +1,29 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { usePatients } from "@/hooks/usePatients";
 import { PatientForm } from "@/components/forms/PatientForm";
+import { NewAttendanceDialog } from "@/components/attendance/NewAttendanceDialog";
 import { PatientStats } from "@/components/patients/PatientStats";
 import { PatientFilters } from "@/components/patients/PatientFilters";
 import { PatientTable } from "@/components/patients/PatientTable";
 import { PatientDetails } from "@/components/patients/PatientDetails";
 import { useCapabilities } from "@/auth/useCapabilities";
+import attendanceService from "@/services/attendanceService";
 
 export default function Patients() {
-  const { patients, loading, addPatient, updatePatient, deletePatient } = usePatients();
-  const { can } = useCapabilities();
+  const { patients, loading, addPatient, updatePatient, deletePatient, refetch } = usePatients();
+  const capabilities = useCapabilities();
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [genderFilter, setGenderFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+  const [attendancePatient, setAttendancePatient] = useState<any>(null);
 
   useEffect(() => {
     document.title = "Pacientes | Gestão de Pacientes";
@@ -28,9 +32,9 @@ export default function Patients() {
   }, []);
 
   const filteredPatients = patients.filter(patient => {
-    const fullName = `${patient.first_name} ${patient.last_name}`;
+    const fullName = `${patient.firstName} ${patient.lastName}`;
     const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.patient_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         patient.patientCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          patient.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || patient.status === statusFilter;
     const matchesGender = genderFilter === "all" || patient.gender === genderFilter;
@@ -79,6 +83,28 @@ export default function Patients() {
     }
   };
 
+  const handleStartAttendance = (patient: any) => {
+    setAttendancePatient(patient);
+    setIsAttendanceOpen(true);
+  };
+
+  const handleCreateAttendance = async (data: { visitType: 'URGENCIA' | 'AMBULATORIAL'; doctorId: string; chiefComplaint: string }) => {
+    if (!attendancePatient) return;
+    await attendanceService.create({
+      patientId: attendancePatient.id,
+      doctorId: data.doctorId,
+      visitType: data.visitType,
+      chiefComplaint: data.chiefComplaint,
+    });
+    await refetch();
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("active");
+    setGenderFilter("all");
+  };
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -101,14 +127,18 @@ export default function Patients() {
           <DialogTrigger asChild>
             <Button 
               className="bg-primary hover:bg-primary/90"
-              disabled={!can.canCreatePatients}
-              title={!can.canCreatePatients ? "Você não tem permissão para criar pacientes" : ""}
+              disabled={!capabilities.canCreatePatients}
+              title={!capabilities.canCreatePatients ? "Você não tem permissão para criar pacientes" : ""}
             >
               <Plus className="h-4 w-4 mr-2" />
               Novo Paciente
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl w-[calc(100vw-2rem)] sm:w-full max-h-[90vh] overflow-y-auto overflow-x-hidden">
+            <DialogHeader>
+              <DialogTitle>Novo Paciente</DialogTitle>
+              <DialogDescription>Preencha os dados para cadastrar um novo paciente.</DialogDescription>
+            </DialogHeader>
             <PatientForm onSubmit={handleAddPatient} loading={loading} />
           </DialogContent>
         </Dialog>
@@ -123,28 +153,51 @@ export default function Patients() {
         setStatusFilter={setStatusFilter}
         genderFilter={genderFilter}
         setGenderFilter={setGenderFilter}
+        onClearFilters={handleClearFilters}
       />
 
       <PatientTable 
         patients={filteredPatients}
         onView={openView}
         onEdit={openEdit}
-        onDelete={handleDeletePatient}
+        onDelete={capabilities.canDeletePatients ? handleDeletePatient : undefined}
+        onStartAttendance={capabilities.canCreateAttendance ? handleStartAttendance : undefined}
       />
 
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Paciente</DialogTitle>
+            <DialogDescription>Visualização completa do cadastro.</DialogDescription>
+          </DialogHeader>
           {selectedPatient && <PatientDetails patient={selectedPatient} />}
         </DialogContent>
       </Dialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl w-[calc(100vw-2rem)] sm:w-full max-h-[90vh] overflow-y-auto overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>Editar Paciente</DialogTitle>
+            <DialogDescription>Atualize os dados do paciente.</DialogDescription>
+          </DialogHeader>
           {selectedPatient && (
             <PatientForm onSubmit={handleUpdatePatient} loading={loading} initialData={selectedPatient} />
           )}
         </DialogContent>
       </Dialog>
+
+      <NewAttendanceDialog
+        patient={attendancePatient}
+        open={isAttendanceOpen}
+        onOpenChange={(open) => {
+          setIsAttendanceOpen(open);
+          if (!open) {
+            setAttendancePatient(null);
+          }
+        }}
+        onSubmit={handleCreateAttendance}
+        loading={loading}
+      />
     </div>
   );
 }

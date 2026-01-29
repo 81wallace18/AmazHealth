@@ -13,7 +13,8 @@ export const statusLabels = {
 export const genderLabels = {
   "M": "Masculino",
   "F": "Feminino",
-  "Other": "Outro"
+  "O": "Outro",
+  "UNKNOWN": "Nao informado"
 };
 
 export const getInitials = (name: string) => {

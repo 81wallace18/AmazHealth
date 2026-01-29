@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Calendar, Clock, User, Stethoscope, FileText, Plus, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConsultations } from "@/hooks/useConsultations";
 import { useCapabilities } from "@/auth/useCapabilities";
+import { triageService } from "@/services/triageService";
+import { useToast } from "@/hooks/use-toast";
 
 const statusColors = {
   "completed": "bg-emerald-500/10 text-emerald-700 border-emerald-200",
@@ -31,15 +34,17 @@ const typeLabels = {
 };
 
 export default function Consultations() {
-  const { consultations, loading, updateConsultationStatus } = useConsultations();
-  const { can } = useCapabilities();
+  const { consultations, loading, updateConsultationStatus, refetch } = useConsultations();
+  const capabilities = useCapabilities();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
 
   const filteredConsultations = consultations.filter(consultation => {
-    const patientName = `${consultation.patients?.first_name} ${consultation.patients?.last_name}`;
-    const doctorName = `${consultation.staff?.first_name} ${consultation.staff?.last_name}`;
+    const patientName = `${consultation.patients?.first_name || ''} ${consultation.patients?.last_name || ''}`.trim();
+    const doctorName = `${consultation.staff?.first_name || ''} ${consultation.staff?.last_name || ''}`.trim();
     
     const matchesSearch = patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -103,8 +108,8 @@ export default function Consultations() {
         </div>
         <Button 
           className="bg-primary hover:bg-primary/90"
-          disabled={!can.canStartAttendance}
-          title={!can.canStartAttendance ? "Você não tem permissão para iniciar atendimentos" : ""}
+          disabled={!capabilities.canStartAttendance}
+          title={!capabilities.canStartAttendance ? "Você não tem permissão para iniciar atendimentos" : ""}
         >
           <Plus className="h-4 w-4 mr-2" />
           Nova Consulta
@@ -227,21 +232,21 @@ export default function Consultations() {
               <TableBody>
                 {filteredConsultations.map((consultation) => {
                   const dateTime = formatDateTime(consultation.visit_date);
-                  const patientName = `${consultation.patients?.first_name} ${consultation.patients?.last_name}`;
-                  const doctorName = `${consultation.staff?.first_name} ${consultation.staff?.last_name}`;
+                  const patientName = `${consultation.patients?.first_name || ''} ${consultation.patients?.last_name || ''}`.trim();
+                  const doctorName = `${consultation.staff?.first_name || ''} ${consultation.staff?.last_name || ''}`.trim();
                   
                   return (
                     <TableRow key={consultation.id}>
                       <TableCell className="font-medium">
                         <div>
-                          <div className="font-semibold">{patientName}</div>
+                          <div className="font-semibold">{patientName || '-'}</div>
                           <div className="text-sm text-muted-foreground">
                             Código: {consultation.patients?.patient_code}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>{consultation.visit_code}</TableCell>
-                      <TableCell>{doctorName}</TableCell>
+                      <TableCell>{doctorName || '-'}</TableCell>
                       <TableCell>{consultation.staff?.specialization || '-'}</TableCell>
                       <TableCell>
                         <div>
@@ -259,25 +264,17 @@ export default function Consultations() {
                         </Badge>
                       </TableCell>
                       <TableCell className="max-w-48 truncate">
-                        {consultation.chief_complaint}
+                        {consultation.chief_complaint || '-'}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm" title="Ver prontuário">
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            title="Atualizar status"
-                            disabled={!can.canStartAttendance}
-                            onClick={() => {
-                              const nextStatus = consultation.status === 'scheduled' ? 'in_progress' : 
-                                               consultation.status === 'in_progress' ? 'completed' : 'scheduled';
-                              updateConsultationStatus(consultation.id, nextStatus);
-                            }}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Ver prontuário"
+                            onClick={() => navigate(`/medical-records?visitId=${consultation.id}`)}
                           >
-                            <Stethoscope className="h-4 w-4" />
+                            <FileText className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>

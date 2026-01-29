@@ -19,6 +19,8 @@ import Billing from "./pages/Billing";
 import Reports from "./pages/Reports";
 import Staff from "./pages/Staff";
 import UserManagement from "./pages/UserManagement";
+import Triage from "./pages/Triage";
+import ReceptionTriage from "./pages/ReceptionTriage";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { Unauthorized } from "./pages/Unauthorized";
@@ -100,6 +102,16 @@ const App = () => (
             <Route path="medical-records" element={
               <RequireCapability capability="canReadAttendance">
                 <MedicalRecords />
+              </RequireCapability>
+            } />
+            <Route path="triage" element={
+              <RequireCapability capability="canReadTriage">
+                <Triage />
+              </RequireCapability>
+            } />
+            <Route path="reception/triage" element={
+              <RequireCapability capability="canCreateAttendance">
+                <ReceptionTriage />
               </RequireCapability>
             } />
             <Route path="admissions" element={

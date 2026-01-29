@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Calendar, FileText, CreditCard, Building2 } from "lucide-react";
+import { Calendar, FileText, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,7 +15,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -32,19 +31,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Patient } from "@/types/patient";
+import { staffService } from "@/services/staffService";
+import type { Staff } from "@/services/staffService";
+import { useToast } from "@/hooks/use-toast";
 
 // Schema de validação para novo atendimento
 const newAttendanceSchema = z.object({
-  type: z.enum(["URGENCIA", "AMBULATORIAL"], {
+  visitType: z.enum(["URGENCIA", "AMBULATORIAL"], {
     required_error: "Tipo de atendimento é obrigatório",
   }),
-  paymentType: z.enum(["SUS", "CONVENIO", "PARTICULAR"], {
-    required_error: "Forma de pagamento é obrigatória",
-  }),
-  healthInsuranceId: z.string().optional(),
-  healthInsuranceName: z.string().optional(),
-  healthInsuranceNumber: z.string().optional(),
-  chiefComplaint: z.string().optional(),
+  doctorId: z.string().min(1, "Selecione o médico responsável"),
+  chiefComplaint: z.string().min(3, "Queixa principal é obrigatória"),
 });
 
 type NewAttendanceFormData = z.infer<typeof newAttendanceSchema>;
@@ -69,17 +66,34 @@ export function NewAttendanceDialog({
   loading = false,
 }: NewAttendanceDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [doctors, setDoctors] = useState<Staff[]>([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<NewAttendanceFormData>({
     resolver: zodResolver(newAttendanceSchema),
     defaultValues: {
-      type: "URGENCIA",
-      paymentType: "SUS",
+      visitType: "URGENCIA",
+      doctorId: "",
       chiefComplaint: "",
     },
   });
 
-  const paymentType = form.watch("paymentType");
+  useEffect(() => {
+    if (!open) return;
+    const loadDoctors = async () => {
+      try {
+        setLoadingDoctors(true);
+        const data = await staffService.findActiveDoctors();
+        setDoctors(data);
+      } catch (error) {
+        console.error("Erro ao carregar médicos:", error);
+      } finally {
+        setLoadingDoctors(false);
+      }
+    };
+    loadDoctors();
+  }, [open]);
 
   const handleSubmit = async (data: NewAttendanceFormData) => {
     if (!patient) return;
@@ -87,10 +101,19 @@ export function NewAttendanceDialog({
     setIsSubmitting(true);
     try {
       await onSubmit(data);
+      toast({
+        title: "Atendimento criado",
+        description: "Paciente enviado para triagem.",
+      });
       form.reset();
       onOpenChange(false);
     } catch (error) {
       console.error("Error creating attendance:", error);
+      toast({
+        title: "Erro ao criar atendimento",
+        description: "Não foi possível iniciar o atendimento. Verifique as permissões e tente novamente.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -151,7 +174,7 @@ export function NewAttendanceDialog({
             {/* Tipo de Atendimento */}
             <FormField
               control={form.control}
-              name="type"
+              name="visitType"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
@@ -191,103 +214,40 @@ export function NewAttendanceDialog({
               )}
             />
 
-            {/* Forma de Pagamento */}
+            {/* Médico responsável */}
             <FormField
               control={form.control}
-              name="paymentType"
+              name="doctorId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    Forma de Pagamento *
+                    <Stethoscope className="h-4 w-4" />
+                    Médico responsável *
                   </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione a forma de pagamento" />
+                        <SelectValue placeholder={loadingDoctors ? "Carregando médicos..." : "Selecione o médico"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="SUS">
-                        <div className="flex flex-col">
-                          <span className="font-semibold">SUS</span>
-                          <span className="text-xs text-muted-foreground">
-                            Sistema Único de Saúde
-                          </span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="CONVENIO">
-                        <div className="flex flex-col">
-                          <span className="font-semibold">Convênio</span>
-                          <span className="text-xs text-muted-foreground">
-                            Plano de saúde particular
-                          </span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="PARTICULAR">
-                        <div className="flex flex-col">
-                          <span className="font-semibold">Particular</span>
-                          <span className="text-xs text-muted-foreground">
-                            Pagamento direto
-                          </span>
-                        </div>
-                      </SelectItem>
+                      {doctors.length === 0 ? (
+                        <SelectItem value="no-doctor" disabled>
+                          Nenhum médico ativo disponível
+                        </SelectItem>
+                      ) : (
+                        doctors.map((doctor) => (
+                          <SelectItem key={doctor.id} value={doctor.id}>
+                            Dr(a). {doctor.firstName} {doctor.lastName}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            {/* Dados do Convênio (condicional) */}
-            {paymentType === "CONVENIO" && (
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                <h4 className="text-sm font-semibold flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Dados do Convênio
-                </h4>
-
-                <FormField
-                  control={form.control}
-                  name="healthInsuranceName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome do Convênio</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: Unimed, Bradesco Saúde..."
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="healthInsuranceNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Número da Carteirinha</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Número da carteira do plano"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Número identificador do beneficiário no plano
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
 
             {/* Queixa Principal */}
             <FormField
@@ -297,7 +257,7 @@ export function NewAttendanceDialog({
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    Queixa Principal / Motivo da Consulta
+                    Queixa Principal / Motivo da Consulta *
                   </FormLabel>
                   <FormControl>
                     <Textarea
@@ -306,9 +266,6 @@ export function NewAttendanceDialog({
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Breve descrição do motivo que levou o paciente a procurar atendimento
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

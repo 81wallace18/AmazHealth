@@ -109,7 +109,7 @@ export function PatientFilters({
                 <SelectItem value="all">Todos os Gêneros</SelectItem>
                 <SelectItem value="M">Masculino</SelectItem>
                 <SelectItem value="F">Feminino</SelectItem>
-                <SelectItem value="Other">Outro</SelectItem>
+                <SelectItem value="O">Outro</SelectItem>
               </SelectContent>
             </Select>
 

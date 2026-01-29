@@ -67,15 +67,7 @@ export default function Triage() {
     try {
       setError(null);
       const data = await triageService.getTriageBoard();
-      // evita duplicidades por código/nome no painel
-      const unique = new Map<string, TriageBoardItem>();
-      data.forEach((item) => {
-        const key = `${item.patientCode}-${item.patientName}`.toLowerCase();
-        if (!unique.has(key)) {
-          unique.set(key, item);
-        }
-      });
-      setPatients(Array.from(unique.values()));
+      setPatients(data);
     } catch (err: any) {
       console.error('Error loading triage board:', err);
       setError(err.message || 'Erro ao carregar painel de triagem');

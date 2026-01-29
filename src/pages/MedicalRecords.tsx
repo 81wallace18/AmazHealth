@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { FileText, Plus, Search, User, Calendar, Eye, Download, Edit, AlertTriangle, Heart, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useMedicalRecords } from "@/hooks/useMedicalRecords";
 import { useCapabilities } from "@/auth/useCapabilities";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import type { MedicalRecordRequest, RecordType } from "@/types/medicalRecord";
+import { useToast } from "@/hooks/use-toast";
 
 const statusColors = {
   "consultation": "bg-blue-500/10 text-blue-700 border-blue-200",
@@ -29,11 +34,24 @@ const statusLabels = {
 };
 
 export default function MedicalRecords() {
-  const { records, loading, createRecord } = useMedicalRecords();
-  const { can } = useCapabilities();
+  const [searchParams] = useSearchParams();
+  const visitId = searchParams.get('visitId') || undefined;
+  const { records, loading, createRecord, refetch } = useMedicalRecords({ visitId });
+  const capabilities = useCapabilities();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [form, setForm] = useState({
+    recordType: 'EVOLUTION' as RecordType,
+    notes: '',
+    chiefComplaint: '',
+    historyOfPresentIllness: '',
+    physicalExamination: '',
+    diagnosis: '',
+    treatment: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     document.title = "Prontuários Médicos | Gestão de Prontuários";
@@ -96,17 +114,154 @@ export default function MedicalRecords() {
           <DialogTrigger asChild>
             <Button 
               className="bg-primary hover:bg-primary/90"
-              disabled={!can.canRecordEvolution}
-              title={!can.canRecordEvolution ? "Você não tem permissão para registrar prontuários" : ""}
+              disabled={!capabilities.canRecordEvolution}
+              title={!capabilities.canRecordEvolution ? "Você não tem permissão para registrar prontuários" : ""}
             >
               <Plus className="h-4 w-4 mr-2" />
               Novo Prontuário
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            {/* MedicalRecordForm component would go here */}
-            <div className="p-6 text-center">
-              <p>Formulário de prontuário em desenvolvimento</p>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold">Novo Prontuário</h2>
+                <p className="text-sm text-muted-foreground">
+                  Preencha os dados clínicos do atendimento.
+                </p>
+              </div>
+
+              {!visitId && (
+                <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+                  Selecione uma consulta para registrar o prontuário.
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Tipo de Registro</Label>
+                  <Select
+                    value={form.recordType}
+                    onValueChange={(value) => setForm((prev) => ({ ...prev, recordType: value as RecordType }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ANAMNESIS">Anamnese</SelectItem>
+                      <SelectItem value="EVOLUTION">Evolução</SelectItem>
+                      <SelectItem value="PROCEDURE">Procedimento</SelectItem>
+                      <SelectItem value="DISCHARGE_SUMMARY">Resumo de Alta</SelectItem>
+                      <SelectItem value="OTHER">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Queixa Principal</Label>
+                  <Input
+                    value={form.chiefComplaint}
+                    onChange={(e) => setForm((prev) => ({ ...prev, chiefComplaint: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>História da Doença Atual</Label>
+                <Textarea
+                  value={form.historyOfPresentIllness}
+                  onChange={(e) => setForm((prev) => ({ ...prev, historyOfPresentIllness: e.target.value }))}
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Exame Físico</Label>
+                <Textarea
+                  value={form.physicalExamination}
+                  onChange={(e) => setForm((prev) => ({ ...prev, physicalExamination: e.target.value }))}
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Diagnóstico</Label>
+                  <Input
+                    value={form.diagnosis}
+                    onChange={(e) => setForm((prev) => ({ ...prev, diagnosis: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Conduta / Tratamento</Label>
+                  <Input
+                    value={form.treatment}
+                    onChange={(e) => setForm((prev) => ({ ...prev, treatment: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Notas (obrigatório)</Label>
+                <Textarea
+                  value={form.notes}
+                  onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+                  rows={4}
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsFormOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  disabled={!visitId || submitting || !form.notes.trim()}
+                  onClick={async () => {
+                    if (!visitId) return;
+                    try {
+                      setSubmitting(true);
+                      const payload: MedicalRecordRequest = {
+                        visitId,
+                        recordType: form.recordType,
+                        notes: form.notes,
+                        chiefComplaint: form.chiefComplaint || undefined,
+                        historyOfPresentIllness: form.historyOfPresentIllness || undefined,
+                        physicalExamination: form.physicalExamination || undefined,
+                        diagnosis: form.diagnosis || undefined,
+                        treatment: form.treatment || undefined,
+                      };
+                      await createRecord(payload);
+                      await refetch();
+                      setIsFormOpen(false);
+                      setForm({
+                        recordType: 'EVOLUTION',
+                        notes: '',
+                        chiefComplaint: '',
+                        historyOfPresentIllness: '',
+                        physicalExamination: '',
+                        diagnosis: '',
+                        treatment: '',
+                      });
+                      toast({
+                        title: 'Prontuário registrado',
+                        description: 'Registro criado com sucesso.',
+                      });
+                    } catch (error: any) {
+                      toast({
+                        title: 'Erro ao salvar prontuário',
+                        description: error?.message || 'Não foi possível salvar o prontuário.',
+                        variant: 'destructive',
+                      });
+                    } finally {
+                      setSubmitting(false);
+                    }
+                  }}
+                >
+                  {submitting ? 'Salvando...' : 'Salvar prontuário'}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

@@ -5,32 +5,48 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Patient } from "@/hooks/usePatients";
+import type { PatientFormData } from "@/hooks/usePatients";
 
 interface PatientFormProps {
-  onSubmit: (data: Omit<Patient, 'id' | 'created_at' | 'updated_at' | 'patient_code'>) => Promise<void>;
+  onSubmit: (data: PatientFormData) => Promise<void>;
   loading?: boolean;
-  initialData?: Partial<Patient>;
+  initialData?: Partial<PatientFormData>;
 }
 
 export function PatientForm({ onSubmit, loading = false, initialData }: PatientFormProps) {
   const [formData, setFormData] = useState({
-    first_name: initialData?.first_name || '',
-    last_name: initialData?.last_name || '',
-    date_of_birth: initialData?.date_of_birth || '',
+    firstName: initialData?.firstName || '',
+    lastName: initialData?.lastName || '',
+    dateOfBirth: initialData?.dateOfBirth || '',
     gender: initialData?.gender || '',
+    cpf: initialData?.cpf || '',
+    cns: initialData?.cns || '',
+    rg: initialData?.rg || '',
     phone: initialData?.phone || '',
     email: initialData?.email || '',
     address: initialData?.address || '',
+    addressNumber: initialData?.addressNumber || '',
+    addressComplement: initialData?.addressComplement || '',
+    neighborhood: initialData?.neighborhood || '',
     city: initialData?.city || '',
     state: initialData?.state || '',
-    zip_code: initialData?.zip_code || '',
-    emergency_contact_name: initialData?.emergency_contact_name || '',
-    emergency_contact_phone: initialData?.emergency_contact_phone || '',
-    blood_type: initialData?.blood_type || '',
+    zipCode: initialData?.zipCode || '',
+    emergencyContactName: initialData?.emergencyContactName || '',
+    emergencyContactPhone: initialData?.emergencyContactPhone || '',
+    bloodType: initialData?.bloodType || '',
     allergies: initialData?.allergies || '',
-    medical_history: initialData?.medical_history || '',
+    medicalHistory: initialData?.medicalHistory || '',
     status: initialData?.status || 'active',
+    motherName: initialData?.motherName || '',
+    fatherName: initialData?.fatherName || '',
+    birthCity: initialData?.birthCity || '',
+    birthState: initialData?.birthState || '',
+    birthCountry: initialData?.birthCountry || '',
+    raceColor: initialData?.raceColor || '',
+    maritalStatus: initialData?.maritalStatus || '',
+    educationLevel: initialData?.educationLevel || '',
+    occupation: initialData?.occupation || '',
+    occupationCboCode: initialData?.occupationCboCode || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,7 +59,7 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="w-full max-w-none overflow-hidden">
       <CardHeader>
         <CardTitle>
           {initialData ? 'Editar Paciente' : 'Cadastrar Novo Paciente'}
@@ -57,8 +73,8 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
               <Label htmlFor="first_name">Nome *</Label>
               <Input
                 id="first_name"
-                value={formData.first_name}
-                onChange={(e) => handleChange('first_name', e.target.value)}
+                value={formData.firstName}
+                onChange={(e) => handleChange('firstName', e.target.value)}
                 required
               />
             </div>
@@ -66,8 +82,8 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
               <Label htmlFor="last_name">Sobrenome *</Label>
               <Input
                 id="last_name"
-                value={formData.last_name}
-                onChange={(e) => handleChange('last_name', e.target.value)}
+                value={formData.lastName}
+                onChange={(e) => handleChange('lastName', e.target.value)}
                 required
               />
             </div>
@@ -79,8 +95,8 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
               <Input
                 id="date_of_birth"
                 type="date"
-                value={formData.date_of_birth}
-                onChange={(e) => handleChange('date_of_birth', e.target.value)}
+                value={formData.dateOfBirth}
+                onChange={(e) => handleChange('dateOfBirth', e.target.value)}
                 required
               />
             </div>
@@ -93,9 +109,89 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
                 <SelectContent>
                   <SelectItem value="M">Masculino</SelectItem>
                   <SelectItem value="F">Feminino</SelectItem>
-                  <SelectItem value="Other">Outro</SelectItem>
+                  <SelectItem value="O">Outro</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* Documentos */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cpf">CPF</Label>
+              <Input
+                id="cpf"
+                value={formData.cpf}
+                onChange={(e) => handleChange('cpf', e.target.value)}
+                placeholder="00000000000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cns">CNS</Label>
+              <Input
+                id="cns"
+                value={formData.cns}
+                onChange={(e) => handleChange('cns', e.target.value)}
+                placeholder="Cartão Nacional de Saúde"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rg">RG</Label>
+              <Input
+                id="rg"
+                value={formData.rg}
+                onChange={(e) => handleChange('rg', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Filiação */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="mother_name">Nome da Mãe *</Label>
+              <Input
+                id="mother_name"
+                value={formData.motherName}
+                onChange={(e) => handleChange('motherName', e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="father_name">Nome do Pai</Label>
+              <Input
+                id="father_name"
+                value={formData.fatherName}
+                onChange={(e) => handleChange('fatherName', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Naturalidade */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="birth_city">Cidade de Nascimento</Label>
+              <Input
+                id="birth_city"
+                value={formData.birthCity}
+                onChange={(e) => handleChange('birthCity', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="birth_state">UF Nascimento</Label>
+              <Input
+                id="birth_state"
+                value={formData.birthState}
+                onChange={(e) => handleChange('birthState', e.target.value)}
+                placeholder="UF"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="birth_country">País de Nascimento</Label>
+              <Input
+                id="birth_country"
+                value={formData.birthCountry}
+                onChange={(e) => handleChange('birthCountry', e.target.value)}
+              />
             </div>
           </div>
 
@@ -133,6 +229,33 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
+              <Label htmlFor="address_number">Número</Label>
+              <Input
+                id="address_number"
+                value={formData.addressNumber}
+                onChange={(e) => handleChange('addressNumber', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address_complement">Complemento</Label>
+              <Input
+                id="address_complement"
+                value={formData.addressComplement}
+                onChange={(e) => handleChange('addressComplement', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="neighborhood">Bairro</Label>
+              <Input
+                id="neighborhood"
+                value={formData.neighborhood}
+                onChange={(e) => handleChange('neighborhood', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="city">Cidade</Label>
               <Input
                 id="city"
@@ -152,8 +275,8 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
               <Label htmlFor="zip_code">CEP</Label>
               <Input
                 id="zip_code"
-                value={formData.zip_code}
-                onChange={(e) => handleChange('zip_code', e.target.value)}
+                value={formData.zipCode}
+                onChange={(e) => handleChange('zipCode', e.target.value)}
                 placeholder="12345-678"
               />
             </div>
@@ -165,16 +288,16 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
               <Label htmlFor="emergency_contact_name">Contato de Emergência</Label>
               <Input
                 id="emergency_contact_name"
-                value={formData.emergency_contact_name}
-                onChange={(e) => handleChange('emergency_contact_name', e.target.value)}
+                value={formData.emergencyContactName}
+                onChange={(e) => handleChange('emergencyContactName', e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="emergency_contact_phone">Telefone de Emergência</Label>
               <Input
                 id="emergency_contact_phone"
-                value={formData.emergency_contact_phone}
-                onChange={(e) => handleChange('emergency_contact_phone', e.target.value)}
+                value={formData.emergencyContactPhone}
+                onChange={(e) => handleChange('emergencyContactPhone', e.target.value)}
               />
             </div>
           </div>
@@ -183,7 +306,7 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="blood_type">Tipo Sanguíneo</Label>
-              <Select value={formData.blood_type} onValueChange={(value) => handleChange('blood_type', value)}>
+              <Select value={formData.bloodType} onValueChange={(value) => handleChange('bloodType', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo sanguíneo" />
                 </SelectTrigger>
@@ -225,13 +348,13 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="medical_history">Histórico Médico</Label>
-            <Textarea
-              id="medical_history"
-              value={formData.medical_history}
-              onChange={(e) => handleChange('medical_history', e.target.value)}
-              placeholder="Histórico médico relevante..."
-            />
+              <Label htmlFor="medical_history">Histórico Médico</Label>
+              <Textarea
+                id="medical_history"
+                value={formData.medicalHistory}
+                onChange={(e) => handleChange('medicalHistory', e.target.value)}
+                placeholder="Histórico médico relevante..."
+              />
           </div>
 
           <div className="flex justify-end gap-4">

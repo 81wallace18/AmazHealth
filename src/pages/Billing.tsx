@@ -36,7 +36,7 @@ const statusLabels = {
 
 export default function Billing() {
   const { bills, loading, updateBillStatus } = useBillsManagement();
-  const { can } = useCapabilities();
+  const capabilities = useCapabilities();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -109,8 +109,8 @@ export default function Billing() {
         </div>
         <Button 
           className="bg-primary hover:bg-primary/90"
-          disabled={!can.canManageBilling}
-          title={!can.canManageBilling ? "Você não tem permissão para gerenciar faturamento" : ""}
+          disabled={!capabilities.canManageBilling}
+          title={!capabilities.canManageBilling ? "Você não tem permissão para gerenciar faturamento" : ""}
         >
           <Plus className="h-4 w-4 mr-2" />
           Nova Fatura

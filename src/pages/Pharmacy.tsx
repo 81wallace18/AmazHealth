@@ -110,7 +110,7 @@ const statusColors = {
 };
 
 export default function Pharmacy() {
-  const { can } = useCapabilities();
+  const capabilities = useCapabilities();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -158,8 +158,8 @@ export default function Pharmacy() {
         </div>
         <Button 
           className="bg-primary hover:bg-primary/90"
-          disabled={!can.canManageStock}
-          title={!can.canManageStock ? "Você não tem permissão para gerenciar estoque" : ""}
+          disabled={!capabilities.canManageStock}
+          title={!capabilities.canManageStock ? "Você não tem permissão para gerenciar estoque" : ""}
         >
           <Plus className="h-4 w-4 mr-2" />
           Novo Medicamento
@@ -345,7 +345,7 @@ export default function Pharmacy() {
                           variant="ghost" 
                           size="sm" 
                           title="Movimentar estoque"
-                          disabled={!can.canManageStock}
+                          disabled={!capabilities.canManageStock}
                         >
                           <Package className="h-4 w-4" />
                         </Button>
@@ -353,7 +353,7 @@ export default function Pharmacy() {
                           variant="ghost" 
                           size="sm" 
                           title="Comprar"
-                          disabled={!can.canManageStock}
+                          disabled={!capabilities.canManageStock}
                         >
                           <ShoppingCart className="h-4 w-4" />
                         </Button>

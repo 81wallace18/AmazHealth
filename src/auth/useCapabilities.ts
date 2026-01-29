@@ -1,5 +1,5 @@
 import { useAuth } from '../hooks/useAuth';
-import { getCapabilitiesForRole, UserCapabilities, hasCapability, hasAnyCapability } from './capabilities';
+import { getCapabilitiesForRoles, UserCapabilities, hasCapability, hasAnyCapability } from './capabilities';
 
 /**
  * Hook to get user capabilities based on current role
@@ -9,17 +9,18 @@ export function useCapabilities(): UserCapabilities & {
   can: (capability: keyof UserCapabilities) => boolean;
   canAny: (capabilities: (keyof UserCapabilities)[]) => boolean;
   hasRole: (role: string) => boolean;
+  loading: boolean;
 } {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   
-  // Default to RECEPTIONIST if no role found
-  const userRole = user?.user_metadata?.role || 'RECEPTIONIST';
-  const capabilities = getCapabilitiesForRole(userRole as any);
+  const userRoles = user?.roles ?? [];
+  const capabilities = getCapabilitiesForRoles(userRoles);
   
   return {
     ...capabilities,
     can: (capability: keyof UserCapabilities) => hasCapability(capabilities, capability),
     canAny: (capabilitiesToCheck: (keyof UserCapabilities)[]) => hasAnyCapability(capabilities, capabilitiesToCheck),
-    hasRole: (role: string) => userRole === role,
+    hasRole: (role: string) => userRoles.includes(role.toUpperCase()),
+    loading,
   };
 }

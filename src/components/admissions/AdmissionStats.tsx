@@ -1,19 +1,21 @@
 import { Users, Bed, Calendar, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Admission } from "@/types/admission";
 
 interface AdmissionStatsProps {
-  admissions: any[];
+  admissions: Admission[];
 }
 
 export function AdmissionStats({ admissions }: AdmissionStatsProps) {
   const totalAdmissions = admissions.length;
-  const activeAdmissions = admissions.filter(a => a.status === 'admitted').length;
-  const dischargedToday = admissions.filter(a => 
-    a.status === 'discharged' && 
-    new Date(a.discharge_date).toDateString() === new Date().toDateString()
+  const activeAdmissions = admissions.filter(a => a.admissionStatus === 'ACTIVE' || a.admissionStatus === 'BED_ASSIGNED').length;
+  const dischargedToday = admissions.filter(a =>
+    a.admissionStatus === 'DISCHARGED' &&
+    a.actualDischargeDate &&
+    new Date(a.actualDischargeDate).toDateString() === new Date().toDateString()
   ).length;
-  const admittedToday = admissions.filter(a => 
-    new Date(a.admission_date).toDateString() === new Date().toDateString()
+  const admittedToday = admissions.filter(a =>
+    new Date(a.admissionDate).toDateString() === new Date().toDateString()
   ).length;
 
   const stats = [

@@ -93,17 +93,21 @@ export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel,
                           <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                             Em atendimento
                           </Badge>
-                        ) : (
+                        ) : onStartAttendance ? (
                           <Button
                             variant="default"
                             size="sm"
                             aria-label="Iniciar atendimento"
-                            onClick={() => onStartAttendance?.(patient)}
+                            onClick={() => onStartAttendance(patient)}
                             className="bg-green-600 hover:bg-green-700 text-white"
                           >
                             <UserPlus className="h-4 w-4 mr-1" />
                             Atender
                           </Button>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">
+                            Não atendido
+                          </Badge>
                         )}
                         <Button variant="ghost" size="sm" aria-label="Ver detalhes" onClick={() => onView?.(patient)}>
                           <Eye className="h-4 w-4" />
@@ -120,9 +124,11 @@ export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel,
                         >
                           <Printer className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" aria-label="Excluir" onClick={() => onDelete?.(patient)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {onDelete && (
+                          <Button variant="ghost" size="sm" aria-label="Excluir" onClick={() => onDelete(patient)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
