@@ -6,8 +6,10 @@ export type UserRole =
   | 'GESTAO' 
   | 'DOCTOR' 
   | 'NURSE' 
+  | 'NURSE_MANAGER'
   | 'PHARMACIST' 
   | 'RECEPTIONIST' 
+  | 'HOSPITAL_MANAGER'
   | 'FINANCE';
 
 export interface UserCapabilities {
@@ -243,6 +245,49 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canAccessOperational: false,
     canAccessAdmin: false,
   },
+
+  NURSE_MANAGER: {
+    // Gestão de enfermagem com visão operacional ampliada
+    canListPatients: true,
+    canReadPatients: true,
+    canCreatePatients: false,
+    canUpdatePatients: false,
+    canDeletePatients: false,
+    canListStaff: true,
+    canReadStaff: true,
+    canCreateStaff: false,
+    canUpdateStaff: false,
+    canDeleteStaff: false,
+    canManageRoles: false,
+    canCreateAttendance: false,
+    canReadAttendance: true,
+    canUpdateAttendanceStatus: true,
+    canStartAttendance: false,
+    canRecordEvolution: false,
+    canDefineOutcome: false,
+    canAdmitPatient: false,
+    canCreateTriage: true,
+    canUpdateTriage: true,
+    canReadTriage: true,
+    canViewTriageBoard: true,
+    canCreatePrescription: false,
+    canReadPrescription: true,
+    canUpdatePrescription: false,
+    canCancelPrescription: false,
+    canExportPrescription: false,
+    canManageStock: false,
+    canDispenseMedication: false,
+    canReadPharmacyGlobal: false,
+    canRequestExams: false,
+    canReadExamResults: true,
+    canInputExamResults: false,
+    canAccessFinancial: false,
+    canManageBilling: false,
+    canViewReports: true,
+    canViewKPIs: true,
+    canAccessOperational: true,
+    canAccessAdmin: false,
+  },
   
   PHARMACIST: {
     // Pharmacy management with global read access
@@ -327,6 +372,49 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canViewReports: false,
     canViewKPIs: false,
     canAccessOperational: false,
+    canAccessAdmin: false,
+  },
+
+  HOSPITAL_MANAGER: {
+    // Gestão hospitalar com visão operacional e relatórios
+    canListPatients: true,
+    canReadPatients: true,
+    canCreatePatients: false,
+    canUpdatePatients: false,
+    canDeletePatients: false,
+    canListStaff: true,
+    canReadStaff: true,
+    canCreateStaff: false,
+    canUpdateStaff: false,
+    canDeleteStaff: false,
+    canManageRoles: false,
+    canCreateAttendance: false,
+    canReadAttendance: true,
+    canUpdateAttendanceStatus: true,
+    canStartAttendance: false,
+    canRecordEvolution: false,
+    canDefineOutcome: false,
+    canAdmitPatient: false,
+    canCreateTriage: false,
+    canUpdateTriage: false,
+    canReadTriage: true,
+    canViewTriageBoard: true,
+    canCreatePrescription: false,
+    canReadPrescription: false,
+    canUpdatePrescription: false,
+    canCancelPrescription: false,
+    canExportPrescription: false,
+    canManageStock: false,
+    canDispenseMedication: false,
+    canReadPharmacyGlobal: false,
+    canRequestExams: false,
+    canReadExamResults: false,
+    canInputExamResults: false,
+    canAccessFinancial: false,
+    canManageBilling: false,
+    canViewReports: true,
+    canViewKPIs: true,
+    canAccessOperational: true,
     canAccessAdmin: false,
   },
   
