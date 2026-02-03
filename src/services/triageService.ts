@@ -101,7 +101,7 @@ export const triageService = {
   },
 
   /**
-   * Start medical attendance for a visit (locks and sets IN_ATTENDANCE)
+   * Start medical attendance for a visit (locks and sets IN_PROGRESS)
    * POST /api/v1/triage/visits/{visitId}/start-attendance
    */
   async startAttendance(visitId: string): Promise<void> {

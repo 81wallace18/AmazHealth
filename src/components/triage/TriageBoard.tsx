@@ -78,9 +78,9 @@ export function TriageBoard({
     BLUE: [],
   };
 
-  // Filter only triaged patients (AWAITING_DOCTOR or IN_ATTENDANCE)
+  // Filter only triaged patients (WAITING_DOCTOR or IN_PROGRESS)
   const triagedPatients = patients.filter(
-    (p) => p.triageColor && (p.status === 'AWAITING_DOCTOR' || p.status === 'IN_ATTENDANCE')
+    (p) => p.triageColor && (p.status === 'WAITING_DOCTOR' || p.status === 'IN_PROGRESS')
   );
 
   triagedPatients.forEach((patient) => {
@@ -158,7 +158,7 @@ export function TriageBoard({
                           className={`p-4 rounded-xl border shadow-sm ${
                             exceeded
                               ? 'bg-red-50 border-red-300'
-                              : patient.status === 'IN_ATTENDANCE'
+                              : patient.status === 'IN_PROGRESS'
                               ? 'bg-blue-50 border-blue-200'
                               : 'bg-white border-gray-200'
                           }`}
@@ -180,7 +180,7 @@ export function TriageBoard({
 
                       {/* Status Badge */}
                       <div className="mt-2">
-                        {patient.status === 'IN_ATTENDANCE' ? (
+                        {patient.status === 'IN_PROGRESS' ? (
                           <Badge variant="default" className="text-xs">
                             Em Atendimento
                           </Badge>
@@ -207,7 +207,7 @@ export function TriageBoard({
                         </p>
                       )}
 
-                      {patient.status === 'AWAITING_DOCTOR' && (
+                      {patient.status === 'WAITING_DOCTOR' && (
                         <div className="mt-3 flex flex-col gap-2">
                           {onAssignSector && canAssignSector && (
                             <Button

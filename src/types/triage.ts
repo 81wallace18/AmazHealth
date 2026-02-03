@@ -8,11 +8,15 @@ export type ManchesterColor = 'BLUE' | 'GREEN' | 'YELLOW' | 'ORANGE' | 'RED';
 
 // Visit Status
 export type VisitStatus =
-  | 'AWAITING_TRIAGE'      // Aguardando triagem
-  | 'AWAITING_DOCTOR'      // Aguardando médico
-  | 'IN_ATTENDANCE'        // Em atendimento
-  | 'AWAITING_EXAM'        // Aguardando exame
-  | 'COMPLETED'            // Finalizado
+  | 'CREATED'              // Atendimento criado
+  | 'TRIAGED'              // Triagem concluída
+  | 'WAITING_DOCTOR'       // Aguardando médico
+  | 'IN_PROGRESS'          // Em atendimento médico
+  | 'WAITING_EXAM'         // Aguardando exame
+  | 'EXAM_COMPLETED'       // Exame concluído
+  | 'DISCHARGED'           // Alta
+  | 'ADMITTED'             // Internação
+  | 'TRANSFERRED'          // Transferido
   | 'CANCELLED';           // Cancelado
 
 /**

@@ -61,9 +61,9 @@ function mapBoardToConsultation(item: TriageBoardItem): Consultation {
   const [firstName, ...rest] = (item.patientName || '').trim().split(' ');
   const lastName = rest.join(' ');
 
-  const status = item.status === 'IN_ATTENDANCE'
+  const status = item.status === 'IN_PROGRESS'
     ? 'in_progress'
-    : item.status === 'AWAITING_DOCTOR' || item.status === 'AWAITING_TRIAGE'
+    : item.status === 'WAITING_DOCTOR' || item.status === 'CREATED'
     ? 'scheduled'
     : item.status === 'CANCELLED'
     ? 'cancelled'

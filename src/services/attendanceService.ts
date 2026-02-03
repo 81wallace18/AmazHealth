@@ -9,9 +9,6 @@ export interface CreateAttendanceDTO {
 }
 
 export type VisitStatus =
-  | 'AWAITING_TRIAGE'
-  | 'AWAITING_DOCTOR'
-  | 'IN_ATTENDANCE'
   | 'CREATED'
   | 'TRIAGED'
   | 'WAITING_DOCTOR'
@@ -21,8 +18,6 @@ export type VisitStatus =
   | 'DISCHARGED'
   | 'ADMITTED'
   | 'TRANSFERRED'
-  | 'OPEN'
-  | 'CLOSED'
   | 'CANCELLED';
 
 export interface Attendance {

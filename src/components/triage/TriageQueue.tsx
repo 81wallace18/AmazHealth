@@ -1,6 +1,6 @@
 /**
  * TriageQueue Component - Épico B
- * Displays patients awaiting triage (status = AWAITING_TRIAGE)
+ * Displays patients awaiting triage (status = CREATED)
  *
  * Requirements:
  * - Show patients waiting for triage
@@ -22,7 +22,7 @@ interface TriageQueueProps {
 export function TriageQueue({ patients, onStartTriage }: TriageQueueProps) {
   // Filter only patients awaiting triage and order by longest waiting time
   const waitingPatients = patients
-    .filter((p) => p.status === 'AWAITING_TRIAGE')
+    .filter((p) => p.status === 'CREATED')
     .sort((a, b) => b.waitingTimeMinutes - a.waitingTimeMinutes);
 
   if (waitingPatients.length === 0) {
