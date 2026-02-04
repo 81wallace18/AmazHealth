@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useMedicalRecords } from "@/hooks/useMedicalRecords";
 import { useCapabilities } from "@/auth/useCapabilities";
+import { useAuth } from "@/hooks/useAuth";
 import { PrescriptionForm } from "@/components/prescriptions/PrescriptionForm";
 import { PrescriptionList } from "@/components/prescriptions/PrescriptionList";
 import { AttendanceOutcomeForm } from "@/components/medical-records/AttendanceOutcomeForm";
@@ -55,6 +56,7 @@ const attendanceStatusLabels: Record<AttendanceVisitStatus, string> = {
 export default function MedicalRecords() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const visitId = searchParams.get('visitId') || undefined;
   const isWorkspace = Boolean(visitId);
   const { records, loading, createRecord, refetch } = useMedicalRecords({ visitId });
@@ -63,6 +65,14 @@ export default function MedicalRecords() {
   const [attendance, setAttendance] = useState<Attendance | null>(null);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceError, setAttendanceError] = useState<string | null>(null);
+  const [doctorQueueLoading, setDoctorQueueLoading] = useState(false);
+  const [doctorQueue, setDoctorQueue] = useState<Array<{
+    visitId: string;
+    visitCode: string;
+    patientName: string;
+    patientCode: string;
+    status: AttendanceVisitStatus;
+  }>>([]);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [prescriptionVersion, setPrescriptionVersion] = useState(0);
   const [isPrescriptionOpen, setIsPrescriptionOpen] = useState(false);
@@ -128,6 +138,80 @@ export default function MedicalRecords() {
       cancelled = true;
     };
   }, [visitId]);
+
+  useEffect(() => {
+    const isDoctor = user?.roles?.includes("DOCTOR");
+    if (visitId || !isDoctor || !user?.staffId) {
+      setDoctorQueue([]);
+      return;
+    }
+
+    let cancelled = false;
+    const loadDoctorQueue = async () => {
+      setDoctorQueueLoading(true);
+      try {
+        const [waitingDoctor, inProgress] = await Promise.all([
+          attendanceService.findByStatus("WAITING_DOCTOR"),
+          attendanceService.findByStatus("IN_PROGRESS"),
+        ]);
+
+        const queue = [...waitingDoctor, ...inProgress]
+          .filter((item) => item.doctorId === user.staffId)
+          .sort((a, b) => {
+            const rank = (status: AttendanceVisitStatus) =>
+              status === "WAITING_DOCTOR" ? 0 : status === "IN_PROGRESS" ? 1 : 99;
+            const statusDiff = rank(a.status) - rank(b.status);
+            if (statusDiff !== 0) return statusDiff;
+            return new Date(a.visitDate).getTime() - new Date(b.visitDate).getTime();
+          });
+
+        const uniquePatientIds = Array.from(new Set(queue.map((item) => item.patientId)));
+        const patientLookup = new Map<string, { name: string; code: string }>();
+
+        await Promise.all(
+          uniquePatientIds.map(async (patientId) => {
+            try {
+              const loadedPatient = await patientService.getById(patientId);
+              patientLookup.set(patientId, {
+                name: `${loadedPatient.firstName} ${loadedPatient.lastName}`.trim(),
+                code: loadedPatient.patientCode ?? "-",
+              });
+            } catch {
+              patientLookup.set(patientId, {
+                name: "Paciente não encontrado",
+                code: "-",
+              });
+            }
+          })
+        );
+
+        if (cancelled) return;
+        setDoctorQueue(
+          queue.map((item) => ({
+            visitId: item.id,
+            visitCode: item.visitCode,
+            patientName: patientLookup.get(item.patientId)?.name ?? "Paciente",
+            patientCode: patientLookup.get(item.patientId)?.code ?? "-",
+            status: item.status,
+          }))
+        );
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Erro ao carregar fila do médico:", error);
+          setDoctorQueue([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setDoctorQueueLoading(false);
+        }
+      }
+    };
+
+    void loadDoctorQueue();
+    return () => {
+      cancelled = true;
+    };
+  }, [visitId, user?.roles, user?.staffId]);
 
   const filteredRecords = records.filter(record => {
     const patientName = record.patient ? `${record.patient.first_name} ${record.patient.last_name}` : '';
@@ -409,6 +493,64 @@ export default function MedicalRecords() {
           </CardContent>
         </Card>
       </div>
+
+      {!isWorkspace && user?.roles?.includes("DOCTOR") && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Fila do Médico</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {doctorQueueLoading ? (
+              <p className="text-sm text-muted-foreground">Carregando atendimentos...</p>
+            ) : doctorQueue.length === 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Nenhum atendimento do seu usuário está aguardando ou em andamento.
+                </p>
+                <Button variant="outline" onClick={() => navigate("/triage")}>
+                  Ir para Triagem
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Código Paciente</TableHead>
+                      <TableHead>Atendimento</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Ação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {doctorQueue.map((item) => (
+                      <TableRow key={item.visitId}>
+                        <TableCell className="font-medium">{item.patientName}</TableCell>
+                        <TableCell className="font-mono text-xs">{item.patientCode}</TableCell>
+                        <TableCell className="font-mono text-xs">{item.visitCode}</TableCell>
+                        <TableCell>
+                          <Badge variant={item.status === "IN_PROGRESS" ? "default" : "secondary"}>
+                            {attendanceStatusLabels[item.status]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            onClick={() => navigate(`/medical-records?visitId=${item.visitId}`)}
+                          >
+                            Abrir atendimento
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="list" className="space-y-4">
         <TabsList>

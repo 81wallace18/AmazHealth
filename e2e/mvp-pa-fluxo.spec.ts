@@ -209,6 +209,7 @@ test.describe('MVP - Fluxo Feliz #1 (PA Completo) via UI', () => {
     const patientFullName = `${patient.firstName} ${patient.lastName}`;
 
     let visitId = '';
+    let prescriptionCode = '';
 
     await test.step('1) Recepcao: cadastrar paciente + criar atendimento', async () => {
       const auth = await loginViaApi(CREDS.recepcao.login, CREDS.recepcao.password);
@@ -414,7 +415,22 @@ test.describe('MVP - Fluxo Feliz #1 (PA Completo) via UI', () => {
       await prescriptionDialog.getByPlaceholder('Ex: 8/8h').fill('8/8h');
       await prescriptionDialog.getByPlaceholder('Ex: 7 dias').fill('1 dia');
 
+      const createPrescriptionResponse = page.waitForResponse((res) => {
+        return (
+          res.request().method() === 'POST' &&
+          /\/api\/v1\/prescriptions$/.test(res.url())
+        );
+      });
       await prescriptionDialog.getByRole('button', { name: 'Salvar prescrição' }).click();
+      const prescriptionRes = await createPrescriptionResponse;
+      if (!prescriptionRes.ok()) {
+        const body = await prescriptionRes.text().catch(() => '');
+        throw new Error(`Falha ao criar prescrição (HTTP ${prescriptionRes.status()}): ${body}`);
+      }
+      const createdPrescription = (await prescriptionRes.json().catch(() => null)) as
+        | { prescriptionCode?: string }
+        | null;
+      prescriptionCode = createdPrescription?.prescriptionCode ?? '';
       await expect(prescriptionDialog).toBeHidden({ timeout: 60_000 });
 
       await context.close();
@@ -429,9 +445,11 @@ test.describe('MVP - Fluxo Feliz #1 (PA Completo) via UI', () => {
       await expect(page.getByRole('heading', { name: 'Farmácia', exact: true })).toBeVisible();
 
       // Aguarda a prescrição aparecer na fila (pode levar alguns segundos).
-      await waitForText(page, patientFullName, 90_000);
+      // Prioriza prescriptionCode para reduzir flakiness quando nome do paciente demora a aparecer.
+      const queueLookup = prescriptionCode || patientFullName;
+      await waitForText(page, queueLookup, 90_000);
 
-      const row = page.getByRole('row', { name: new RegExp(patientFullName, 'i') });
+      const row = page.getByRole('row', { name: new RegExp(queueLookup, 'i') });
       await expect(row).toBeVisible();
       await row.getByRole('button', { name: /Aprovar & Dispensar/i }).click();
 
@@ -442,7 +460,7 @@ test.describe('MVP - Fluxo Feliz #1 (PA Completo) via UI', () => {
       await expect(dispenseDialog).toBeHidden({ timeout: 60_000 });
 
       // Com filtro ACTIVE, a prescrição deve sumir da fila após dispensação.
-      await expect(page.getByText(patientFullName)).toBeHidden({ timeout: 60_000 });
+      await expect(page.getByText(queueLookup)).toBeHidden({ timeout: 60_000 });
 
       await context.close();
     });

@@ -5,8 +5,16 @@ import { toast } from 'sonner';
  * Cliente API base usando Axios.
  * Configurado para conectar ao backend Spring Boot.
  */
+const resolvedBaseURL = (() => {
+  const fromEnv = import.meta.env.VITE_API_URL;
+  // Em builds de produção, o fallback seguro é relativo (ex.: /api/v1),
+  // evitando apontar para "localhost" do usuário.
+  const fallback = import.meta.env.PROD ? '/api/v1' : 'http://localhost:8080/api/v1';
+  return String(fromEnv || fallback).replace(/\/+$/, '');
+})();
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1',
+  baseURL: resolvedBaseURL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -56,7 +64,7 @@ api.interceptors.response.use(
         }
 
         const response = await axios.post(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'}/auth/refresh`,
+          `${resolvedBaseURL}/auth/refresh`,
           { refreshToken }
         );
 

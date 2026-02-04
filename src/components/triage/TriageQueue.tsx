@@ -17,9 +17,10 @@ import { Clock, User, ClipboardList, MapPin } from 'lucide-react';
 interface TriageQueueProps {
   patients: TriageBoardItem[];
   onStartTriage: (visitId: string, patientName: string) => void;
+  canStartTriage?: boolean;
 }
 
-export function TriageQueue({ patients, onStartTriage }: TriageQueueProps) {
+export function TriageQueue({ patients, onStartTriage, canStartTriage = true }: TriageQueueProps) {
   // Filter only patients awaiting triage and order by longest waiting time
   const waitingPatients = patients
     .filter((p) => p.status === 'CREATED')
@@ -93,13 +94,19 @@ export function TriageQueue({ patients, onStartTriage }: TriageQueueProps) {
                 </div>
 
                 {/* Start Triage Button */}
-                <Button
-                  onClick={() => onStartTriage(patient.visitId, patient.patientName)}
-                  size="sm"
-                  className="whitespace-nowrap"
-                >
-                  Iniciar Triagem
-                </Button>
+                {canStartTriage ? (
+                  <Button
+                    onClick={() => onStartTriage(patient.visitId, patient.patientName)}
+                    size="sm"
+                    className="whitespace-nowrap"
+                  >
+                    Iniciar Triagem
+                  </Button>
+                ) : (
+                  <Badge variant="outline" className="whitespace-nowrap">
+                    Apenas enfermagem
+                  </Badge>
+                )}
               </div>
               {patient.areaName && (
                 <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">

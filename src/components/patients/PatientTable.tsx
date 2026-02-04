@@ -91,7 +91,7 @@ export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel,
                       <div className="flex items-center gap-1">
                         {patient.hasActiveAttendance ? (
                           <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                            Em atendimento
+                            Atendimento ativo
                           </Badge>
                         ) : onStartAttendance ? (
                           <Button

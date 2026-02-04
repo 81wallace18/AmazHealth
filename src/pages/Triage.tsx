@@ -303,7 +303,11 @@ export default function Triage() {
       )}
 
       {/* Triage Queue - Patients awaiting triage */}
-      <TriageQueue patients={patients} onStartTriage={handleStartTriage} />
+      <TriageQueue
+        patients={patients}
+        onStartTriage={handleStartTriage}
+        canStartTriage={user?.roles?.includes('NURSE') || user?.roles?.includes('ADMIN')}
+      />
 
       {/* Triage Board - 5 Manchester columns */}
       <TriageBoard
