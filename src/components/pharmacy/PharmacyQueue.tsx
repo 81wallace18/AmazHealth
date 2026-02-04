@@ -15,6 +15,7 @@ import type { Prescription, PrescriptionStatus } from "@/types/prescription";
 import { useToast } from "@/hooks/use-toast";
 import { DispensationForm } from "./DispensationForm";
 import { Label } from "@/components/ui/label";
+import { useCapabilities } from "@/auth/useCapabilities";
 
 const statusLabels: Record<PrescriptionStatus, string> = {
   DRAFT: "Rascunho",
@@ -30,6 +31,7 @@ interface PharmacyQueueProps {
 }
 
 export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
+  const capabilities = useCapabilities();
   const [statusFilter, setStatusFilter] = useState<PrescriptionStatus | "ALL">("ACTIVE");
   const [pending, setPending] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,12 +70,28 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
   };
 
   const handleOpenDispense = (prescription: Prescription) => {
+    if (!capabilities.canDispenseMedication) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para dispensar prescrições.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSelected(prescription);
     setShowDispense(true);
   };
 
   const handleRefuse = async () => {
     if (!selected) return;
+    if (!capabilities.canDispenseMedication) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para validar/recusar prescrições.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!refuseReason || refuseReason.trim().length < 5) {
       toast({
         title: "Informe o motivo",
@@ -196,7 +214,13 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
                         <Eye className="mr-2 h-4 w-4" />
                         Detalhes
                       </Button>
-                      <Button variant="default" size="sm" onClick={() => handleOpenDispense(prescription)}>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleOpenDispense(prescription)}
+                        disabled={!capabilities.canDispenseMedication}
+                        title={!capabilities.canDispenseMedication ? "Você não tem permissão para dispensar" : ""}
+                      >
                         <CheckCircle2 className="mr-2 h-4 w-4" />
                         Aprovar &amp; Dispensar
                       </Button>
@@ -257,13 +281,20 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
                   onClick={() => {
                     if (!selected) return;
                     setShowDetails(false);
-                    setShowDispense(true);
+                    handleOpenDispense(selected);
                   }}
+                  disabled={!capabilities.canDispenseMedication}
+                  title={!capabilities.canDispenseMedication ? "Você não tem permissão para dispensar" : ""}
                 >
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                   Aprovar &amp; Dispensar
                 </Button>
-                <Button variant="destructive" onClick={handleRefuse} disabled={refusing}>
+                <Button
+                  variant="destructive"
+                  onClick={handleRefuse}
+                  disabled={refusing || !capabilities.canDispenseMedication}
+                  title={!capabilities.canDispenseMedication ? "Você não tem permissão para recusar" : ""}
+                >
                   {refusing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
                   Recusar prescrição
                 </Button>
@@ -274,7 +305,7 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
       </Dialog>
 
       <DispensationForm
-        open={showDispense}
+        open={capabilities.canDispenseMedication && showDispense}
         prescription={selected}
         onClose={() => setShowDispense(false)}
         onSuccess={async () => {

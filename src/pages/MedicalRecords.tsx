@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { FileText, Plus, Search, User, Calendar, Eye, Download, Edit, AlertTriangle, Heart, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useMedicalRecords } from "@/hooks/useMedicalRecords";
 import { useCapabilities } from "@/auth/useCapabilities";
+import { PrescriptionForm } from "@/components/prescriptions/PrescriptionForm";
+import { PrescriptionList } from "@/components/prescriptions/PrescriptionList";
+import { AttendanceOutcomeForm } from "@/components/medical-records/AttendanceOutcomeForm";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import type { MedicalRecordRequest, RecordType } from "@/types/medicalRecord";
+import type { Patient } from "@/types/patient";
+import attendanceService, { type Attendance, type VisitStatus as AttendanceVisitStatus } from "@/services/attendanceService";
+import { patientService } from "@/services/patientService";
 import { useToast } from "@/hooks/use-toast";
 
 const statusColors = {
@@ -33,12 +39,34 @@ const statusLabels = {
   "discharge": "Alta"
 };
 
+const attendanceStatusLabels: Record<AttendanceVisitStatus, string> = {
+  CREATED: "Criado",
+  TRIAGED: "Triado",
+  WAITING_DOCTOR: "Aguardando médico",
+  IN_PROGRESS: "Em atendimento",
+  WAITING_EXAM: "Aguardando exame",
+  EXAM_COMPLETED: "Exame concluído",
+  DISCHARGED: "Alta",
+  ADMITTED: "Internado",
+  TRANSFERRED: "Transferido",
+  CANCELLED: "Cancelado",
+};
+
 export default function MedicalRecords() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const visitId = searchParams.get('visitId') || undefined;
+  const isWorkspace = Boolean(visitId);
   const { records, loading, createRecord, refetch } = useMedicalRecords({ visitId });
   const capabilities = useCapabilities();
   const { toast } = useToast();
+  const [attendance, setAttendance] = useState<Attendance | null>(null);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [attendanceError, setAttendanceError] = useState<string | null>(null);
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [prescriptionVersion, setPrescriptionVersion] = useState(0);
+  const [isPrescriptionOpen, setIsPrescriptionOpen] = useState(false);
+  const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -58,6 +86,48 @@ export default function MedicalRecords() {
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute('content', 'Gestão de prontuários médicos: registros, consultas e histórico médico');
   }, []);
+
+  useEffect(() => {
+    if (!visitId) {
+      setAttendance(null);
+      setPatient(null);
+      setAttendanceError(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadContext = async () => {
+      setAttendanceLoading(true);
+      setAttendanceError(null);
+      try {
+        const nextAttendance = await attendanceService.findByVisitId(visitId);
+        if (!nextAttendance) {
+          throw new Error("Atendimento não encontrado.");
+        }
+        if (cancelled) return;
+        setAttendance(nextAttendance);
+
+        try {
+          const nextPatient = await patientService.getById(nextAttendance.patientId);
+          if (!cancelled) setPatient(nextPatient);
+        } catch (err) {
+          // Não bloqueia o fluxo do atendimento; só degrada o header.
+          console.error("Erro ao carregar paciente do atendimento:", err);
+        }
+      } catch (err: any) {
+        const message = err?.message || "Não foi possível carregar o atendimento.";
+        if (!cancelled) setAttendanceError(message);
+      } finally {
+        if (!cancelled) setAttendanceLoading(false);
+      }
+    };
+
+    void loadContext();
+    return () => {
+      cancelled = true;
+    };
+  }, [visitId]);
 
   const filteredRecords = records.filter(record => {
     const patientName = record.patient ? `${record.patient.first_name} ${record.patient.last_name}` : '';
@@ -91,6 +161,10 @@ export default function MedicalRecords() {
   };
 
   const uniqueTypes = [...new Set(records.map(r => r.record_type))];
+  const workspacePatientName = patient ? `${patient.firstName} ${patient.lastName}`.trim() : undefined;
+  const workspacePatientCode = patient?.patientCode;
+  const workspaceAttendanceCode = attendance?.visitCode;
+  const workspaceStatusLabel = attendance?.status ? attendanceStatusLabels[attendance.status] : undefined;
 
   if (loading) {
     return (
@@ -106,9 +180,31 @@ export default function MedicalRecords() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Prontuários Médicos</h1>
-          <p className="text-muted-foreground">Gestão completa de registros médicos dos pacientes</p>
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-foreground">
+            {isWorkspace ? "Atendimento" : "Prontuários Médicos"}
+          </h1>
+          {isWorkspace ? (
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>
+                {workspacePatientName ? `Paciente: ${workspacePatientName}` : "Atendimento selecionado"}
+                {workspacePatientCode ? ` · Código: ${workspacePatientCode}` : ""}
+                {workspaceAttendanceCode ? ` · Atendimento: ${workspaceAttendanceCode}` : visitId ? ` · ID: ${visitId}` : ""}
+                {workspaceStatusLabel ? ` · Status: ${workspaceStatusLabel}` : ""}
+              </p>
+              {attendance?.chiefComplaint && (
+                <p>Queixa: {attendance.chiefComplaint}</p>
+              )}
+              {attendanceLoading && (
+                <p>Carregando contexto do atendimento...</p>
+              )}
+              {attendanceError && (
+                <p className="text-destructive">{attendanceError}</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">Gestão completa de registros médicos dos pacientes</p>
+          )}
         </div>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
@@ -316,8 +412,10 @@ export default function MedicalRecords() {
 
       <Tabs defaultValue="list" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="list">Lista de Prontuários</TabsTrigger>
-          <TabsTrigger value="analytics">Relatórios</TabsTrigger>
+          <TabsTrigger value="list">{isWorkspace ? "Prontuário" : "Lista de Prontuários"}</TabsTrigger>
+          {isWorkspace && <TabsTrigger value="prescriptions">Prescrições</TabsTrigger>}
+          {isWorkspace && <TabsTrigger value="finalize">Finalizar</TabsTrigger>}
+          {!isWorkspace && <TabsTrigger value="analytics">Relatórios</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="list" className="space-y-4">
@@ -446,83 +544,175 @@ export default function MedicalRecords() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="analytics">
-          <Card>
-            <CardHeader>
-              <CardTitle>Relatórios e Estatísticas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Distribuição por Tipo</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {uniqueTypes.map(type => {
-                        const count = records.filter(r => r.record_type === type).length;
-                        const percentage = records.length > 0 ? ((count / records.length) * 100).toFixed(1) : '0';
-                        return (
-                          <div key={type} className="flex justify-between items-center">
-                            <span className="text-sm">{statusLabels[type as keyof typeof statusLabels]}</span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{count}</span>
-                              <span className="text-xs text-muted-foreground">({percentage}%)</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Estatísticas Mensais</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Total de registros</span>
-                        <span className="text-sm font-medium">{records.length}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Registros hoje</span>
-                        <span className="text-sm font-medium">{stats.atualizadosHoje}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Média diária</span>
-                        <span className="text-sm font-medium">{(records.length / 30).toFixed(1)}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Ações Rápidas</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <Button variant="outline" className="w-full justify-start">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Novo Prontuário
-                      </Button>
-                      <Button variant="outline" className="w-full justify-start">
-                        <Download className="h-4 w-4 mr-2" />
-                        Exportar Dados
-                      </Button>
-                      <Button variant="outline" className="w-full justify-start">
-                        <FileText className="h-4 w-4 mr-2" />
-                        Relatório Mensal
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+        {isWorkspace && (
+          <TabsContent value="prescriptions" className="space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">Prescrições</h2>
+                <p className="text-sm text-muted-foreground">
+                  Crie e acompanhe prescrições vinculadas ao paciente do atendimento.
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              <Button
+                className="bg-primary hover:bg-primary/90"
+                onClick={() => setIsPrescriptionOpen(true)}
+                disabled={!capabilities.canCreatePrescription || !attendance}
+                title={
+                  !capabilities.canCreatePrescription
+                    ? "Você não tem permissão para criar prescrições"
+                    : !attendance
+                    ? "Carregue o atendimento para continuar"
+                    : ""
+                }
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Prescrição
+              </Button>
+            </div>
+
+            {attendanceLoading ? (
+              <div className="text-sm text-muted-foreground">Carregando atendimento...</div>
+            ) : attendanceError ? (
+              <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                {attendanceError}
+              </div>
+            ) : !attendance ? (
+              <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+                Nenhum atendimento carregado. Volte para a triagem e selecione um atendimento.
+              </div>
+            ) : (
+              <>
+                <PrescriptionList patientId={attendance.patientId} version={prescriptionVersion} />
+                <PrescriptionForm
+                  open={isPrescriptionOpen}
+                  onOpenChange={setIsPrescriptionOpen}
+                  patientId={attendance.patientId}
+                  patientName={workspacePatientName}
+                  visitId={visitId}
+                  attendanceId={visitId}
+                  defaultDoctorId={attendance.doctorId}
+                  onSuccess={() => setPrescriptionVersion((prev) => prev + 1)}
+                />
+              </>
+            )}
+          </TabsContent>
+        )}
+
+        {isWorkspace && (
+          <TabsContent value="finalize" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Finalização do atendimento</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Registre o desfecho do atendimento (ex.: Alta). Esta ação altera o status do atendimento.
+                </p>
+                <Button
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={() => setIsFinalizeOpen(true)}
+                  disabled={!capabilities.canDefineOutcome || !visitId}
+                  title={!capabilities.canDefineOutcome ? "Você não tem permissão para finalizar atendimentos" : ""}
+                >
+                  Finalizar atendimento
+                </Button>
+              </CardContent>
+            </Card>
+
+            {visitId && (
+              <AttendanceOutcomeForm
+                open={isFinalizeOpen}
+                onOpenChange={setIsFinalizeOpen}
+                attendanceId={visitId}
+                patientName={workspacePatientName}
+                attendanceNumber={workspaceAttendanceCode}
+                onSuccess={() => {
+                  navigate("/triage");
+                }}
+              />
+            )}
+          </TabsContent>
+        )}
+
+        {!isWorkspace && (
+          <TabsContent value="analytics">
+            <Card>
+              <CardHeader>
+                <CardTitle>Relatórios e Estatísticas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Distribuição por Tipo</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {uniqueTypes.map(type => {
+                          const count = records.filter(r => r.record_type === type).length;
+                          const percentage = records.length > 0 ? ((count / records.length) * 100).toFixed(1) : '0';
+                          return (
+                            <div key={type} className="flex justify-between items-center">
+                              <span className="text-sm">{statusLabels[type as keyof typeof statusLabels]}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">{count}</span>
+                                <span className="text-xs text-muted-foreground">({percentage}%)</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Estatísticas Mensais</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Total de registros</span>
+                          <span className="text-sm font-medium">{records.length}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Registros hoje</span>
+                          <span className="text-sm font-medium">{stats.atualizadosHoje}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Média diária</span>
+                          <span className="text-sm font-medium">{(records.length / 30).toFixed(1)}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Ações Rápidas</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <Button variant="outline" className="w-full justify-start">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Novo Prontuário
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start">
+                          <Download className="h-4 w-4 mr-2" />
+                          Exportar Dados
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start">
+                          <FileText className="h-4 w-4 mr-2" />
+                          Relatório Mensal
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

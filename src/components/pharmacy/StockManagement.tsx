@@ -19,11 +19,13 @@ import { pharmacyService } from "@/services/pharmacyService";
 import type { Medicine, MedicineRequest, MedicineStock } from "@/types/pharmacy";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useCapabilities } from "@/auth/useCapabilities";
 import { Loader2, PlusCircle, Pencil } from "lucide-react";
 
 type StockView = "AVAILABLE" | "NEAR" | "LOW" | "EXPIRED";
 
 export function StockManagement() {
+  const capabilities = useCapabilities();
   const [view, setView] = useState<StockView>("AVAILABLE");
   const [stocks, setStocks] = useState<MedicineStock[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -80,6 +82,15 @@ export function StockManagement() {
   }, []);
 
   const openEditMedicine = async (medicineId: string) => {
+    if (!capabilities.canManageStock) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para editar medicamentos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoadingMedicineDetails(true);
     try {
       let medicine = medicines.find((item) => item.id === medicineId);
@@ -133,6 +144,14 @@ export function StockManagement() {
     if (!medicineForm || !editingMedicineId) {
       return;
     }
+    if (!capabilities.canManageStock) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para salvar alterações de medicamentos.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSavingMedicine(true);
     try {
@@ -161,6 +180,15 @@ export function StockManagement() {
         title: "Campos obrigatórios",
         description: "Selecione o medicamento, lote, validade e quantidade.",
         variant: "destructive"
+      });
+      return;
+    }
+
+    if (!capabilities.canManageStock) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para registrar entrada de estoque.",
+        variant: "destructive",
       });
       return;
     }
@@ -201,7 +229,11 @@ export function StockManagement() {
           <CardTitle>Gestão de Estoque</CardTitle>
           <p className="text-sm text-muted-foreground">Controle de lotes, validade e quantidade.</p>
         </div>
-        <Button onClick={() => setShowAddStock(true)}>
+        <Button
+          onClick={() => setShowAddStock(true)}
+          disabled={!capabilities.canManageStock}
+          title={!capabilities.canManageStock ? "Você não tem permissão para gerenciar estoque" : ""}
+        >
           <PlusCircle className="mr-2 h-4 w-4" />
           Adicionar ao estoque
         </Button>
@@ -318,7 +350,7 @@ export function StockManagement() {
             <Button variant="outline" onClick={() => setShowAddStock(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleAddStock}>
+            <Button onClick={handleAddStock} disabled={!capabilities.canManageStock}>
               Salvar entrada
             </Button>
           </DialogFooter>
@@ -453,7 +485,10 @@ export function StockManagement() {
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveMedicine} disabled={savingMedicine || !medicineForm}>
+            <Button
+              onClick={handleSaveMedicine}
+              disabled={savingMedicine || !medicineForm || !capabilities.canManageStock}
+            >
               {savingMedicine && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar alterações
             </Button>

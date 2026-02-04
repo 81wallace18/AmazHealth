@@ -323,7 +323,7 @@ export default function Triage() {
                 title: 'Atendimento iniciado',
                 description: `${patientName} está em atendimento.`,
               });
-              navigate('/consultations');
+              navigate(`/medical-records?visitId=${visitId}`);
             } catch (err: any) {
               toast({
                 title: 'Não foi possível iniciar atendimento',

@@ -89,7 +89,7 @@ const App = () => (
             <Route index element={<Dashboard />} />
             <Route path="hospital" element={<Hospital />} />
             <Route path="consultations" element={
-              <RequireCapability capability="canReadAttendance">
+              <RequireCapability capability="canViewTriageBoard">
                 <Consultations />
               </RequireCapability>
             } />

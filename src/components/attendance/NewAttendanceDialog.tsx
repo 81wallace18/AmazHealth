@@ -86,6 +86,12 @@ export function NewAttendanceDialog({
         setLoadingDoctors(true);
         const data = await staffService.findActiveDoctors();
         setDoctors(data);
+        if (!form.getValues("doctorId") && data.length > 0) {
+          const preferred =
+            data.find((doctor) => (doctor.email || "").toLowerCase() === "medico@hospital.com") ??
+            data[0];
+          form.setValue("doctorId", preferred.id, { shouldValidate: true });
+        }
       } catch (error) {
         console.error("Erro ao carregar médicos:", error);
       } finally {
