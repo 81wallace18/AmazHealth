@@ -18,7 +18,7 @@ export default function Pharmacy() {
         </p>
       </div>
 
-      {!capabilities.canManageStock && (
+      {!capabilities.canDispenseMedication && (
         <Alert>
           <AlertDescription>
             Seu perfil está em modo de leitura. Ações de estoque e dispensação podem ficar bloqueadas.
@@ -53,4 +53,3 @@ export default function Pharmacy() {
     </div>
   );
 }
-
