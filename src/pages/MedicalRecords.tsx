@@ -660,7 +660,7 @@ export default function MedicalRecords() {
                           <TableCell>
                             <div className="flex items-center gap-1 text-sm">
                               <Calendar className="h-3 w-3" />
-                              {formatDate(record.record_date)}
+                              {formatDate(record.created_at)}
                             </div>
                           </TableCell>
                           <TableCell>

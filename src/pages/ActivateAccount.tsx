@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/hooks/useAuth';
 import { authService } from '@/services/authService';
+import type { ActivateAccountRequest } from '@/services/authService';
 import { toast } from 'sonner';
 
 const activateSchema = z
@@ -22,7 +23,7 @@ const activateSchema = z
     path: ['confirmPassword'],
   });
 
-type ActivateFormValues = z.infer<typeof activateSchema>;
+type ActivateFormValues = ActivateAccountRequest;
 
 export default function ActivateAccount() {
   const location = useLocation();
@@ -139,4 +140,3 @@ export default function ActivateAccount() {
     </div>
   );
 }
-

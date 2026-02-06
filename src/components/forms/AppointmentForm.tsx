@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ export function AppointmentForm({ onSubmit, loading = false }: AppointmentFormPr
   const { patients } = usePatients();
   const { staff } = useStaff();
   
-  const doctors = staff.filter(member => member.role === "Médico");
+  const doctors = staff.filter((member) => member.role === "doctor");
 
   const {
     register,
@@ -107,7 +107,7 @@ export function AppointmentForm({ onSubmit, loading = false }: AppointmentFormPr
                   <SelectContent>
                     {patients.map((patient) => (
                       <SelectItem key={patient.id} value={patient.id}>
-                        {patient.first_name} {patient.last_name} - {patient.patient_code}
+                        {patient.firstName} {patient.lastName} - {patient.patientCode}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -126,7 +126,7 @@ export function AppointmentForm({ onSubmit, loading = false }: AppointmentFormPr
                   <SelectContent>
                     {doctors.map((doctor) => (
                       <SelectItem key={doctor.id} value={doctor.id}>
-                        Dr. {doctor.first_name} {doctor.last_name}
+                        Dr. {doctor.firstName} {doctor.lastName}
                         {doctor.specialization && ` - ${doctor.specialization}`}
                       </SelectItem>
                     ))}

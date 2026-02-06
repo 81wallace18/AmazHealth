@@ -27,7 +27,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { userService } from "@/services/userService";
-import { PageResponse, RoleType, User } from "@/types/user";
+import { CreateUserRequest, PageResponse, RoleType, User } from "@/types/user";
 import { useAuth } from "@/hooks/useAuth";
 
 const createUserSchema = z.object({
@@ -36,7 +36,7 @@ const createUserSchema = z.object({
   role: z.enum(["admin", "doctor", "nurse", "pharmacist", "receptionist", "staff"]),
 });
 
-type CreateUserFormValues = z.infer<typeof createUserSchema>;
+type CreateUserFormValues = Pick<CreateUserRequest, "fullName" | "email" | "role">;
 
 const ROLE_LABELS: Record<RoleType, string> = {
   admin: "Administrador",

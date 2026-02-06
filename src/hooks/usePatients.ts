@@ -1,5 +1,13 @@
 import { usePatientsSpring } from "@/hooks/usePatientsSpring";
-import { Gender, PatientStatus, type PatientCreateRequest, type PatientUpdateRequest } from "@/types/patient";
+import {
+  EducationLevel,
+  Gender,
+  MaritalStatus,
+  PatientStatus,
+  RaceColor,
+  type PatientCreateRequest,
+  type PatientUpdateRequest,
+} from "@/types/patient";
 
 export interface PatientFormData {
   firstName: string;
@@ -49,6 +57,24 @@ const mapGender = (value?: string): Gender => {
   return Gender.UNKNOWN;
 };
 
+const mapRaceColor = (value?: string): RaceColor | undefined => {
+  if (!value) return undefined;
+  const normalized = value.trim();
+  return (Object.values(RaceColor) as string[]).includes(normalized) ? (normalized as RaceColor) : undefined;
+};
+
+const mapMaritalStatus = (value?: string): MaritalStatus | undefined => {
+  if (!value) return undefined;
+  const normalized = value.trim();
+  return (Object.values(MaritalStatus) as string[]).includes(normalized) ? (normalized as MaritalStatus) : undefined;
+};
+
+const mapEducationLevel = (value?: string): EducationLevel | undefined => {
+  if (!value) return undefined;
+  const normalized = value.trim();
+  return (Object.values(EducationLevel) as string[]).includes(normalized) ? (normalized as EducationLevel) : undefined;
+};
+
 const normalizeDigits = (value?: string) => {
   if (!value) return undefined;
   const digits = value.replace(/\D/g, '');
@@ -81,9 +107,9 @@ const toCreatePayload = (data: PatientFormData): PatientCreateRequest & { status
     birthCity: data.birthCity,
     birthState: data.birthState,
     birthCountry: data.birthCountry,
-    raceColor: data.raceColor,
-    maritalStatus: data.maritalStatus,
-    educationLevel: data.educationLevel,
+    raceColor: mapRaceColor(data.raceColor),
+    maritalStatus: mapMaritalStatus(data.maritalStatus),
+    educationLevel: mapEducationLevel(data.educationLevel),
     occupation: data.occupation,
     occupationCboCode: data.occupationCboCode,
   };
@@ -121,9 +147,9 @@ const toUpdatePayload = (data: PatientFormData): PatientUpdateRequest & { status
     birthCity: data.birthCity,
     birthState: data.birthState,
     birthCountry: data.birthCountry,
-    raceColor: data.raceColor,
-    maritalStatus: data.maritalStatus,
-    educationLevel: data.educationLevel,
+    raceColor: mapRaceColor(data.raceColor),
+    maritalStatus: mapMaritalStatus(data.maritalStatus),
+    educationLevel: mapEducationLevel(data.educationLevel),
     occupation: data.occupation,
     occupationCboCode: data.occupationCboCode,
   };

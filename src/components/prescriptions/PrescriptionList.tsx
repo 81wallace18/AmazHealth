@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -55,7 +55,7 @@ interface PrescriptionListProps {
 
 export function PrescriptionList({ patientId, version = 0, onError }: PrescriptionListProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
-  const { data, isLoading, isFetching, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch, error, isError } = useQuery({
     queryKey: ['prescriptions', 'patient', patientId, version],
     queryFn: async () => {
       const response = await prescriptionService.findByPatient(patientId);
@@ -63,12 +63,18 @@ export function PrescriptionList({ patientId, version = 0, onError }: Prescripti
     },
     enabled: Boolean(patientId),
     staleTime: 30_000,
-    onError: (error: any) => {
-      const message = error?.response?.data?.message || 'Falha ao carregar prescrições.';
-      toast.error(message);
-      onError?.(message);
-    },
   });
+
+  useEffect(() => {
+    if (!isError || !error) {
+      return;
+    }
+
+    const err = error as any;
+    const message = err?.response?.data?.message || 'Falha ao carregar prescrições.';
+    toast.error(message);
+    onError?.(message);
+  }, [error, isError, onError]);
 
   const prescriptions = data?.content ?? [];
 

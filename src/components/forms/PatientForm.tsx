@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { PatientFormData } from "@/hooks/usePatients";
+import { PatientStatus } from "@/types/patient";
 
 interface PatientFormProps {
   onSubmit: (data: PatientFormData) => Promise<void>;
@@ -14,7 +15,7 @@ interface PatientFormProps {
 }
 
 export function PatientForm({ onSubmit, loading = false, initialData }: PatientFormProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PatientFormData>({
     firstName: initialData?.firstName || '',
     lastName: initialData?.lastName || '',
     dateOfBirth: initialData?.dateOfBirth || '',
@@ -36,7 +37,7 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
     bloodType: initialData?.bloodType || '',
     allergies: initialData?.allergies || '',
     medicalHistory: initialData?.medicalHistory || '',
-    status: initialData?.status || 'active',
+    status: initialData?.status ?? PatientStatus.ACTIVE,
     motherName: initialData?.motherName || '',
     fatherName: initialData?.fatherName || '',
     birthCity: initialData?.birthCity || '',
@@ -54,8 +55,13 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
     await onSubmit(formData);
   };
 
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleChange = (field: keyof PatientFormData, value: string) => {
+    setFormData(prev =>
+      ({
+        ...prev,
+        [field]: field === 'status' ? (value as unknown as PatientStatus) : value,
+      }) as PatientFormData
+    );
   };
 
   return (

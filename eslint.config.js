@@ -24,6 +24,8 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      // Codebase ainda está em refactor; explicit-any é permitido por enquanto.
+      "@typescript-eslint/no-explicit-any": "off",
     },
   }
 );

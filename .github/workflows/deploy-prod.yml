@@ -1,0 +1,81 @@
+name: Deploy (Prod)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod-frontend
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/amazhealth-frontend
+
+jobs:
+  deploy:
+    name: Build + Deploy frontend (Docker Compose no VPS)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      VPS_COMPOSE_DIR: ${{ secrets.VPS_COMPOSE_DIR }}
+      FRONTEND_SERVICE_NAME: ${{ secrets.FRONTEND_SERVICE_NAME }}
+      VPS_FRONTEND_URL: ${{ secrets.VPS_FRONTEND_URL }}
+      PROD_VITE_API_URL: ${{ secrets.PROD_VITE_API_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/frontend.Dockerfile
+          push: true
+          build-args: |
+            VITE_API_URL=${{ env.PROD_VITE_API_URL }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:prod
+
+      - name: Deploy via SSH (docker compose pull/up)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: VPS_COMPOSE_DIR,FRONTEND_SERVICE_NAME,VPS_FRONTEND_URL
+          script: |
+            set -euo pipefail
+
+            if [ -z "${VPS_COMPOSE_DIR:-}" ]; then
+              echo "VPS_COMPOSE_DIR não definido"
+              exit 1
+            fi
+
+            cd "${VPS_COMPOSE_DIR}"
+
+            SERVICE="${FRONTEND_SERVICE_NAME:-web}"
+            echo "Deploy frontend service: ${SERVICE}"
+
+            docker compose pull "${SERVICE}"
+            docker compose up -d "${SERVICE}"
+
+            if [ -n "${VPS_FRONTEND_URL:-}" ]; then
+              echo "Smoke: ${VPS_FRONTEND_URL}"
+              curl -fsS "${VPS_FRONTEND_URL}" > /dev/null
+            else
+              echo "VPS_FRONTEND_URL não definido; pulando smoke HTTP."
+            fi
+

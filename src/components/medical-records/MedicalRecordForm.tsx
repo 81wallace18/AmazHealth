@@ -34,7 +34,7 @@ import { toast } from 'sonner';
 import { medicalRecordService } from '@/services/medicalRecordService';
 import { DiagnosisPicker } from '@/components/medical-records/DiagnosisPicker';
 import type { IcdSystem } from '@/types/icd';
-import type { RecordType } from '@/types/medicalRecord';
+import type { MedicalRecordRequest, RecordType } from '@/types/medicalRecord';
 import { RECORD_TYPE_LABELS } from '@/types/medicalRecord';
 import { Loader2, FileText } from 'lucide-react';
 
@@ -71,7 +71,7 @@ const formSchema = z.object({
     .max(10000, 'Máximo 10.000 caracteres'),
 });
 
-type FormData = z.infer<typeof formSchema>;
+type FormData = MedicalRecordRequest;
 
 interface MedicalRecordFormProps {
   open: boolean;

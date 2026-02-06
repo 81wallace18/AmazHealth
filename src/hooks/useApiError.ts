@@ -26,7 +26,7 @@ export function useApiError() {
           toast.error('Recurso não encontrado.');
           break;
           
-        case 422:
+        case 422: {
           const errors = error.response.data?.errors;
           if (errors && Array.isArray(errors)) {
             errors.forEach((err: any) => {
@@ -36,6 +36,7 @@ export function useApiError() {
             toast.error(error.response.data?.message || 'Dados inválidos.');
           }
           break;
+        }
           
         case 500:
           toast.error('Erro interno do servidor. Tente novamente mais tarde.');

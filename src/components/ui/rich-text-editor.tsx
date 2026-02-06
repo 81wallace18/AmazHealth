@@ -205,10 +205,6 @@ export function RichTextEditor({
     },
   });
 
-  if (!editor) {
-    return null;
-  }
-
   // Sincroniza valor externo com editor (útil quando reseta form)
   useEffect(() => {
     if (!editor) return;
@@ -216,6 +212,10 @@ export function RichTextEditor({
       editor.commands.setContent(value);
     }
   }, [value, editor]);
+
+  if (!editor) {
+    return null;
+  }
 
   const characterCount = editor.storage.characterCount.characters();
   const wordCount = editor.storage.characterCount.words();

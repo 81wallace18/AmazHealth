@@ -256,7 +256,7 @@ export default function Triage() {
   if (!user?.staffId) {
     return (
       <div className="container mx-auto p-6">
-        <Alert variant="warning" className="max-w-2xl mx-auto">
+        <Alert variant="default" className="max-w-2xl mx-auto border-yellow-300 bg-yellow-50 text-yellow-900">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Para acessar o módulo de triagem é necessário vincular o usuário a um profissional da equipe.

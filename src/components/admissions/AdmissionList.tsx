@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   BedDouble,
@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 
 import { admissionService } from '@/services/admissionService';
-import type { Admission, AdmissionStatus, Bed } from '@/types/admission';
+import type { Admission, AdmissionStatus, Bed, DischargeRequest } from '@/types/admission';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -76,8 +76,6 @@ const dischargeSchema = z.object({
   followUpInstructions: z.string().optional(),
 });
 
-type DischargeFormValues = z.infer<typeof dischargeSchema>;
-
 export function AdmissionList() {
   const [page, setPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]['value']>('ALL');
@@ -92,7 +90,7 @@ export function AdmissionList() {
 
   const admissionsQuery = useQuery({
     queryKey: ['admissions', { page, statusFilter }],
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       if (statusFilter === 'ALL') {
         return admissionService.findAll({ page, size: 20 });
@@ -124,10 +122,11 @@ export function AdmissionList() {
         console.error('Erro ao buscar internação pelo atendimento:', error);
         toast.error('Não foi possível localizar a internação vinculada a este atendimento.');
       } finally {
-        if (cancelled) return;
-        const next = new URLSearchParams(searchParams);
-        next.delete('attendanceId');
-        setSearchParams(next, { replace: true });
+        if (!cancelled) {
+          const next = new URLSearchParams(searchParams);
+          next.delete('attendanceId');
+          setSearchParams(next, { replace: true });
+        }
       }
     })();
 
@@ -532,7 +531,7 @@ interface DischargeDialogProps {
 }
 
 function DischargeDialog({ admission, onOpenChange, onSuccess }: DischargeDialogProps) {
-  const form = useForm<DischargeFormValues>({
+  const form = useForm<DischargeRequest>({
     resolver: zodResolver(dischargeSchema),
     defaultValues: {
       dischargeDisposition: '',
@@ -542,7 +541,7 @@ function DischargeDialog({ admission, onOpenChange, onSuccess }: DischargeDialog
     },
   });
 
-  const handleSubmit = async (values: DischargeFormValues) => {
+  const handleSubmit = async (values: DischargeRequest) => {
     if (!admission) return;
     try {
       await admissionService.discharge(admission.id, values);

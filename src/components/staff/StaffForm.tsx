@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { staffService, type Staff, type RoleType, type StaffStatus } from '@/services/staffService';
+import { staffService, type Staff, type RoleType, type StaffRequest, type StaffStatus } from '@/services/staffService';
 import { useEffect } from 'react';
 
 const staffFormSchema = z.object({
@@ -118,8 +118,11 @@ export function StaffForm({ open, onOpenChange, staff, onSuccess }: StaffFormPro
   const onSubmit = async (data: StaffFormData) => {
     try {
       // Remove email vazio (backend pode rejeitar string vazia)
-      const payload = {
-        ...data,
+      const payload: StaffRequest = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        role: data.role,
+        status: data.status,
         email: data.email || undefined,
         specialization: data.specialization || undefined,
         phone: data.phone || undefined,
