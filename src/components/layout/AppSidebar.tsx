@@ -41,42 +41,48 @@ const navigationItems: NavigationItem[] = [
     title: "Dashboard",
     url: "/",
     icon: BarChart3,
-    group: "Principal"
+    group: "Principal",
+    requiredRoles: ["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER", "FINANCE"]
   },
   {
     title: "Pacientes",
     url: "/patients",
     icon: Users,
     group: "Atendimento",
-    requiredCapabilities: ["canListPatients"]
+    requiredCapabilities: ["canListPatients"],
+    requiredRoles: ["ADMIN", "RECEPTIONIST"]
   },
   {
     title: "Agendamentos",
     url: "/appointments",
     icon: Calendar,
     group: "Atendimento",
-    requiredCapabilities: ["canReadAttendance"]
+    requiredCapabilities: ["canCreateAttendance"],
+    requiredRoles: ["ADMIN", "RECEPTIONIST"]
   },
   {
     title: "Prontuários",
     url: "/medical-records",
     icon: FileText,
     group: "Atendimento",
-    requiredCapabilities: ["canReadAttendance"]
+    requiredCapabilities: ["canRecordEvolution"],
+    requiredRoles: ["ADMIN", "DOCTOR"]
   },
   {
     title: "Consultas",
     url: "/consultations",
     icon: Stethoscope,
     group: "Atendimento",
-    requiredCapabilities: ["canStartAttendance", "canReadAttendance"]
+    requiredCapabilities: ["canStartAttendance"],
+    requiredRoles: ["ADMIN", "DOCTOR"]
   },
   {
     title: "Triagem",
     url: "/triage",
     icon: Leaf,
     group: "Atendimento",
-    requiredCapabilities: ["canReadTriage"]
+    requiredCapabilities: ["canReadTriage"],
+    requiredRoles: ["ADMIN", "NURSE", "DOCTOR", "NURSE_MANAGER"]
   },
   {
     title: "Triagem (Recepção)",
@@ -91,63 +97,71 @@ const navigationItems: NavigationItem[] = [
     url: "/hospital",
     icon: Building,
     group: "Hospitalização",
-    requiredCapabilities: ["canAdmitPatient", "canViewTriageBoard"]
+    requiredCapabilities: ["canAccessOperational"],
+    requiredRoles: ["ADMIN", "NURSE_MANAGER", "HOSPITAL_MANAGER"]
   },
   {
     title: "Internação",
     url: "/admissions",
     icon: BedDouble,
     group: "Hospitalização",
-    requiredCapabilities: ["canAdmitPatient"]
+    requiredCapabilities: ["canAdmitPatient"],
+    requiredRoles: ["ADMIN", "DOCTOR", "NURSE_MANAGER", "HOSPITAL_MANAGER"]
   },
   {
     title: "Laboratório",
     url: "/laboratory",
     icon: TestTube,
     group: "Exames",
-    requiredCapabilities: ["canRequestExams", "canReadExamResults", "canInputExamResults"]
+    requiredCapabilities: ["canReadExamResults"],
+    requiredRoles: ["ADMIN", "DOCTOR", "NURSE"]
   },
   {
     title: "Farmácia",
     url: "/pharmacy",
     icon: Pill,
     group: "Medicamentos",
-    requiredCapabilities: ["canReadPrescription", "canManageStock", "canDispenseMedication"]
+    requiredCapabilities: ["canManageStock", "canDispenseMedication"],
+    requiredRoles: ["ADMIN", "PHARMACIST"]
   },
   {
     title: "Faturamento",
     url: "/billing",
     icon: CreditCard,
     group: "Financeiro",
-    requiredCapabilities: ["canAccessFinancial", "canManageBilling"]
+    requiredCapabilities: ["canAccessFinancial", "canManageBilling"],
+    requiredRoles: ["ADMIN", "FINANCE"]
   },
   {
     title: "Relatórios",
     url: "/reports",
     icon: BarChart3,
     group: "Gestão",
-    requiredCapabilities: ["canViewReports"]
+    requiredCapabilities: ["canViewReports"],
+    requiredRoles: ["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER", "FINANCE"]
   },
   {
     title: "Equipe",
     url: "/staff",
     icon: Users,
     group: "Gestão",
-    requiredCapabilities: ["canListStaff"]
+    requiredCapabilities: ["canListStaff"],
+    requiredRoles: ["ADMIN", "GESTAO"]
   },
   {
     title: "Usuários",
     url: "/users",
     icon: UserPlus,
     group: "Gestão",
-    requiredCapabilities: ["canManageRoles"]
+    requiredCapabilities: ["canManageRoles"],
+    requiredRoles: ["ADMIN"]
   }
 ];
 
 export function AppSidebar() {
   const isMobile = useIsMobile();
   const location = useLocation();
-  const { canAny, hasRole } = useCapabilities();
+  const { can, hasRole } = useCapabilities();
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -156,21 +170,17 @@ export function AppSidebar() {
     return location.pathname.startsWith(path);
   };
 
-  // Filter navigation items based on user capabilities
+  // Filter navigation items using strict role + capability checks
   const filteredNavigationItems = navigationItems.filter(item => {
-    // If no capabilities required, show to everyone
-    if (!item.requiredCapabilities || item.requiredCapabilities.length === 0) {
-      if (!item.requiredRoles || item.requiredRoles.length === 0) {
-        return true;
-      }
-      return item.requiredRoles.some(hasRole);
-    }
-    // Show if user has ANY of the required capabilities
-    const hasCaps = canAny(item.requiredCapabilities);
-    if (!item.requiredRoles || item.requiredRoles.length === 0) {
-      return hasCaps;
-    }
-    return hasCaps && item.requiredRoles.some(hasRole);
+    const hasRoles = !item.requiredRoles || item.requiredRoles.length === 0
+      ? true
+      : item.requiredRoles.some(hasRole);
+
+    const hasCapabilities = !item.requiredCapabilities || item.requiredCapabilities.length === 0
+      ? true
+      : item.requiredCapabilities.every((capability) => can(capability));
+
+    return hasRoles && hasCapabilities;
   });
 
   const groupedItems = filteredNavigationItems.reduce((acc, item) => {
@@ -229,18 +239,23 @@ export function AppSidebar() {
         ))}
 
         {/* Quick Action */}
-        <div className="p-4 mt-auto">
-          <div className="bg-gradient-hero p-4 rounded-lg text-white">
-            <UserPlus className="h-6 w-6 mb-2" />
-            <h3 className="font-semibold text-sm">Novo Paciente</h3>
-            <p className="text-xs opacity-90 mb-3">
-              Cadastrar rapidamente
-            </p>
-            <button className="w-full bg-white/20 hover:bg-white/30 rounded-md py-2 px-3 text-xs font-medium transition-colors">
-              Cadastrar
-            </button>
+        {can("canCreatePatients") && hasRole("RECEPTIONIST") && (
+          <div className="p-4 mt-auto">
+            <div className="bg-gradient-hero p-4 rounded-lg text-white">
+              <UserPlus className="h-6 w-6 mb-2" />
+              <h3 className="font-semibold text-sm">Novo Paciente</h3>
+              <p className="text-xs opacity-90 mb-3">
+                Cadastrar rapidamente
+              </p>
+              <NavLink
+                to="/patients"
+                className="block w-full bg-white/20 hover:bg-white/30 rounded-md py-2 px-3 text-xs font-medium transition-colors text-center"
+              >
+                Cadastrar
+              </NavLink>
+            </div>
           </div>
-        </div>
+        )}
       </SidebarContent>
     </Sidebar>
   );

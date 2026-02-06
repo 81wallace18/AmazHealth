@@ -7,7 +7,10 @@ export interface MedicalRecordItem {
   record_type: string;
   chief_complaint?: string;
   diagnosis?: string;
+  notes?: string;
   created_at: string;
+  vital_signs?: Record<string, unknown>;
+  triage_payload?: Record<string, unknown>;
   patient?: {
     id: string;
     first_name: string;
@@ -74,7 +77,10 @@ function mapRecord(record: MedicalRecordResponse): MedicalRecordItem {
     record_type: record.recordType,
     chief_complaint: record.chiefComplaint,
     diagnosis: record.diagnosis,
+    notes: record.notes,
     created_at: record.createdAt,
+    vital_signs: record.vitalSigns,
+    triage_payload: record.triagePayload,
     patient: {
       id: record.patientId,
       first_name: firstName || patientName,

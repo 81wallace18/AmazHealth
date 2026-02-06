@@ -7,6 +7,8 @@ interface RequireCapabilityProps {
   children: ReactNode;
   capability?: keyof UserCapabilities;
   capabilities?: (keyof UserCapabilities)[];
+  roles?: string[];
+  requireAllCapabilities?: boolean;
   fallback?: ReactNode;
   redirectTo?: string;
 }
@@ -19,6 +21,8 @@ export function RequireCapability({
   children, 
   capability, 
   capabilities, 
+  roles,
+  requireAllCapabilities = false,
   fallback,
   redirectTo = '/unauthorized'
 }: RequireCapabilityProps) {
@@ -29,14 +33,21 @@ export function RequireCapability({
     return null;
   }
 
-  // Check if user has required capability/capabilities
-  const hasAccess = capability 
+  // Check capabilities
+  const hasCapabilityAccess = capability 
     ? caps.can(capability)
     : capabilities 
-    ? caps.canAny(capabilities)
+    ? requireAllCapabilities
+      ? capabilities.every((capabilityName) => caps.can(capabilityName))
+      : caps.canAny(capabilities)
     : true;
 
-  if (!hasAccess) {
+  // Check roles
+  const hasRoleAccess = roles && roles.length > 0
+    ? roles.some((role) => caps.hasRole(role))
+    : true;
+
+  if (!(hasCapabilityAccess && hasRoleAccess)) {
     if (fallback) {
       return <>{fallback}</>;
     }

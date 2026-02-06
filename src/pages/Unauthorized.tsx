@@ -25,8 +25,8 @@ export function Unauthorized() {
             <p className="text-sm text-gray-600 text-center">
               Entre em contato com o administrador do sistema se precisar de acesso a este recurso.
             </p>
-            <Button 
-              onClick={() => navigate('/dashboard')}
+            <Button
+              onClick={() => navigate('/')}
               className="w-full"
             >
               Voltar para o Início

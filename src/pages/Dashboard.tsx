@@ -17,12 +17,19 @@ import {
   Clock,
 } from "lucide-react";
 import dashboardService from "@/services/dashboardService";
+import statusService from "@/services/statusService";
+import { frontendBuildInfo } from "@/lib/buildInfo";
 
 export default function Dashboard() {
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: () => dashboardService.getSummary(),
     staleTime: 60_000
+  });
+  const { data: backendStatus } = useQuery({
+    queryKey: ["backend-status"],
+    queryFn: () => statusService.getStatus(),
+    staleTime: 60_000,
   });
 
   const statsCards = useMemo(() => {
@@ -84,6 +91,21 @@ export default function Dashboard() {
           Atualizar
         </Button>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Assinatura de Versão</CardTitle>
+          <CardDescription>Comparação rápida entre frontend e backend em execução</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-1 text-sm">
+          <p>
+            <strong>Frontend:</strong> v{frontendBuildInfo.version} ({frontendBuildInfo.gitSha})
+          </p>
+          <p>
+            <strong>Backend:</strong> v{backendStatus?.version ?? "unknown"} ({backendStatus?.gitSha ?? "unknown"})
+          </p>
+        </CardContent>
+      </Card>
 
       {error && (
         <Alert variant="destructive">

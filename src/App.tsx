@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import { useAuth } from "./hooks/useAuth";
 import { RequireCapability } from "./components/RequireCapability";
+import { useCapabilities } from "./auth/useCapabilities";
 import Dashboard from "./pages/Dashboard";
 import Hospital from "./pages/Hospital";
 import Consultations from "./pages/Consultations";
@@ -69,6 +70,39 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function HomeRoute() {
+  const caps = useCapabilities();
+
+  if (caps.loading) {
+    return null;
+  }
+
+  const isExecutive =
+    caps.hasRole("ADMIN") ||
+    caps.hasRole("GESTAO") ||
+    caps.hasRole("NURSE_MANAGER") ||
+    caps.hasRole("HOSPITAL_MANAGER") ||
+    caps.hasRole("FINANCE");
+
+  if (isExecutive) {
+    return <Dashboard />;
+  }
+
+  if (caps.hasRole("RECEPTIONIST") && caps.can("canCreateAttendance")) {
+    return <Navigate to="/patients" replace />;
+  }
+
+  if ((caps.hasRole("NURSE") || caps.hasRole("DOCTOR")) && caps.can("canReadTriage")) {
+    return <Navigate to="/triage" replace />;
+  }
+
+  if (caps.hasRole("PHARMACIST") && caps.can("canManageStock")) {
+    return <Navigate to="/pharmacy" replace />;
+  }
+
+  return <Navigate to="/unauthorized" replace />;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -86,66 +120,74 @@ const App = () => (
               <AppLayout />
             </ProtectedRoute>
           }>
-            <Route index element={<Dashboard />} />
-            <Route path="hospital" element={<Hospital />} />
+            <Route index element={<HomeRoute />} />
+            <Route path="hospital" element={
+              <RequireCapability roles={["ADMIN", "NURSE_MANAGER", "HOSPITAL_MANAGER"]}>
+                <Hospital />
+              </RequireCapability>
+            } />
             <Route path="consultations" element={
-              <RequireCapability capability="canViewTriageBoard">
+              <RequireCapability capability="canStartAttendance" roles={["ADMIN", "DOCTOR"]}>
                 <Consultations />
               </RequireCapability>
             } />
             <Route path="patients" element={
-              <RequireCapability capability="canListPatients">
+              <RequireCapability capability="canListPatients" roles={["ADMIN", "RECEPTIONIST"]}>
                 <Patients />
               </RequireCapability>
             } />
-            <Route path="appointments" element={<Appointments />} />
+            <Route path="appointments" element={
+              <RequireCapability capability="canCreateAttendance" roles={["ADMIN", "RECEPTIONIST"]}>
+                <Appointments />
+              </RequireCapability>
+            } />
             <Route path="medical-records" element={
-              <RequireCapability capability="canReadAttendance">
+              <RequireCapability capability="canRecordEvolution" roles={["ADMIN", "DOCTOR"]}>
                 <MedicalRecords />
               </RequireCapability>
             } />
             <Route path="triage" element={
-              <RequireCapability capability="canReadTriage">
+              <RequireCapability capability="canReadTriage" roles={["ADMIN", "NURSE", "DOCTOR", "NURSE_MANAGER"]}>
                 <Triage />
               </RequireCapability>
             } />
             <Route path="reception/triage" element={
-              <RequireCapability capability="canCreateAttendance">
+              <RequireCapability capability="canCreateAttendance" roles={["ADMIN", "RECEPTIONIST"]}>
                 <ReceptionTriage />
               </RequireCapability>
             } />
             <Route path="admissions" element={
-              <RequireCapability capability="canReadAttendance">
+              <RequireCapability capability="canAdmitPatient" roles={["ADMIN", "DOCTOR", "NURSE_MANAGER", "HOSPITAL_MANAGER"]}>
                 <Admissions />
               </RequireCapability>
             } />
             <Route path="laboratory" element={
-              <RequireCapability capabilities={["canRequestExams", "canReadExamResults"]}>
+              <RequireCapability capabilities={["canRequestExams", "canReadExamResults"]} roles={["ADMIN", "DOCTOR", "NURSE"]}>
                 <Laboratory />
               </RequireCapability>
             } />
             <Route path="pharmacy" element={
-              <RequireCapability capabilities={["canManageStock", "canReadPharmacyGlobal"]}>
+              <RequireCapability capabilities={["canManageStock", "canDispenseMedication"]} roles={["ADMIN", "PHARMACIST"]} requireAllCapabilities>
                 <Pharmacy />
               </RequireCapability>
             } />
             <Route path="billing" element={
-              <RequireCapability capability="canAccessFinancial">
+              <RequireCapability capability="canAccessFinancial" roles={["ADMIN", "FINANCE"]}>
                 <Billing />
               </RequireCapability>
             } />
             <Route path="reports" element={
-              <RequireCapability capability="canViewReports">
+              <RequireCapability capability="canViewReports" roles={["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER", "FINANCE"]}>
                 <Reports />
               </RequireCapability>
             } />
             <Route path="staff" element={
-              <RequireCapability capability="canListStaff">
+              <RequireCapability capability="canListStaff" roles={["ADMIN", "GESTAO"]}>
                 <Staff />
               </RequireCapability>
             } />
             <Route path="users" element={
-              <RequireCapability capability="canManageRoles">
+              <RequireCapability capability="canManageRoles" roles={["ADMIN"]}>
                 <UserManagement />
               </RequireCapability>
             } />

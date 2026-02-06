@@ -101,13 +101,13 @@ export default function Consultations() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold text-foreground">Consultas</h1>
           <p className="text-muted-foreground">Gerenciamento de consultas médicas</p>
         </div>
         <Button 
-          className="bg-primary hover:bg-primary/90"
+          className="w-full bg-primary hover:bg-primary/90 sm:w-auto"
           disabled={!capabilities.canStartAttendance}
           title={!capabilities.canStartAttendance ? "Você não tem permissão para iniciar atendimentos" : ""}
         >

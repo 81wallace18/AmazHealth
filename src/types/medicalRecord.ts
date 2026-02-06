@@ -57,6 +57,7 @@ export interface MedicalRecordResponse {
   notes: string;
   attachments?: string[];
   vitalSigns?: Record<string, unknown>;
+  triagePayload?: Record<string, unknown>;
 
   // Metadados
   createdAt: string;

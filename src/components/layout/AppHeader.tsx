@@ -33,11 +33,11 @@ export function AppHeader() {
   };
 
   return (
-    <header className="h-14 border-b bg-card shadow-soft flex items-center px-4 gap-4">
-      <SidebarTrigger className="md:hidden" />
+    <header className="flex h-14 min-w-0 items-center gap-2 border-b bg-card px-3 shadow-soft sm:gap-4 sm:px-4">
+      <SidebarTrigger className="shrink-0 md:hidden" />
 
-      <div className="flex-1 flex items-center gap-4">
-        <div className="relative max-w-sm flex-1">
+      <div className="flex min-w-0 flex-1 items-center">
+        <div className="relative hidden w-full max-w-sm min-w-0 sm:block">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar pacientes, médicos..."
@@ -46,11 +46,11 @@ export function AppHeader() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         <Button
           variant="ghost"
           size="icon"
-          className="relative"
+          className="relative shrink-0"
           onClick={() => {
             toast.info("Notificações em breve.", {
               description: "Este painel será ativado nas próximas versões.",
@@ -65,7 +65,7 @@ export function AppHeader() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-3">
+            <Button variant="ghost" className="flex items-center gap-2 px-2 sm:px-3">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/placeholder-avatar.jpg" />
                 <AvatarFallback>

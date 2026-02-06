@@ -36,7 +36,7 @@ docker compose -f docker/docker-compose.yml up -d --build
 2) Subir **frontend dev (Vite)**:
 ```bash
 cd ../AmazHealth
-docker compose -f docker-compose.yml --profile dev up -d web-dev
+'docker compose -f docker-compose.yml --profile dev up -d web-dev'
 ```
 
 Acessos:

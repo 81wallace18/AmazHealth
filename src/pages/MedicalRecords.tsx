@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { FileText, Plus, Search, User, Calendar, Eye, Download, Edit, AlertTriangle, Heart, Activity } from "lucide-react";
+import { FileText, Plus, Search, User, Calendar, Eye, Download, Edit, Heart, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,24 @@ const attendanceStatusLabels: Record<AttendanceVisitStatus, string> = {
   TRANSFERRED: "Transferido",
   CANCELLED: "Cancelado",
 };
+
+function toNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) {
+    return Number(value);
+  }
+  return null;
+}
+
+function getTriageColorFromPayload(payload?: Record<string, unknown>): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const finalDecision = payload.finalDecision as Record<string, unknown> | undefined;
+  const chosenColor = finalDecision?.chosenColor;
+  if (typeof chosenColor === "string" && chosenColor.trim() !== "") {
+    return chosenColor.toUpperCase();
+  }
+  return null;
+}
 
 export default function MedicalRecords() {
   const navigate = useNavigate();
@@ -249,6 +267,17 @@ export default function MedicalRecords() {
   const workspacePatientCode = patient?.patientCode;
   const workspaceAttendanceCode = attendance?.visitCode;
   const workspaceStatusLabel = attendance?.status ? attendanceStatusLabels[attendance.status] : undefined;
+  const latestTriageRecord = records
+    .filter((record) => record.record_type === "TRIAGE")
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+  const latestTriageVitals = (latestTriageRecord?.vital_signs ?? {}) as Record<string, unknown>;
+  const latestTriageColor = getTriageColorFromPayload(latestTriageRecord?.triage_payload);
+  const bloodPressure = typeof latestTriageVitals.bloodPressure === "string" ? latestTriageVitals.bloodPressure : null;
+  const heartRate = toNumber(latestTriageVitals.heartRate);
+  const respiratoryRate = toNumber(latestTriageVitals.respiratoryRate);
+  const temperature = toNumber(latestTriageVitals.temperature);
+  const oxygenSaturation = toNumber(latestTriageVitals.oxygenSaturation);
+  const glasgowComaScale = toNumber(latestTriageVitals.glasgowComaScale);
 
   if (loading) {
     return (
@@ -446,6 +475,60 @@ export default function MedicalRecords() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {isWorkspace && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Triagem e Sinais Vitais</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {!latestTriageRecord ? (
+              <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+                Este atendimento ainda não possui registro de triagem clínica.
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Badge variant="outline">
+                    Triagem em {formatDate(latestTriageRecord.created_at)}
+                  </Badge>
+                  {latestTriageColor && (
+                    <Badge variant="secondary">
+                      Manchester: {latestTriageColor}
+                    </Badge>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">PA</p>
+                    <p className="text-sm font-semibold">{bloodPressure ?? "-"}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">FC</p>
+                    <p className="text-sm font-semibold">{heartRate !== null ? `${heartRate} bpm` : "-"}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">FR</p>
+                    <p className="text-sm font-semibold">{respiratoryRate !== null ? `${respiratoryRate} irpm` : "-"}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Temperatura</p>
+                    <p className="text-sm font-semibold">{temperature !== null ? `${temperature} °C` : "-"}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">SpO2</p>
+                    <p className="text-sm font-semibold">{oxygenSaturation !== null ? `${oxygenSaturation}%` : "-"}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Glasgow</p>
+                    <p className="text-sm font-semibold">{glasgowComaScale !== null ? glasgowComaScale : "-"}</p>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
