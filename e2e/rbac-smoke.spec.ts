@@ -129,6 +129,7 @@ test.describe("RBAC smoke por perfil", () => {
       await expectLinkHidden(page, "Pacientes");
       await expectLinkHidden(page, "Agendamentos");
       await expectLinkHidden(page, "Triagem (Recepção)");
+      await expectLinkHidden(page, "Andamento (Recepção)");
 
       await expectUnauthorized(page, "/billing");
       await expectUnauthorized(page, "/staff");
@@ -153,6 +154,7 @@ test.describe("RBAC smoke por perfil", () => {
       await expectLinkHidden(page, "Pacientes");
       await expectLinkHidden(page, "Agendamentos");
       await expectLinkHidden(page, "Triagem (Recepção)");
+      await expectLinkHidden(page, "Andamento (Recepção)");
 
       await expectUnauthorized(page, "/users");
       await expectUnauthorized(page, "/consultations");
@@ -172,6 +174,7 @@ test.describe("RBAC smoke por perfil", () => {
       await expectLinkVisible(page, "Pacientes");
       await expectLinkVisible(page, "Agendamentos");
       await expectLinkVisible(page, "Triagem (Recepção)");
+      await expectLinkVisible(page, "Andamento (Recepção)");
 
       await expectLinkHidden(page, "Consultas");
       await expectLinkHidden(page, "Prontuários");

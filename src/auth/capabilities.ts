@@ -347,7 +347,7 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canManageRoles: false,
     canCreateAttendance: true,
     canReadAttendance: true,
-    canUpdateAttendanceStatus: true,
+    canUpdateAttendanceStatus: false,
     canStartAttendance: false,
     canRecordEvolution: false,
     canDefineOutcome: false,

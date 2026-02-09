@@ -7,14 +7,19 @@ import { PatientForm } from "@/components/forms/PatientForm";
 import { NewAttendanceDialog } from "@/components/attendance/NewAttendanceDialog";
 import { PatientStats } from "@/components/patients/PatientStats";
 import { PatientFilters } from "@/components/patients/PatientFilters";
+import { PatientIdentification } from "@/components/patients/PatientIdentification";
 import { PatientTable } from "@/components/patients/PatientTable";
 import { PatientDetails } from "@/components/patients/PatientDetails";
 import { useCapabilities } from "@/auth/useCapabilities";
 import attendanceService from "@/services/attendanceService";
+import { patientService } from "@/services/patientService";
+import { useToast } from "@/hooks/use-toast";
+import type { PatientIdentification as PatientIdentificationData } from "@/types/patient";
 
 export default function Patients() {
   const { patients, loading, addPatient, updatePatient, deletePatient, refetch } = usePatients();
   const capabilities = useCapabilities();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
   const [genderFilter, setGenderFilter] = useState("all");
@@ -24,6 +29,10 @@ export default function Patients() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [attendancePatient, setAttendancePatient] = useState<any>(null);
+  const [identificationPatient, setIdentificationPatient] = useState<any>(null);
+  const [isIdentificationOpen, setIsIdentificationOpen] = useState(false);
+  const [identificationLoading, setIdentificationLoading] = useState(false);
+  const [identificationData, setIdentificationData] = useState<PatientIdentificationData | null>(null);
 
   useEffect(() => {
     document.title = "Pacientes | Gestão de Pacientes";
@@ -99,6 +108,49 @@ export default function Patients() {
     await refetch();
   };
 
+  const handleOpenIdentification = async (patient: any) => {
+    setIdentificationPatient(patient);
+    setIsIdentificationOpen(true);
+    setIdentificationLoading(true);
+    try {
+      const snapshot = await patientService.getIdentification(patient.id);
+      setIdentificationData(snapshot);
+    } catch (error: any) {
+      console.error("Error loading identification:", error);
+      setIdentificationData(null);
+      toast({
+        title: "Erro ao carregar identificação",
+        description: error?.response?.data?.message || "Não foi possível carregar os dados da etiqueta.",
+        variant: "destructive",
+      });
+    } finally {
+      setIdentificationLoading(false);
+    }
+  };
+
+  const handlePrintIdentification = async () => {
+    if (!identificationPatient) return;
+    try {
+      await patientService.printIdentification(
+        identificationPatient.id,
+        identificationData?.attendanceNumber
+      );
+      const updated = await patientService.getIdentification(identificationPatient.id);
+      setIdentificationData(updated);
+      toast({
+        title: "Impressão registrada",
+        description: "A etiqueta foi registrada na auditoria com sucesso.",
+      });
+    } catch (error: any) {
+      console.error("Error printing identification:", error);
+      toast({
+        title: "Erro ao registrar impressão",
+        description: error?.response?.data?.message || "Não foi possível registrar a impressão da etiqueta.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleClearFilters = () => {
     setSearchTerm("");
     setStatusFilter("active");
@@ -162,6 +214,7 @@ export default function Patients() {
         onEdit={openEdit}
         onDelete={capabilities.canDeletePatients ? handleDeletePatient : undefined}
         onStartAttendance={capabilities.canCreateAttendance ? handleStartAttendance : undefined}
+        onPrintLabel={handleOpenIdentification}
       />
 
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
@@ -197,6 +250,25 @@ export default function Patients() {
         }}
         onSubmit={handleCreateAttendance}
         loading={loading}
+      />
+
+      <PatientIdentification
+        patient={identificationPatient}
+        open={isIdentificationOpen}
+        onOpenChange={(open) => {
+          setIsIdentificationOpen(open);
+          if (!open) {
+            setIdentificationPatient(null);
+            setIdentificationData(null);
+            setIdentificationLoading(false);
+          }
+        }}
+        attendanceNumber={identificationData?.attendanceNumber}
+        printedAt={identificationData?.printedAt}
+        printedBy={identificationData?.printedBy}
+        onPrint={handlePrintIdentification}
+        onReprint={handlePrintIdentification}
+        isLoading={identificationLoading}
       />
     </div>
   );

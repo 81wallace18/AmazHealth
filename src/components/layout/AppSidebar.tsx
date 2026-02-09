@@ -11,7 +11,8 @@ import {
   UserPlus,
   TestTube,
   Leaf,
-  Building
+  Building,
+  Clock3
 } from "lucide-react";
 import {
   Sidebar,
@@ -88,6 +89,14 @@ const navigationItems: NavigationItem[] = [
     title: "Triagem (Recepção)",
     url: "/reception/triage",
     icon: UserPlus,
+    group: "Atendimento",
+    requiredCapabilities: ["canCreateAttendance"],
+    requiredRoles: ["RECEPTIONIST", "ADMIN"]
+  },
+  {
+    title: "Andamento (Recepção)",
+    url: "/reception/queue",
+    icon: Clock3,
     group: "Atendimento",
     requiredCapabilities: ["canCreateAttendance"],
     requiredRoles: ["RECEPTIONIST", "ADMIN"]

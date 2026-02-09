@@ -22,6 +22,7 @@ import Staff from "./pages/Staff";
 import UserManagement from "./pages/UserManagement";
 import Triage from "./pages/Triage";
 import ReceptionTriage from "./pages/ReceptionTriage";
+import ReceptionQueue from "./pages/ReceptionQueue";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { Unauthorized } from "./pages/Unauthorized";
@@ -154,6 +155,11 @@ const App = () => (
             <Route path="reception/triage" element={
               <RequireCapability capability="canCreateAttendance" roles={["ADMIN", "RECEPTIONIST"]}>
                 <ReceptionTriage />
+              </RequireCapability>
+            } />
+            <Route path="reception/queue" element={
+              <RequireCapability capability="canCreateAttendance" roles={["ADMIN", "RECEPTIONIST"]}>
+                <ReceptionQueue />
               </RequireCapability>
             } />
             <Route path="admissions" element={
