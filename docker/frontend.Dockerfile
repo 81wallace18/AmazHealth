@@ -3,7 +3,7 @@ WORKDIR /app
 
 # Permite configurar VITE_API_URL em build-time via docker-compose build args.
 # Ex.: VITE_API_URL=/api/v1 (mesma origem) ou https://api.seudominio.com/api/v1
-ARG VITE_API_URL
+ARG VITE_API_URL=/api/v1
 ENV VITE_API_URL=${VITE_API_URL}
 
 # Instala dependências
