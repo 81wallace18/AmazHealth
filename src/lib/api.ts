@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { toast } from 'sonner';
+import { authStorage } from './authStorage';
 
 /**
  * Cliente API base usando Axios.
@@ -26,7 +27,7 @@ const api = axios.create({
  */
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = authStorage.getAccessToken();
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -58,7 +59,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
+        const refreshToken = authStorage.getRefreshToken();
         if (!refreshToken) {
           throw new Error('No refresh token');
         }
@@ -69,10 +70,7 @@ api.interceptors.response.use(
         );
 
         const { accessToken, refreshToken: newRefreshToken } = response.data;
-        localStorage.setItem('accessToken', accessToken);
-        if (newRefreshToken) {
-          localStorage.setItem('refreshToken', newRefreshToken);
-        }
+        authStorage.updateTokens({ accessToken, refreshToken: newRefreshToken });
 
         // Retry original request com novo token
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -80,9 +78,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // Refresh falhou, limpa tokens e dispara evento de logout
         console.warn('[API] Sessão expirada, fazendo logout automático');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
+        authStorage.clear();
 
         // Dispara evento customizado para o App reagir
         window.dispatchEvent(new CustomEvent(AUTH_LOGOUT_EVENT, {

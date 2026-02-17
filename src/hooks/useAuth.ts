@@ -8,6 +8,7 @@ import {
   OrganizationInfo,
 } from '@/services/authService';
 import { AUTH_LOGOUT_EVENT } from '@/lib/api';
+import { authStorage } from '@/lib/authStorage';
 
 interface User {
   id: string;
@@ -56,32 +57,32 @@ export function useAuth() {
   const navigate = useNavigate();
 
   const clearSession = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
+    authStorage.clear();
     setUser(null);
   };
 
   const persistUser = (data: User) => {
-    localStorage.setItem('user', JSON.stringify(data));
+    authStorage.setUser(data);
     setUser(data);
   };
 
-  const syncAuthResponse = (response: AuthResponse) => {
-    localStorage.setItem('accessToken', response.accessToken);
-    if (response.refreshToken) {
-      localStorage.setItem('refreshToken', response.refreshToken);
-    }
+  const syncAuthResponse = (response: AuthResponse, rememberMe?: boolean) => {
     const normalized = mapAuthUser(response.user);
-    persistUser(normalized);
+    authStorage.setSession({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken ?? undefined,
+      user: normalized,
+      rememberMe,
+    });
+    setUser(normalized);
     return normalized;
   };
 
   useEffect(() => {
-    // Verifica se há usuário salvo no localStorage ao carregar
+    // Verifica se há usuário salvo no storage ao carregar
     const validateSession = async () => {
-      const storedUserRaw = localStorage.getItem('user');
-      const accessToken = localStorage.getItem('accessToken');
+      const storedUserRaw = authStorage.getUser();
+      const accessToken = authStorage.getAccessToken();
 
       if (storedUserRaw && accessToken) {
         try {
@@ -115,7 +116,12 @@ export function useAuth() {
     };
   }, [navigate]);
 
-  const signIn = async (login: string, password: string, organizationId?: string) => {
+  const signIn = async (
+    login: string,
+    password: string,
+    organizationId?: string,
+    rememberMe?: boolean
+  ) => {
     try {
       setLoading(true);
       const response: AuthResponse = await authService.login({
@@ -124,9 +130,9 @@ export function useAuth() {
         organizationId,
       });
 
-      syncAuthResponse(response);
+      syncAuthResponse(response, rememberMe);
       toast.success('Login realizado com sucesso!');
-      return { error: null };
+      return { error: null, message: null };
     } catch (error: any) {
       // Mensagens específicas por tipo de erro
       let message = 'Erro ao fazer login. Tente novamente.';
@@ -153,7 +159,7 @@ export function useAuth() {
       }
 
       toast.error(message);
-      return { error };
+      return { error, message };
     } finally {
       setLoading(false);
     }
@@ -180,7 +186,7 @@ export function useAuth() {
 
       syncAuthResponse(response);
       toast.success('Cadastro realizado com sucesso! Bem-vindo(a)!');
-      return { error: null };
+      return { error: null, message: null };
     } catch (error: any) {
       // Mensagens específicas por tipo de erro
       let message = 'Erro ao criar conta. Tente novamente.';
@@ -211,7 +217,7 @@ export function useAuth() {
       }
 
       toast.error(message);
-      return { error };
+      return { error, message };
     } finally {
       setLoading(false);
     }

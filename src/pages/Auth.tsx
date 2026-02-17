@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,6 +17,7 @@ const loginSchema = z.object({
   login: z.string().min(1, 'Email ou username é obrigatório'),
   password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
   organizationId: z.string().optional(),
+  rememberMe: z.boolean().optional(),
 });
 
 const signupSchema = z.object({
@@ -56,6 +58,7 @@ export default function Auth() {
       login: '',
       password: '',
       organizationId: '',
+      rememberMe: false,
     },
   });
 
@@ -74,9 +77,17 @@ export default function Auth() {
 
   const onLogin = async (values: z.infer<typeof loginSchema>) => {
     // OrganizationId é opcional - backend usa primeira org do usuário se não fornecido
-    const { error } = await signIn(values.login, values.password, values.organizationId);
+    loginForm.clearErrors('root');
+    const { error, message } = await signIn(
+      values.login,
+      values.password,
+      values.organizationId,
+      values.rememberMe
+    );
     if (!error) {
       navigate('/');
+    } else if (message) {
+      loginForm.setError('root', { message });
     }
   };
 
@@ -140,6 +151,32 @@ export default function Auth() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={loginForm.control}
+                    name="rememberMe"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center gap-2 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={(checked) => field.onChange(checked === true)}
+                          />
+                        </FormControl>
+                        <FormLabel className="text-sm font-normal">
+                          Permanecer conectado neste dispositivo
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  {loginForm.formState.errors.root?.message && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{loginForm.formState.errors.root.message}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    Dica: use seu email institucional ou username cadastrado. Em caso de bloqueio,
+                    contate a administração.
+                  </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? 'Entrando...' : 'Entrar'}
                   </Button>
