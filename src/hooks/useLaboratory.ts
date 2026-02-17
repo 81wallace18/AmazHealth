@@ -1,40 +1,40 @@
-import { useEffect, useState } from "react";
-
-export interface LabOrder {
-  id: string;
-  order_code: string;
-  order_date: string;
-  status: "pending" | "collected" | "processing" | "completed" | "cancelled";
-  priority: "normal" | "urgent" | "stat";
-  clinical_history?: string;
-  patient?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    patient_code?: string;
-  };
-  doctor?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  };
-}
+import { useCallback, useEffect, useState } from "react";
+import labTestService from "@/services/labTestService";
+import type { LabTestOrder, LabTestOrderRequest } from "@/types/labTest";
 
 export function useLaboratory() {
-  const [orders, setOrders] = useState<LabOrder[]>([]);
+  const [orders, setOrders] = useState<LabTestOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setLoading(false);
+  const loadOrders = useCallback(async () => {
+    setLoading(true);
+    try {
+      setError(null);
+      const response = await labTestService.list();
+      setOrders(response.content);
+    } catch (err: any) {
+      setError(err?.message || "Não foi possível carregar os exames.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const createTestOrder = async (_payload: unknown) => {
-    return;
+  useEffect(() => {
+    void loadOrders();
+  }, [loadOrders]);
+
+  const createTestOrder = async (payload: LabTestOrderRequest) => {
+    const created = await labTestService.createOrder(payload);
+    setOrders((prev) => [created, ...prev]);
+    return created;
   };
 
   return {
     orders,
     loading,
+    error,
+    reload: loadOrders,
     createTestOrder,
   };
 }

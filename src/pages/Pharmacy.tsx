@@ -43,7 +43,7 @@ export default function Pharmacy() {
         </TabsContent>
 
         <TabsContent value="stock" className="space-y-4">
-          <StockManagement />
+          <StockManagement canManageStock={capabilities.canManageStock} />
         </TabsContent>
 
         <TabsContent value="alerts" className="space-y-4">
