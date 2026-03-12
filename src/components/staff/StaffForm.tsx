@@ -36,7 +36,7 @@ const staffFormSchema = z.object({
   lastName: z.string()
     .min(1, 'Sobrenome é obrigatório')
     .max(100, 'Sobrenome deve ter no máximo 100 caracteres'),
-  role: z.enum(['doctor', 'nurse', 'admin', 'receptionist', 'pharmacist', 'lab_technician'], {
+  role: z.enum(['admin', 'gestao', 'doctor', 'nurse', 'nurse_manager', 'pharmacist', 'receptionist', 'hospital_manager', 'finance', 'staff'], {
     required_error: 'Função é obrigatória',
   }),
   specialization: z.string().max(100).optional(),
@@ -56,12 +56,16 @@ interface StaffFormProps {
 }
 
 const roleLabels: Record<RoleType, string> = {
+  admin: 'Administrador',
+  gestao: 'Gestão',
   doctor: 'Médico',
   nurse: 'Enfermeiro',
-  admin: 'Administrador',
+  nurse_manager: 'Enfermeiro Gestor',
   receptionist: 'Recepcionista',
   pharmacist: 'Farmacêutico',
-  lab_technician: 'Técnico de Laboratório',
+  hospital_manager: 'Gestor Hospitalar',
+  finance: 'Financeiro',
+  staff: 'Staff',
 };
 
 const statusLabels: Record<StaffStatus, string> = {

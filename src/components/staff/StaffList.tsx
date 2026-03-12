@@ -39,12 +39,16 @@ interface StaffListProps {
 }
 
 const roleLabels: Record<RoleType, string> = {
+  admin: 'Administrador',
+  gestao: 'Gestão',
   doctor: 'Médico',
   nurse: 'Enfermeiro',
-  admin: 'Administrador',
+  nurse_manager: 'Enfermeiro Gestor',
   receptionist: 'Recepcionista',
   pharmacist: 'Farmacêutico',
-  lab_technician: 'Técnico de Laboratório',
+  hospital_manager: 'Gestor Hospitalar',
+  finance: 'Financeiro',
+  staff: 'Staff',
 };
 
 const statusLabels: Record<StaffStatus, string> = {
@@ -54,12 +58,16 @@ const statusLabels: Record<StaffStatus, string> = {
 };
 
 const roleColors: Record<RoleType, string> = {
+  admin: 'bg-purple-100 text-purple-800',
+  gestao: 'bg-indigo-100 text-indigo-800',
   doctor: 'bg-blue-100 text-blue-800',
   nurse: 'bg-green-100 text-green-800',
-  admin: 'bg-purple-100 text-purple-800',
+  nurse_manager: 'bg-emerald-100 text-emerald-800',
   receptionist: 'bg-orange-100 text-orange-800',
   pharmacist: 'bg-pink-100 text-pink-800',
-  lab_technician: 'bg-yellow-100 text-yellow-800',
+  hospital_manager: 'bg-cyan-100 text-cyan-800',
+  finance: 'bg-amber-100 text-amber-800',
+  staff: 'bg-slate-100 text-slate-800',
 };
 
 const statusColors: Record<StaffStatus, string> = {

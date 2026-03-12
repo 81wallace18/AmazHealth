@@ -26,46 +26,45 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
     const [displayValue, setDisplayValue] = React.useState(value?.toString() || '');
 
     // Aplica a máscara apropriada
-    const applyMask = (rawValue: string): string => {
+    const applyMask = React.useCallback((rawValue: string): string => {
       const cleaned = removeFormatting(rawValue);
 
       switch (mask) {
-        case 'cpf':
+        case 'cpf': {
           // Limita a 11 dígitos
           const cpfCleaned = cleaned.slice(0, 11);
           return formatCPF(cpfCleaned);
-
-        case 'cns':
+        }
+        case 'cns': {
           // Limita a 15 dígitos
           const cnsCleaned = cleaned.slice(0, 15);
           return formatCNS(cnsCleaned);
-
-        case 'cep':
+        }
+        case 'cep': {
           // Limita a 8 dígitos
           const cepCleaned = cleaned.slice(0, 8);
           return formatCEP(cepCleaned);
-
-        case 'phone':
+        }
+        case 'phone': {
           // Limita a 11 dígitos (celular)
           const phoneCleaned = cleaned.slice(0, 11);
           return formatPhone(phoneCleaned);
-
+        }
         case 'rg':
           // RG aceita letras e números, limita a 20 caracteres
           return rawValue.slice(0, 20);
-
         case 'none':
         default:
           return rawValue;
       }
-    };
+    }, [mask]);
 
     // Atualiza o valor quando a prop value muda (controlled component)
     React.useEffect(() => {
       if (value !== undefined) {
         setDisplayValue(applyMask(value.toString()));
       }
-    }, [value, mask]);
+    }, [value, applyMask]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const rawValue = e.target.value;

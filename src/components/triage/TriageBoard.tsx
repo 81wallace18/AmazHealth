@@ -25,16 +25,8 @@ interface TriageBoardProps {
   patients: TriageBoardItem[];
   autoRefresh?: boolean;
   onRefresh?: () => void;
-  onAssignSector?: (visitId: string, patientName: string) => void;
   onStartAttendance?: (visitId: string, patientName: string) => void;
-  onReclassify?: (visitId: string, patientName: string) => void;
-  /**
-   * Define se o usuário atual pode atribuir/setorizar pacientes.
-   * Ex.: enfermeiros/admin podem, médicos não.
-   */
-  canAssignSector?: boolean;
   canStartAttendance?: boolean;
-  canReclassify?: boolean;
   isRefreshing?: boolean;
   isPaused?: boolean;
   isManualPause?: boolean;
@@ -46,12 +38,8 @@ export function TriageBoard({
   patients,
   autoRefresh = true,
   onRefresh,
-  onAssignSector,
-  canAssignSector = true,
   onStartAttendance,
   canStartAttendance = false,
-  onReclassify,
-  canReclassify = false,
   isRefreshing = false,
   isPaused = false,
   isManualPause = false,

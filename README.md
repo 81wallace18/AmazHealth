@@ -96,3 +96,39 @@ npx playwright install
 npx playwright test e2e/mvp-pa-fluxo.spec.ts --project=chromium
 ```
 
+Frontend web do AmazHealth HIS em React + Vite + TypeScript.
+
+## Stack
+- React 18
+- Vite 5
+- TypeScript
+- Tailwind CSS + shadcn/ui
+- React Query + React Router
+
+## Requisitos
+- Node 20+
+- npm
+
+## Configuracao
+Copie `.env.example` para `.env` e ajuste:
+
+- `VITE_API_URL` (padrao: `http://localhost:8080/api/v1`)
+
+## Comandos
+
+```bash
+npm ci
+npm run dev
+```
+
+Outros:
+
+```bash
+npm run lint
+npm run build
+npm run preview
+```
+
+## Integracao com backend
+- Em dev local: `VITE_API_URL=http://localhost:8080/api/v1`
+- Em producao via NGINX: usar `VITE_API_URL=/api/v1`

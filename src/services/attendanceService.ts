@@ -24,11 +24,26 @@ export interface Attendance {
   id: string;
   organizationId: string;
   patientId: string;
-  doctorId: string;
-  visitDate: string;
+  doctorId?: string | null;
   visitCode: string;
-  visitType: string;
-  status: VisitStatus;
+  visitType: 'URGENCIA' | 'AMBULATORIAL' | string;
+  visitDate: string;
+  status:
+    | 'AWAITING_TRIAGE'
+    | 'AWAITING_DOCTOR'
+    | 'IN_ATTENDANCE'
+    | 'CREATED'
+    | 'TRIAGED'
+    | 'WAITING_DOCTOR'
+    | 'IN_PROGRESS'
+    | 'WAITING_EXAM'
+    | 'EXAM_COMPLETED'
+    | 'DISCHARGED'
+    | 'ADMITTED'
+    | 'TRANSFERRED'
+    | 'OPEN'
+    | 'CLOSED'
+    | 'CANCELLED';
   chiefComplaint?: string;
   diagnosis?: string;
   treatmentPlan?: string;
@@ -72,7 +87,7 @@ class AttendanceService {
    */
   async findByPatient(patientId: string): Promise<Attendance[]> {
     const response = await api.get<{ content: Attendance[] }>(`/attendances`, {
-      params: { patientId }
+      params: { patientId, size: 100 }
     });
     return response.data.content ?? [];
   }
@@ -81,7 +96,7 @@ class AttendanceService {
    * Lista atendimentos por status
    * Endpoint: GET /api/v1/attendances/status/:status
    */
-  async findByStatus(status: VisitStatus): Promise<Attendance[]> {
+  async findByStatus(status: Attendance['status']): Promise<Attendance[]> {
     const response = await api.get<Attendance[]>(`/attendances/status/${status}`);
     return response.data;
   }
@@ -90,7 +105,7 @@ class AttendanceService {
    * Atualiza status do atendimento
    * Endpoint: PATCH /api/attendances/:id/status
    */
-  async updateStatus(id: string, status: VisitStatus): Promise<Attendance> {
+  async updateStatus(id: string, status: Attendance['status']): Promise<Attendance> {
     const response = await api.patch<Attendance>(`/attendances/${id}/status`, { newStatus: status });
     return response.data;
   }
@@ -141,7 +156,23 @@ class AttendanceService {
     try {
       return await this.findById(visitId);
     } catch (error) {
-      console.error('Erro ao buscar attendance por visitId:', error);
+      const statuses: Attendance['status'][] = [
+        'AWAITING_DOCTOR',
+        'IN_ATTENDANCE',
+        'WAITING_EXAM',
+        'AWAITING_TRIAGE',
+        'WAITING_DOCTOR',
+        'IN_PROGRESS',
+      ];
+
+      for (const status of statuses) {
+        const attendances = await this.findByStatus(status);
+        const found = attendances.find((att) => att.id === visitId);
+        if (found) {
+          return found;
+        }
+      }
+
       return null;
     }
   }

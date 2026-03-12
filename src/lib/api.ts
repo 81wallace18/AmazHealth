@@ -17,6 +17,7 @@ const resolvedBaseURL = (() => {
 const api = axios.create({
   baseURL: resolvedBaseURL,
   timeout: 10000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -41,51 +42,34 @@ api.interceptors.request.use(
 );
 
 /**
- * Evento customizado para notificar logout/sessão expirada
- */
-export const AUTH_LOGOUT_EVENT = 'auth:logout';
-
-/**
  * Interceptor para tratar erros de autenticação (401).
- * Se token expirado, tenta renovar com refresh token.
+ * Se token expirado, tenta renovar com cookie HttpOnly de refresh.
+ * Nunca faz logout automático — o usuário só sai quando clicar em "Sair".
  */
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Se 401 e não é retry, tenta refresh
+    // Se 401 e não é retry, tenta refresh silenciosamente
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        const refreshToken = authStorage.getRefreshToken();
-        if (!refreshToken) {
-          throw new Error('No refresh token');
-        }
-
         const response = await axios.post(
           `${resolvedBaseURL}/auth/refresh`,
-          { refreshToken }
+          {},
+          { withCredentials: true }
         );
 
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
-        authStorage.updateTokens({ accessToken, refreshToken: newRefreshToken });
+        const { accessToken } = response.data;
+        authStorage.updateTokens({ accessToken });
 
         // Retry original request com novo token
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh falhou, limpa tokens e dispara evento de logout
-        console.warn('[API] Sessão expirada, fazendo logout automático');
-        authStorage.clear();
-
-        // Dispara evento customizado para o App reagir
-        window.dispatchEvent(new CustomEvent(AUTH_LOGOUT_EVENT, {
-          detail: { reason: 'session_expired' }
-        }));
-
-        toast.error('Sessão expirada. Faça login novamente.');
+        // Refresh falhou, mas NÃO faz logout automático
         return Promise.reject(refreshError);
       }
     }

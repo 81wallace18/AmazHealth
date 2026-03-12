@@ -13,14 +13,12 @@ const getStorageByType = (type: StorageType) => (type === 'session' ? sessionSto
 
 const clearAll = () => {
   localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
   sessionStorage.removeItem('accessToken');
-  sessionStorage.removeItem('refreshToken');
   sessionStorage.removeItem('user');
 };
 
-const getItem = (key: 'accessToken' | 'refreshToken' | 'user') => {
+const getItem = (key: 'accessToken' | 'user') => {
   const type = getStorageType();
   const primary = getStorageByType(type);
   const secondary = type === 'local' ? sessionStorage : localStorage;
@@ -39,9 +37,6 @@ const setSession = (params: {
 
   const storage = getStorageByType(type);
   storage.setItem('accessToken', params.accessToken);
-  if (params.refreshToken) {
-    storage.setItem('refreshToken', params.refreshToken);
-  }
   if (params.user) {
     storage.setItem('user', JSON.stringify(params.user));
   }
@@ -50,9 +45,6 @@ const setSession = (params: {
 const updateTokens = (params: { accessToken: string; refreshToken?: string | null }) => {
   const storage = getStorageByType(getStorageType());
   storage.setItem('accessToken', params.accessToken);
-  if (params.refreshToken) {
-    storage.setItem('refreshToken', params.refreshToken);
-  }
 };
 
 const setUser = (user: unknown) => {
@@ -64,7 +56,7 @@ export const authStorage = {
   getStorageType,
   setStorageType,
   getAccessToken: () => getItem('accessToken'),
-  getRefreshToken: () => getItem('refreshToken'),
+  getRefreshToken: () => null,
   getUser: () => getItem('user'),
   setSession,
   updateTokens,

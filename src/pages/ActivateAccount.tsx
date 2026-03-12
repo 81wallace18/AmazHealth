@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/hooks/useAuth';
 import { authService } from '@/services/authService';
+import { authStorage } from '@/lib/authStorage';
 import { toast } from 'sonner';
 
 const activateSchema = z
@@ -51,12 +52,9 @@ export default function ActivateAccount() {
     try {
       const response = await authService.activateAccount(values);
 
-      // Persistir tokens e usuário via hook de auth
-      localStorage.setItem('accessToken', response.accessToken);
-      if (response.refreshToken) {
-        localStorage.setItem('refreshToken', response.refreshToken);
-      }
-      localStorage.setItem('user', JSON.stringify({
+      authStorage.setSession({
+        accessToken: response.accessToken,
+        user: {
         id: response.user.id,
         username: response.user.username,
         email: response.user.email,
@@ -66,7 +64,8 @@ export default function ActivateAccount() {
         staffId: response.user.staffId ?? null,
         activeSectorId: response.user.activeSectorId ?? null,
         roles: response.user.roles ?? [],
-      }));
+        },
+      });
 
       toast.success('Conta ativada com sucesso! Você já está logado.');
       navigate('/', { replace: true });
@@ -139,4 +138,3 @@ export default function ActivateAccount() {
     </div>
   );
 }
-

@@ -7,7 +7,6 @@ import {
   MeResponse,
   OrganizationInfo,
 } from '@/services/authService';
-import { AUTH_LOGOUT_EVENT } from '@/lib/api';
 import { authStorage } from '@/lib/authStorage';
 
 interface User {
@@ -104,17 +103,6 @@ export function useAuth() {
     validateSession();
   }, []);
 
-  useEffect(() => {
-    const handleLogoutEvent = (_event: Event) => {
-      clearSession();
-      navigate('/auth', { replace: true });
-    };
-
-    window.addEventListener(AUTH_LOGOUT_EVENT, handleLogoutEvent);
-    return () => {
-      window.removeEventListener(AUTH_LOGOUT_EVENT, handleLogoutEvent);
-    };
-  }, [navigate]);
 
   const signIn = async (
     login: string,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { PatientFormData } from "@/hooks/usePatients";
+import { RaceColor, RaceColorLabels, MaritalStatus, MaritalStatusLabels, EducationLevel, EducationLevelLabels } from "@/types/patient";
 
 interface PatientFormProps {
   onSubmit: (data: PatientFormData) => Promise<void>;
@@ -13,45 +14,89 @@ interface PatientFormProps {
   initialData?: Partial<PatientFormData>;
 }
 
+const DRAFT_KEY = "patient-form-draft";
+
+const defaults = {
+  firstName: '',
+  lastName: '',
+  dateOfBirth: '',
+  gender: '',
+  cpf: '',
+  cns: '',
+  rg: '',
+  phone: '',
+  email: '',
+  address: '',
+  addressNumber: '',
+  addressComplement: '',
+  neighborhood: '',
+  city: '',
+  state: '',
+  zipCode: '',
+  emergencyContactName: '',
+  emergencyContactPhone: '',
+  bloodType: '',
+  allergies: '',
+  medicalHistory: '',
+  status: 'active',
+  motherName: '',
+  fatherName: '',
+  birthCity: '',
+  birthState: '',
+  birthCountry: '',
+  raceColor: '',
+  maritalStatus: '',
+  educationLevel: '',
+  occupation: '',
+  occupationCboCode: '',
+};
+
+function loadDraft(): Partial<typeof defaults> | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export function PatientForm({ onSubmit, loading = false, initialData }: PatientFormProps) {
-  const [formData, setFormData] = useState({
-    firstName: initialData?.firstName || '',
-    lastName: initialData?.lastName || '',
-    dateOfBirth: initialData?.dateOfBirth || '',
-    gender: initialData?.gender || '',
-    cpf: initialData?.cpf || '',
-    cns: initialData?.cns || '',
-    rg: initialData?.rg || '',
-    phone: initialData?.phone || '',
-    email: initialData?.email || '',
-    address: initialData?.address || '',
-    addressNumber: initialData?.addressNumber || '',
-    addressComplement: initialData?.addressComplement || '',
-    neighborhood: initialData?.neighborhood || '',
-    city: initialData?.city || '',
-    state: initialData?.state || '',
-    zipCode: initialData?.zipCode || '',
-    emergencyContactName: initialData?.emergencyContactName || '',
-    emergencyContactPhone: initialData?.emergencyContactPhone || '',
-    bloodType: initialData?.bloodType || '',
-    allergies: initialData?.allergies || '',
-    medicalHistory: initialData?.medicalHistory || '',
-    status: initialData?.status || 'active',
-    motherName: initialData?.motherName || '',
-    fatherName: initialData?.fatherName || '',
-    birthCity: initialData?.birthCity || '',
-    birthState: initialData?.birthState || '',
-    birthCountry: initialData?.birthCountry || '',
-    raceColor: initialData?.raceColor || '',
-    maritalStatus: initialData?.maritalStatus || '',
-    educationLevel: initialData?.educationLevel || '',
-    occupation: initialData?.occupation || '',
-    occupationCboCode: initialData?.occupationCboCode || '',
+  const [draftRestored, setDraftRestored] = useState(() => {
+    if (initialData) return false;
+    return loadDraft() !== null;
   });
+
+  const [formData, setFormData] = useState(() => {
+    if (initialData) return { ...defaults, ...initialData };
+    const draft = loadDraft();
+    return draft ? { ...defaults, ...draft } : { ...defaults };
+  });
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (initialData) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
+    }, 500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [formData, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(formData);
+    localStorage.removeItem(DRAFT_KEY);
+    setDraftRestored(false);
+  };
+
+  const handleClearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setFormData({ ...defaults });
+    setDraftRestored(false);
   };
 
   const handleChange = (field: string, value: string) => {
@@ -64,6 +109,11 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
         <CardTitle>
           {initialData ? 'Editar Paciente' : 'Cadastrar Novo Paciente'}
         </CardTitle>
+        {draftRestored && (
+          <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5 mt-2">
+            Rascunho restaurado — você está retomando um preenchimento anterior.
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -357,7 +407,67 @@ export function PatientForm({ onSubmit, loading = false, initialData }: PatientF
               />
           </div>
 
+          {/* Dados Demográficos e Socioeconômicos */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="race_color">Raça/Cor</Label>
+              <Select value={formData.raceColor} onValueChange={(value) => handleChange('raceColor', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a raça/cor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(RaceColor).map((value) => (
+                    <SelectItem key={value} value={value}>{RaceColorLabels[value]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="marital_status">Estado Civil</Label>
+              <Select value={formData.maritalStatus} onValueChange={(value) => handleChange('maritalStatus', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o estado civil" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(MaritalStatus).map((value) => (
+                    <SelectItem key={value} value={value}>{MaritalStatusLabels[value]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="education_level">Escolaridade</Label>
+              <Select value={formData.educationLevel} onValueChange={(value) => handleChange('educationLevel', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a escolaridade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(EducationLevel).map((value) => (
+                    <SelectItem key={value} value={value}>{EducationLevelLabels[value]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="occupation">Profissão</Label>
+              <Input
+                id="occupation"
+                value={formData.occupation}
+                onChange={(e) => handleChange('occupation', e.target.value)}
+                placeholder="Ex: Enfermeiro, Professor..."
+              />
+            </div>
+          </div>
+
           <div className="flex justify-end gap-4">
+            {draftRestored && (
+              <Button type="button" variant="outline" onClick={handleClearDraft}>
+                Limpar Rascunho
+              </Button>
+            )}
             <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90">
               {loading ? 'Salvando...' : 'Salvar Paciente'}
             </Button>

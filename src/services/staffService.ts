@@ -1,6 +1,16 @@
 import api from '@/lib/api';
 
-export type RoleType = 'doctor' | 'nurse' | 'admin' | 'receptionist' | 'pharmacist' | 'lab_technician';
+export type RoleType =
+  | 'admin'
+  | 'gestao'
+  | 'doctor'
+  | 'nurse'
+  | 'nurse_manager'
+  | 'pharmacist'
+  | 'receptionist'
+  | 'hospital_manager'
+  | 'finance'
+  | 'staff';
 export type StaffStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
 
 export interface Staff {

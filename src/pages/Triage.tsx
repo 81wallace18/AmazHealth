@@ -13,20 +13,14 @@ import { TriageQueue } from '@/components/triage/TriageQueue';
 import { TriageBoard } from '@/components/triage/TriageBoard';
 import { TriageForm } from '@/components/triage/TriageForm';
 import { triageService } from '@/services/triageService';
-import { sectorService } from '@/services/sectorService';
 import { TriageBoardItem } from '@/types/triage';
-import type { Sector } from '@/types/sector';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { ManchesterColor, MANCHESTER_COLORS } from '@/types/triage';
 
 export default function Triage() {
   const [patients, setPatients] = useState<TriageBoardItem[]>([]);
@@ -34,27 +28,10 @@ export default function Triage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user, loading: authLoading } = useAuth();
-  const [sectors, setSectors] = useState<Sector[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const [isAssignSectorOpen, setIsAssignSectorOpen] = useState(false);
-  const [assigningVisitId, setAssigningVisitId] = useState<string | null>(null);
-  const [assigningPatientName, setAssigningPatientName] = useState('');
-  const [selectedSectorId, setSelectedSectorId] = useState('');
-  const [sectorReason, setSectorReason] = useState('');
-  const [isAssigningSector, setIsAssigningSector] = useState(false);
-  const [assignError, setAssignError] = useState<string | null>(null);
   const [manualAutoRefreshPause, setManualAutoRefreshPause] = useState(false);
-
-  // Reclassify Dialog State
-  const [isReclassifyOpen, setIsReclassifyOpen] = useState(false);
-  const [reclassifyVisitId, setReclassifyVisitId] = useState<string | null>(null);
-  const [reclassifyPatientName, setReclassifyPatientName] = useState('');
-  const [reclassifyColor, setReclassifyColor] = useState<ManchesterColor>('GREEN');
-  const [reclassifyReason, setReclassifyReason] = useState('');
-  const [reclassifyError, setReclassifyError] = useState<string | null>(null);
-  const [isReclassifying, setIsReclassifying] = useState(false);
 
   // Triage Form State
   const [isTriageFormOpen, setIsTriageFormOpen] = useState(false);
@@ -82,21 +59,6 @@ export default function Triage() {
     loadTriageBoard();
   }, [loadTriageBoard]);
 
-  useEffect(() => {
-    const fetchSectors = async () => {
-      try {
-        const data = await sectorService.list('AREA');
-        setSectors(data);
-      } catch (err) {
-        console.error('Error loading sectors:', err);
-      }
-    };
-
-    if (!authLoading && user) {
-      fetchSectors();
-    }
-  }, [authLoading, user]);
-
   // Handle start triage
   const handleStartTriage = (visitId: string, patientName: string) => {
     setSelectedVisitId(visitId);
@@ -123,122 +85,13 @@ export default function Triage() {
     setSelectedPatientName('');
   };
 
-  const handleOpenAssignSector = (visitId: string, patientName: string) => {
-    setAssigningVisitId(visitId);
-    setAssigningPatientName(patientName);
-    setSelectedSectorId('');
-    setSectorReason('');
-    setAssignError(null);
-    setIsAssignSectorOpen(true);
-  };
-
-  const handleAssignDialogChange = (open: boolean) => {
-    setIsAssignSectorOpen(open);
-    if (!open) {
-      setAssigningVisitId(null);
-      setAssigningPatientName('');
-      setSelectedSectorId('');
-      setSectorReason('');
-      setAssignError(null);
-      setIsAssigningSector(false);
-    }
-  };
-
-  const handleAssignSector = async () => {
-    if (!assigningVisitId || !selectedSectorId) {
-      setAssignError('Selecione uma área.');
-      return;
-    }
-
-    if (!sectorReason || sectorReason.trim().length < 5) {
-      setAssignError('Informe o motivo da mudança de área (mínimo 5 caracteres).');
-      return;
-    }
-
-    try {
-      setIsAssigningSector(true);
-      await triageService.assignArea(assigningVisitId, selectedSectorId, sectorReason.trim());
-      await loadTriageBoard();
-      const sector = sectors.find((item) => item.id === selectedSectorId);
-      setAssignError(null);
-      handleAssignDialogChange(false);
-      toast({
-        title: 'Área definida',
-        description: sector
-          ? `${assigningPatientName} foi encaminhado para ${sector.name}.`
-          : 'Área atualizada com sucesso.',
-      });
-    } catch (err: any) {
-      const message = err.message || 'Erro ao atribuir área';
-      setAssignError(message);
-      toast({
-        title: 'Falha ao definir área',
-        description: message,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsAssigningSector(false);
-    }
-  };
-
-  const handleOpenReclassify = (visitId: string, patientName: string) => {
-    setReclassifyVisitId(visitId);
-    setReclassifyPatientName(patientName);
-    setReclassifyColor('GREEN');
-    setReclassifyReason('');
-    setReclassifyError(null);
-    setIsReclassifyOpen(true);
-  };
-
-  const handleReclassifyDialogChange = (open: boolean) => {
-    setIsReclassifyOpen(open);
-    if (!open) {
-      setReclassifyVisitId(null);
-      setReclassifyPatientName('');
-      setReclassifyReason('');
-      setReclassifyError(null);
-      setIsReclassifying(false);
-    }
-  };
-
-  const handleReclassify = async () => {
-    if (!reclassifyVisitId) return;
-    if (!reclassifyReason || reclassifyReason.trim().length < 5) {
-      setReclassifyError('Informe o motivo da reclassificação (mínimo 5 caracteres).');
-      return;
-    }
-
-    try {
-      setIsReclassifying(true);
-      await triageService.reclassify(reclassifyVisitId, {
-        triageColor: reclassifyColor,
-        reason: reclassifyReason.trim(),
-      });
-      await loadTriageBoard();
-      handleReclassifyDialogChange(false);
-      toast({
-        title: 'Reclassificação registrada',
-        description: `${reclassifyPatientName} foi reclassificado para ${MANCHESTER_COLORS[reclassifyColor].label}.`,
-      });
-    } catch (err: any) {
-      const message = err?.message || 'Erro ao reclassificar triagem';
-      setReclassifyError(message);
-      toast({
-        title: 'Falha ao reclassificar',
-        description: message,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsReclassifying(false);
-    }
-  };
 
   // Manual refresh
   const handleManualRefresh = () => {
     setIsLoading(true);
     loadTriageBoard();
   };
-  const modalPause = isTriageFormOpen || isAssignSectorOpen || isReclassifyOpen;
+  const modalPause = isTriageFormOpen;
   const autoRefreshEnabled = !manualAutoRefreshPause && !modalPause;
   const isPollingPaused = !autoRefreshEnabled;
 
@@ -314,10 +167,7 @@ export default function Triage() {
         patients={patients}
         autoRefresh={autoRefreshEnabled}
         onRefresh={loadTriageBoard}
-        canAssignSector={user?.roles?.includes('DOCTOR') || user?.roles?.includes('ADMIN')}
-        canStartAttendance={user?.roles?.includes('DOCTOR')}
-        canReclassify={user?.roles?.includes('NURSE') || user?.roles?.includes('ADMIN')}
-        onReclassify={handleOpenReclassify}
+        canStartAttendance={user?.roles?.includes('DOCTOR') || user?.roles?.includes('ADMIN')}
         onStartAttendance={(visitId, patientName) => {
           void (async () => {
             try {
@@ -338,155 +188,11 @@ export default function Triage() {
           })();
         }}
         isRefreshing={isRefreshing}
-        onAssignSector={handleOpenAssignSector}
         isPaused={isPollingPaused}
         isManualPause={manualAutoRefreshPause}
         disableToggle={modalPause}
         onToggleAutoRefresh={() => setManualAutoRefreshPause((prev) => !prev)}
       />
-
-      <Dialog open={isReclassifyOpen} onOpenChange={handleReclassifyDialogChange}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reclassificar triagem</DialogTitle>
-            <DialogDescription>
-              Atualize a cor Manchester para <strong>{reclassifyPatientName}</strong> e informe o motivo.
-            </DialogDescription>
-          </DialogHeader>
-
-          {reclassifyError && (
-            <Alert variant="destructive" className="mb-3">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{reclassifyError}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="space-y-2">
-            <Label>Nova cor</Label>
-            <Select
-              value={reclassifyColor}
-              onValueChange={(value) => {
-                setReclassifyColor(value as ManchesterColor);
-                setReclassifyError(null);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                {(['RED', 'ORANGE', 'YELLOW', 'GREEN', 'BLUE'] as ManchesterColor[]).map((color) => (
-                  <SelectItem key={color} value={color}>
-                    {MANCHESTER_COLORS[color].label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="reclassify-reason">Motivo *</Label>
-            <Textarea
-              id="reclassify-reason"
-              value={reclassifyReason}
-              onChange={(event) => {
-                setReclassifyReason(event.target.value);
-                setReclassifyError(null);
-              }}
-              rows={4}
-              placeholder="Descreva o motivo clínico/operacional da reclassificação."
-            />
-            <p className="text-xs text-muted-foreground">Obrigatório — mínimo 5 caracteres.</p>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => handleReclassifyDialogChange(false)} disabled={isReclassifying}>
-              Cancelar
-            </Button>
-            <Button onClick={handleReclassify} disabled={isReclassifying}>
-              {isReclassifying ? 'Salvando...' : 'Reclassificar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isAssignSectorOpen} onOpenChange={handleAssignDialogChange}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-          <DialogTitle>Definir área</DialogTitle>
-            <DialogDescription>
-              Selecione a área de destino para <strong>{assigningPatientName}</strong>.
-            </DialogDescription>
-          </DialogHeader>
-
-          {assignError && (
-            <Alert variant="destructive" className="mb-3">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{assignError}</AlertDescription>
-            </Alert>
-          )}
-
-          {sectors.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nenhuma área disponível nesta organização.
-            </p>
-          ) : (
-            <Select
-              value={selectedSectorId}
-              onValueChange={(value) => {
-                setSelectedSectorId(value);
-                setAssignError(null);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a área" />
-              </SelectTrigger>
-              <SelectContent>
-                {sectors.map((sector) => (
-                  <SelectItem key={sector.id} value={sector.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{sector.name}</span>
-                      <span className="text-xs text-muted-foreground">{sector.type}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="sector-reason">Motivo *</Label>
-            <Textarea
-              id="sector-reason"
-              value={sectorReason}
-              onChange={(event) => {
-                setSectorReason(event.target.value);
-                setAssignError(null);
-              }}
-              rows={4}
-              placeholder="Explique por que o paciente está sendo direcionado para esta área."
-            />
-            <p className="text-xs text-muted-foreground">
-              Obrigatório — mínimo 5 caracteres.
-            </p>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => handleAssignDialogChange(false)}
-              disabled={isAssigningSector}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleAssignSector}
-              disabled={isAssigningSector || sectors.length === 0 || !selectedSectorId}
-            >
-              {isAssigningSector ? 'Salvando...' : 'Confirmar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Triage Form Modal */}
       <Dialog open={isTriageFormOpen} onOpenChange={setIsTriageFormOpen}>

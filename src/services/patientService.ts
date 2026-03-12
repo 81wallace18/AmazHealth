@@ -20,6 +20,8 @@ interface PaginatedResponse<T> {
   number: number;
 }
 
+const isNotFoundError = (error: any): boolean => error?.response?.status === 404;
+
 export const patientService = {
   /**
    * US-A1: Busca de pacientes
@@ -57,13 +59,26 @@ export const patientService = {
       return [];
     }
 
-    const response = await api.get<Patient[]>('/patients/check-duplicate', {
-      params: {
-        name: fullName,
-        birthDate: dateOfBirth
+    try {
+      const response = await api.get<Patient[]>('/patients/check-duplicate', {
+        params: {
+          name: fullName,
+          birthDate: dateOfBirth
+        }
+      });
+      return response.data;
+    } catch (error: any) {
+      if (!isNotFoundError(error)) {
+        throw error;
       }
-    });
-    return response.data;
+
+      // Backend atual não expõe /check-duplicate, então usa busca padrão como fallback.
+      const fallback = await this.search({ query: fullName, page: 0, size: 20 });
+      return fallback.content.filter((patient) => {
+        const candidateName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
+        return candidateName.includes(fullName.toLowerCase()) && patient.dateOfBirth === dateOfBirth;
+      });
+    }
   },
 
   /**
@@ -107,15 +122,37 @@ export const patientService = {
    * US-A3: Registrar impressão de identificação (audit trail)
    */
   async printIdentification(patientId: string, attendanceNumber?: string): Promise<void> {
-    await api.post(
-      `/patients/${patientId}/identification/print`,
-      attendanceNumber ? { attendanceNumber } : {}
-    );
+    try {
+      await api.post(
+        `/patients/${patientId}/identification/print`,
+        attendanceNumber ? { attendanceNumber } : {}
+      );
+    } catch (error: any) {
+      if (!isNotFoundError(error)) {
+        throw error;
+      }
+    }
   },
 
   async getIdentification(patientId: string): Promise<PatientIdentification> {
-    const response = await api.get<PatientIdentification>(`/patients/${patientId}/identification`);
-    return response.data;
+    try {
+      const response = await api.get<PatientIdentification>(`/patients/${patientId}/identification`);
+      return response.data;
+    } catch (error: any) {
+      if (!isNotFoundError(error)) {
+        throw error;
+      }
+
+      const patient = await this.getById(patientId);
+      return {
+        patientId: patient.id,
+        organizationId: patient.organizationId,
+        patientCode: patient.patientCode,
+        fullName: `${patient.firstName} ${patient.lastName}`.trim(),
+        dateOfBirth: patient.dateOfBirth,
+        barcode: patient.patientCode,
+      };
+    }
   },
 
   /**

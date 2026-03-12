@@ -1,6 +1,19 @@
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
+type ApiErrorPayload = {
+  message?: string;
+  errors?: Array<{ message?: string } | string>;
+};
+
+type ApiError = {
+  response?: {
+    status?: number;
+    data?: ApiErrorPayload;
+  };
+  request?: unknown;
+};
+
 /**
  * Centralized error handling for API calls
  * Handles 401 (unauthorized) and 403 (forbidden) consistently
@@ -8,7 +21,7 @@ import { useNavigate } from 'react-router-dom';
 export function useApiError() {
   const navigate = useNavigate();
 
-  const handleError = (error: any) => {
+  const handleError = (error: ApiError) => {
     if (error.response) {
       const status = error.response.status;
       
@@ -26,16 +39,21 @@ export function useApiError() {
           toast.error('Recurso não encontrado.');
           break;
           
-        case 422:
+        case 422: {
           const errors = error.response.data?.errors;
           if (errors && Array.isArray(errors)) {
-            errors.forEach((err: any) => {
-              toast.error(err.message || err);
+            errors.forEach((err) => {
+              if (typeof err === 'string') {
+                toast.error(err);
+                return;
+              }
+              toast.error(err.message || 'Dados inválidos.');
             });
           } else {
             toast.error(error.response.data?.message || 'Dados inválidos.');
           }
           break;
+        }
           
         case 500:
           toast.error('Erro interno do servidor. Tente novamente mais tarde.');

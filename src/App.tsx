@@ -22,6 +22,7 @@ import UserManagement from "./pages/UserManagement";
 import Triage from "./pages/Triage";
 import ReceptionTriage from "./pages/ReceptionTriage";
 import Auth from "./pages/Auth";
+import ActivateAccount from "./pages/ActivateAccount";
 import NotFound from "./pages/NotFound";
 import { Unauthorized } from "./pages/Unauthorized";
 
@@ -79,6 +80,11 @@ const App = () => (
           <Route path="/auth" element={
             <PublicRoute>
               <Auth />
+            </PublicRoute>
+          } />
+          <Route path="/activate-account" element={
+            <PublicRoute>
+              <ActivateAccount />
             </PublicRoute>
           } />
           <Route path="/" element={

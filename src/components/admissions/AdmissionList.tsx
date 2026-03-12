@@ -78,6 +78,16 @@ const dischargeSchema = z.object({
 
 type DischargeFormValues = z.infer<typeof dischargeSchema>;
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === 'object' && error !== null) {
+    const maybeResponse = (error as { response?: { data?: { message?: string } } }).response;
+    if (maybeResponse?.data?.message) {
+      return maybeResponse.data.message;
+    }
+  }
+  return fallback;
+}
+
 export function AdmissionList() {
   const [page, setPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]['value']>('ALL');
@@ -124,10 +134,11 @@ export function AdmissionList() {
         console.error('Erro ao buscar internação pelo atendimento:', error);
         toast.error('Não foi possível localizar a internação vinculada a este atendimento.');
       } finally {
-        if (cancelled) return;
-        const next = new URLSearchParams(searchParams);
-        next.delete('attendanceId');
-        setSearchParams(next, { replace: true });
+        if (!cancelled) {
+          const next = new URLSearchParams(searchParams);
+          next.delete('attendanceId');
+          setSearchParams(next, { replace: true });
+        }
       }
     })();
 
@@ -478,8 +489,8 @@ function AllocateBedDialog({ admission, onOpenChange, onSuccess }: AllocateBedDi
       toast.success('Leito alocado com sucesso.');
       setSelectedBed('');
       onSuccess();
-    } catch (error: any) {
-      const message = error?.response?.data?.message || 'Não foi possível alocar o leito.';
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'Não foi possível alocar o leito.');
       toast.error(message);
     }
   };
@@ -549,8 +560,8 @@ function DischargeDialog({ admission, onOpenChange, onSuccess }: DischargeDialog
       toast.success('Alta registrada com sucesso.');
       onSuccess();
       form.reset();
-    } catch (error: any) {
-      const message = error?.response?.data?.message || 'Não foi possível registrar a alta.';
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'Não foi possível registrar a alta.');
       toast.error(message);
     }
   };

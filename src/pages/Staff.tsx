@@ -17,12 +17,16 @@ import { toast } from 'sonner';
 
 const roleLabels: Record<RoleType | 'all', string> = {
   all: 'Todas as Funções',
+  admin: 'Administrador',
+  gestao: 'Gestão',
   doctor: 'Médico',
   nurse: 'Enfermeiro',
-  admin: 'Administrador',
+  nurse_manager: 'Enfermeiro Gestor',
   receptionist: 'Recepcionista',
   pharmacist: 'Farmacêutico',
-  lab_technician: 'Técnico de Laboratório',
+  hospital_manager: 'Gestor Hospitalar',
+  finance: 'Financeiro',
+  staff: 'Staff',
 };
 
 const statusLabels: Record<StaffStatus | 'all', string> = {

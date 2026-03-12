@@ -157,7 +157,7 @@ export interface PatientCreateRequest {
 }
 
 // DTO para atualização
-export interface PatientUpdateRequest extends Partial<PatientCreateRequest> {}
+export type PatientUpdateRequest = Partial<PatientCreateRequest>;
 
 // DTO para busca
 export interface PatientSearchParams {
