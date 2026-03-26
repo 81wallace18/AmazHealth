@@ -12,12 +12,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { TriageQueue } from '@/components/triage/TriageQueue';
 import { TriageBoard } from '@/components/triage/TriageBoard';
 import { TriageForm } from '@/components/triage/TriageForm';
+import { EmergencyBypassDialog } from '@/components/attendance/EmergencyBypassDialog';
 import { triageService } from '@/services/triageService';
 import { TriageBoardItem } from '@/types/triage';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { RefreshCw, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { RefreshCw, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -196,7 +197,10 @@ export default function Triage() {
 
       {/* Triage Form Modal */}
       <Dialog open={isTriageFormOpen} onOpenChange={setIsTriageFormOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+          <DialogTitle className="sr-only">
+            Triagem Manchester - {selectedPatientName}
+          </DialogTitle>
           {selectedVisitId && (
             <TriageForm
               visitId={selectedVisitId}

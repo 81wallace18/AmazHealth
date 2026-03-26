@@ -1,4 +1,4 @@
-import { Phone, Mail, Eye, Pencil, Trash2, Printer, UserPlus } from "lucide-react";
+import { Phone, Mail, Eye, Pencil, Trash2, Printer, UserPlus, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +14,10 @@ interface PatientTableProps {
   onDelete?: (patient: Patient) => void;
   onPrintLabel?: (patient: Patient) => void;
   onStartAttendance?: (patient: Patient) => void;
+  onEmergencyBypass?: (patient: Patient) => void;
 }
 
-export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel, onStartAttendance }: PatientTableProps) {
+export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel, onStartAttendance, onEmergencyBypass }: PatientTableProps) {
   return (
     <Card>
       <CardHeader>
@@ -94,16 +95,30 @@ export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel,
                             Atendimento ativo
                           </Badge>
                         ) : onStartAttendance ? (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            aria-label="Iniciar atendimento"
-                            onClick={() => onStartAttendance(patient)}
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                          >
-                            <UserPlus className="h-4 w-4 mr-1" />
-                            Atender
-                          </Button>
+                          <>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              aria-label="Iniciar atendimento"
+                              onClick={() => onStartAttendance(patient)}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <UserPlus className="h-4 w-4 mr-1" />
+                              Atender
+                            </Button>
+                            {onEmergencyBypass && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                aria-label="Bypass de emergência"
+                                onClick={() => onEmergencyBypass(patient)}
+                                className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+                              >
+                                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                                Bypass
+                              </Button>
+                            )}
+                          </>
                         ) : (
                           <Badge variant="outline" className="text-muted-foreground">
                             Não atendido

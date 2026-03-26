@@ -27,6 +27,10 @@ interface TriageBoardProps {
   onRefresh?: () => void;
   onStartAttendance?: (visitId: string, patientName: string) => void;
   canStartAttendance?: boolean;
+  onAssignSector?: (visitId: string, patientName: string) => void;
+  canAssignSector?: boolean;
+  onReclassify?: (visitId: string, patientName: string) => void;
+  canReclassify?: boolean;
   isRefreshing?: boolean;
   isPaused?: boolean;
   isManualPause?: boolean;
@@ -40,6 +44,10 @@ export function TriageBoard({
   onRefresh,
   onStartAttendance,
   canStartAttendance = false,
+  onAssignSector,
+  canAssignSector = false,
+  onReclassify,
+  canReclassify = false,
   isRefreshing = false,
   isPaused = false,
   isManualPause = false,
@@ -66,14 +74,17 @@ export function TriageBoard({
     BLUE: [],
   };
 
-  // Filter only triaged patients (WAITING_DOCTOR or IN_PROGRESS)
+  // Filter triaged patients + bypass patients (may not have triageColor yet)
   const triagedPatients = patients.filter(
-    (p) => p.triageColor && (p.status === 'WAITING_DOCTOR' || p.status === 'IN_PROGRESS')
+    (p) => (p.triageColor || p.emergencyBypass) && (p.status === 'WAITING_DOCTOR' || p.status === 'IN_PROGRESS')
   );
 
   triagedPatients.forEach((patient) => {
     if (patient.triageColor) {
       patientsByColor[patient.triageColor].push(patient);
+    } else if (patient.emergencyBypass) {
+      // Bypass sem triagem retroativa: mostrar na coluna RED (emergência)
+      patientsByColor.RED.push(patient);
     }
   });
 
@@ -167,7 +178,7 @@ export function TriageBoard({
                       </div>
 
                       {/* Status Badge */}
-                      <div className="mt-2">
+                      <div className="mt-2 flex items-center gap-1">
                         {patient.status === 'IN_PROGRESS' ? (
                           <Badge variant="default" className="text-xs">
                             Em Atendimento
@@ -177,15 +188,24 @@ export function TriageBoard({
                             Aguardando Médico
                           </Badge>
                         )}
+                        {patient.emergencyBypass && (
+                          <Badge variant="destructive" className="text-xs">
+                            BYPASS
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Waiting Time */}
                       <div className="mt-2 flex items-center gap-1 text-xs">
                         <Clock className="h-3 w-3" />
-                        <span className={exceeded ? 'text-red-600 font-semibold' : 'text-gray-600'}>
-                          {formatWaitingTime(patient.waitingTimeMinutes)}
-                        </span>
-                        {exceeded && <AlertTriangle className="h-3 w-3 text-red-600 ml-1" />}
+                        {patient.emergencyBypass && !patient.triageColor ? (
+                          <span className="text-amber-600 font-medium">Triagem pendente</span>
+                        ) : (
+                          <span className={exceeded ? 'text-red-600 font-semibold' : 'text-gray-600'}>
+                            {formatWaitingTime(patient.waitingTimeMinutes)}
+                          </span>
+                        )}
+                        {exceeded && !patient.emergencyBypass && <AlertTriangle className="h-3 w-3 text-red-600 ml-1" />}
                       </div>
 
                       {/* Exceeded Warning */}

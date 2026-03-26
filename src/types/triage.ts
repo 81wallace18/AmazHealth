@@ -74,6 +74,7 @@ export interface TriageBoardItem {
   areaName?: string | null;
   serviceId?: string | null;
   serviceName?: string | null;
+  emergencyBypass?: boolean;
 }
 
 /**

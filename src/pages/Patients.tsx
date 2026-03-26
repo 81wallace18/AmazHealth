@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { usePatients } from "@/hooks/usePatients";
 import { PatientForm } from "@/components/forms/PatientForm";
 import { NewAttendanceDialog } from "@/components/attendance/NewAttendanceDialog";
+import { EmergencyBypassDialog } from "@/components/attendance/EmergencyBypassDialog";
 import { PatientStats } from "@/components/patients/PatientStats";
 import { PatientFilters } from "@/components/patients/PatientFilters";
 import { PatientTable } from "@/components/patients/PatientTable";
@@ -24,6 +25,8 @@ export default function Patients() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [attendancePatient, setAttendancePatient] = useState<any>(null);
+  const [isBypassOpen, setIsBypassOpen] = useState(false);
+  const [bypassPatient, setBypassPatient] = useState<any>(null);
 
   useEffect(() => {
     document.title = "Pacientes | Gestão de Pacientes";
@@ -86,6 +89,11 @@ export default function Patients() {
   const handleStartAttendance = (patient: any) => {
     setAttendancePatient(patient);
     setIsAttendanceOpen(true);
+  };
+
+  const handleEmergencyBypass = (patient: any) => {
+    setBypassPatient(patient);
+    setIsBypassOpen(true);
   };
 
   const handleCreateAttendance = async (data: { visitType: 'URGENCIA' | 'AMBULATORIAL'; doctorId: string; chiefComplaint: string }) => {
@@ -156,12 +164,13 @@ export default function Patients() {
         onClearFilters={handleClearFilters}
       />
 
-      <PatientTable 
+      <PatientTable
         patients={filteredPatients}
         onView={openView}
         onEdit={openEdit}
         onDelete={capabilities.canDeletePatients ? handleDeletePatient : undefined}
         onStartAttendance={capabilities.canCreateAttendance ? handleStartAttendance : undefined}
+        onEmergencyBypass={capabilities.canCreateAttendance ? handleEmergencyBypass : undefined}
       />
 
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
@@ -197,6 +206,18 @@ export default function Patients() {
         }}
         onSubmit={handleCreateAttendance}
         loading={loading}
+      />
+
+      <EmergencyBypassDialog
+        patient={bypassPatient}
+        open={isBypassOpen}
+        onOpenChange={(open) => {
+          setIsBypassOpen(open);
+          if (!open) {
+            setBypassPatient(null);
+          }
+        }}
+        onSuccess={() => refetch()}
       />
     </div>
   );
