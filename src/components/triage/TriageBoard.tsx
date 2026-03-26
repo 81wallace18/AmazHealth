@@ -190,7 +190,7 @@ export function TriageBoard({
                         )}
                         {patient.emergencyBypass && (
                           <Badge variant="destructive" className="text-xs">
-                            BYPASS
+                            EMERGÊNCIA
                           </Badge>
                         )}
                       </div>

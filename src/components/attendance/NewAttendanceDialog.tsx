@@ -27,7 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Patient } from "@/types/patient";
@@ -35,12 +34,11 @@ import { staffService } from "@/services/staffService";
 import type { Staff } from "@/services/staffService";
 import { useToast } from "@/hooks/use-toast";
 
-// Schema de validação para novo atendimento
 const newAttendanceSchema = z.object({
   visitType: z.enum(["URGENCIA", "AMBULATORIAL"], {
     required_error: "Tipo de atendimento é obrigatório",
   }),
-  doctorId: z.string().min(1, "Selecione o médico responsável"),
+  doctorId: z.string().optional(),
   chiefComplaint: z.string().min(3, "Queixa principal é obrigatória"),
 });
 
@@ -54,10 +52,6 @@ interface NewAttendanceDialogProps {
   loading?: boolean;
 }
 
-/**
- * Modal de criação de novo atendimento (Story Map: "Vincular atendimento")
- * Completa o fluxo: Buscar/cadastrar paciente → Emitir identificação → Vincular atendimento
- */
 export function NewAttendanceDialog({
   patient,
   open,
@@ -79,6 +73,8 @@ export function NewAttendanceDialog({
     },
   });
 
+  const visitType = form.watch("visitType");
+
   useEffect(() => {
     if (!open) return;
     const loadDoctors = async () => {
@@ -86,12 +82,6 @@ export function NewAttendanceDialog({
         setLoadingDoctors(true);
         const data = await staffService.findActiveDoctors();
         setDoctors(data);
-        if (!form.getValues("doctorId") && data.length > 0) {
-          const preferred =
-            data.find((doctor) => (doctor.email || "").toLowerCase() === "medico@hospital.com") ??
-            data[0];
-          form.setValue("doctorId", preferred.id, { shouldValidate: true });
-        }
       } catch (error) {
         console.error("Erro ao carregar médicos:", error);
       } finally {
@@ -106,7 +96,10 @@ export function NewAttendanceDialog({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(data);
+      await onSubmit({
+        ...data,
+        doctorId: data.doctorId || undefined,
+      });
       toast({
         title: "Atendimento criado",
         description: "Paciente enviado para triagem.",
@@ -142,7 +135,6 @@ export function NewAttendanceDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Informações do Paciente */}
         <Card className="bg-muted/50">
           <CardContent className="pt-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -174,10 +166,8 @@ export function NewAttendanceDialog({
           </CardContent>
         </Card>
 
-        {/* Formulário */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            {/* Tipo de Atendimento */}
             <FormField
               control={form.control}
               name="visitType"
@@ -220,42 +210,36 @@ export function NewAttendanceDialog({
               )}
             />
 
-            {/* Médico responsável */}
-            <FormField
-              control={form.control}
-              name="doctorId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <Stethoscope className="h-4 w-4" />
-                    Médico responsável *
-                  </FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={loadingDoctors ? "Carregando médicos..." : "Selecione o médico"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {doctors.length === 0 ? (
-                        <SelectItem value="no-doctor" disabled>
-                          Nenhum médico ativo disponível
-                        </SelectItem>
-                      ) : (
-                        doctors.map((doctor) => (
+            {visitType === "AMBULATORIAL" && (
+              <FormField
+                control={form.control}
+                name="doctorId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Stethoscope className="h-4 w-4" />
+                      Médico responsável
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={loadingDoctors ? "Carregando médicos..." : "Selecione o médico (opcional)"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {doctors.map((doctor) => (
                           <SelectItem key={doctor.id} value={doctor.id}>
                             Dr(a). {doctor.firstName} {doctor.lastName}
                           </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
-            {/* Queixa Principal */}
             <FormField
               control={form.control}
               name="chiefComplaint"
@@ -263,7 +247,7 @@ export function NewAttendanceDialog({
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    Queixa Principal / Motivo da Consulta *
+                    Queixa Principal / Motivo *
                   </FormLabel>
                   <FormControl>
                     <Textarea
@@ -277,14 +261,12 @@ export function NewAttendanceDialog({
               )}
             />
 
-            {/* Informação sobre próximos passos */}
             <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <p className="text-sm text-blue-900 dark:text-blue-100 font-semibold mb-2">
-                📋 Próximos passos após criar o atendimento:
+                Próximos passos:
               </p>
               <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1 ml-4 list-decimal">
                 <li>Número de atendimento será gerado automaticamente</li>
-                <li>Etiqueta de identificação poderá ser impressa</li>
                 <li>Paciente será encaminhado para triagem (Protocolo de Manchester)</li>
                 <li>Após triagem, será setorizado para atendimento médico</li>
               </ol>

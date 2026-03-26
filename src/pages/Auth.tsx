@@ -4,8 +4,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useForm } from 'react-hook-form';
@@ -20,37 +18,9 @@ const loginSchema = z.object({
   rememberMe: z.boolean().optional(),
 });
 
-const signupSchema = z.object({
-  username: z.string().min(3, 'Username deve ter pelo menos 3 caracteres'),
-  email: z.string().email('Email inválido'),
-  password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
-  confirmPassword: z.string(),
-  registrationNumber: z.string().min(1, 'Número de registro é obrigatório'),
-  fullName: z.string().min(1, 'Nome completo é obrigatório'),
-  area: z.string().min(1, 'Área é obrigatória'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Senhas não coincidem",
-  path: ["confirmPassword"],
-});
-
-const healthcareAreas = [
-  'Medicina',
-  'Enfermagem',
-  'Fisioterapia',
-  'Psicologia',
-  'Nutrição',
-  'Farmácia',
-  'Odontologia',
-  'Radiologia',
-  'Laboratório',
-  'Administração',
-  'Outros'
-];
-
 export default function Auth() {
-  const { signIn, signUp, loading } = useAuth();
+  const { signIn, loading } = useAuth();
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -62,21 +32,7 @@ export default function Auth() {
     },
   });
 
-  const signupForm = useForm<z.infer<typeof signupSchema>>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      username: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      registrationNumber: '',
-      fullName: '',
-      area: '',
-    },
-  });
-
   const onLogin = async (values: z.infer<typeof loginSchema>) => {
-    // OrganizationId é opcional - backend usa primeira org do usuário se não fornecido
     loginForm.clearErrors('root');
     const { error, message } = await signIn(
       values.login,
@@ -91,21 +47,6 @@ export default function Auth() {
     }
   };
 
-  const onSignup = async (values: z.infer<typeof signupSchema>) => {
-    const { error } = await signUp(
-      values.username,
-      values.email,
-      values.password,
-      values.registrationNumber,
-      values.fullName,
-      values.area
-    );
-    if (!error) {
-      // Após cadastro, redireciona direto para home (já está logado)
-      navigate('/');
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -116,184 +57,64 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={isLogin ? 'login' : 'signup'} onValueChange={(value) => setIsLogin(value === 'login')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Cadastro</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <Form {...loginForm}>
-                <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
-                  <FormField
-                    control={loginForm.control}
-                    name="login"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email ou Username</FormLabel>
-                        <FormControl>
-                          <Input placeholder="seu.email@exemplo.com ou username" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={loginForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Senha</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={loginForm.control}
-                    name="rememberMe"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center gap-2 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={(checked) => field.onChange(checked === true)}
-                          />
-                        </FormControl>
-                        <FormLabel className="text-sm font-normal">
-                          Permanecer conectado neste dispositivo
-                        </FormLabel>
-                      </FormItem>
-                    )}
-                  />
-                  {loginForm.formState.errors.root?.message && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{loginForm.formState.errors.root.message}</AlertDescription>
-                    </Alert>
-                  )}
-                  <div className="text-xs text-muted-foreground">
-                    Dica: use seu email institucional ou username cadastrado. Em caso de bloqueio,
-                    contate a administração.
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Entrando...' : 'Entrar'}
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-            
-            <TabsContent value="signup">
-              <Form {...signupForm}>
-                <form onSubmit={signupForm.handleSubmit(onSignup)} className="space-y-4">
-                  <FormField
-                    control={signupForm.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <Input placeholder="seu_username" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="registrationNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Número do Registro Profissional</FormLabel>
-                        <FormControl>
-                          <Input placeholder="CRM, COREN, CRF, etc." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome Completo</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Seu nome completo" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="area"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Área de Atuação</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione sua área" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {healthcareAreas.map((area) => (
-                              <SelectItem key={area} value={area}>{area}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="seu.email@exemplo.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Senha</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirmar Senha</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Cadastrando...' : 'Cadastrar'}
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-          </Tabs>
+          <Form {...loginForm}>
+            <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+              <FormField
+                control={loginForm.control}
+                name="login"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email ou Username</FormLabel>
+                    <FormControl>
+                      <Input placeholder="seu.email@exemplo.com ou username" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={loginForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Senha</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={loginForm.control}
+                name="rememberMe"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                      />
+                    </FormControl>
+                    <FormLabel className="text-sm font-normal">
+                      Permanecer conectado neste dispositivo
+                    </FormLabel>
+                  </FormItem>
+                )}
+              />
+              {loginForm.formState.errors.root?.message && (
+                <Alert variant="destructive">
+                  <AlertDescription>{loginForm.formState.errors.root.message}</AlertDescription>
+                </Alert>
+              )}
+              <div className="text-xs text-muted-foreground">
+                Acesso por convite. Solicite ao gestor da unidade caso ainda não tenha acesso.
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Entrando...' : 'Entrar'}
+              </Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>

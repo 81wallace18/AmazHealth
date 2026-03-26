@@ -8,6 +8,7 @@ import {
   OrganizationInfo,
 } from '@/services/authService';
 import { authStorage } from '@/lib/authStorage';
+import { startProactiveRefresh, stopProactiveRefresh } from '@/lib/api';
 
 interface User {
   id: string;
@@ -19,6 +20,7 @@ interface User {
   staffId?: string | null;
   activeSectorId?: string | null;
   roles: string[];
+  enabledModules?: string[] | null;
   organizations?: OrganizationInfo[];
 }
 
@@ -35,6 +37,7 @@ const mapAuthUser = (authUser: AuthResponse['user']): User => ({
   staffId: authUser.staffId ?? null,
   activeSectorId: authUser.activeSectorId ?? null,
   roles: normalizeRoles(authUser.roles),
+  enabledModules: authUser.enabledModules ?? null,
 });
 
 const mapProfileToUser = (profile: MeResponse): User => ({
@@ -56,6 +59,7 @@ export function useAuth() {
   const navigate = useNavigate();
 
   const clearSession = () => {
+    stopProactiveRefresh();
     authStorage.clear();
     setUser(null);
   };
@@ -119,6 +123,7 @@ export function useAuth() {
       });
 
       syncAuthResponse(response, rememberMe);
+      startProactiveRefresh();
       toast.success('Login realizado com sucesso!');
       return { error: null, message: null };
     } catch (error: any) {
@@ -173,6 +178,7 @@ export function useAuth() {
       });
 
       syncAuthResponse(response);
+      startProactiveRefresh();
       toast.success('Cadastro realizado com sucesso! Bem-vindo(a)!');
       return { error: null, message: null };
     } catch (error: any) {

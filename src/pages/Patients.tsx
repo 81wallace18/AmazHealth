@@ -96,13 +96,13 @@ export default function Patients() {
     setIsBypassOpen(true);
   };
 
-  const handleCreateAttendance = async (data: { visitType: 'URGENCIA' | 'AMBULATORIAL'; doctorId: string; chiefComplaint: string }) => {
+  const handleCreateAttendance = async (data: { visitType: 'URGENCIA' | 'AMBULATORIAL'; doctorId?: string; chiefComplaint: string }) => {
     if (!attendancePatient) return;
     await attendanceService.create({
       patientId: attendancePatient.id,
-      doctorId: data.doctorId,
       visitType: data.visitType,
       chiefComplaint: data.chiefComplaint,
+      ...(data.doctorId ? { doctorId: data.doctorId } : {}),
     });
     await refetch();
   };

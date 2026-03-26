@@ -32,16 +32,25 @@ export function AppHeader() {
       .toUpperCase();
   };
 
+  const handleUnavailableFeature = (feature: string) => {
+    toast.info(`${feature} ainda não está disponível.`, {
+      description: "A ação foi ocultada do fluxo principal e voltará quando estiver completa.",
+    });
+  };
+
   return (
     <header className="h-14 border-b bg-card shadow-soft flex items-center px-4 gap-4">
-      <SidebarTrigger className="md:hidden" />
+      <SidebarTrigger />
 
       <div className="flex-1 flex items-center gap-4">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar pacientes, médicos..."
+            placeholder="Busca global será ativada em breve"
             className="pl-10"
+            disabled
+            readOnly
+            aria-label="Busca global indisponível"
           />
         </div>
       </div>
@@ -52,15 +61,10 @@ export function AppHeader() {
           size="icon"
           className="relative"
           onClick={() => {
-            toast.info("Notificações em breve.", {
-              description: "Este painel será ativado nas próximas versões.",
-            });
+            handleUnavailableFeature("Notificações");
           }}
         >
           <Bell className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-            3
-          </span>
         </Button>
 
         <DropdownMenu>
@@ -88,11 +92,11 @@ export function AppHeader() {
               <div>Papéis: {user?.roles?.join(', ') || 'Nenhum'}</div>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleUnavailableFeature("Meu Perfil")}>
               <User className="mr-2 h-4 w-4" />
               Meu Perfil
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleUnavailableFeature("Configurações")}>
               <Settings className="mr-2 h-4 w-4" />
               Configurações
             </DropdownMenuItem>

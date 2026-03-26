@@ -33,17 +33,32 @@ import { useAuth } from "@/hooks/useAuth";
 const createUserSchema = z.object({
   fullName: z.string().min(1, "Nome completo é obrigatório"),
   email: z.string().email("Email inválido"),
-  role: z.enum(["admin", "doctor", "nurse", "pharmacist", "receptionist", "staff"]),
+  role: z.enum([
+    "admin",
+    "gestao",
+    "doctor",
+    "nurse",
+    "nurse_manager",
+    "pharmacist",
+    "receptionist",
+    "hospital_manager",
+    "finance",
+    "staff",
+  ]),
 });
 
 type CreateUserFormValues = z.infer<typeof createUserSchema>;
 
 const ROLE_LABELS: Record<RoleType, string> = {
   admin: "Administrador",
+  gestao: "Gestão",
   doctor: "Médico",
   nurse: "Enfermeiro",
+  nurse_manager: "Coord. Enfermagem",
   pharmacist: "Farmacêutico",
   receptionist: "Recepcionista",
+  hospital_manager: "Gestão Hospitalar",
+  finance: "Financeiro",
   staff: "Funcionário",
 };
 
@@ -51,11 +66,17 @@ function roleToBadgeVariant(role: RoleType): "default" | "secondary" | "outline"
   switch (role) {
     case "admin":
       return "destructive";
+    case "gestao":
+    case "hospital_manager":
+      return "secondary";
     case "doctor":
       return "default";
     case "nurse":
+    case "nurse_manager":
     case "pharmacist":
       return "secondary";
+    case "finance":
+      return "outline";
     default:
       return "outline";
   }
@@ -233,7 +254,18 @@ export default function UserManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       {(
-                        ["admin", "doctor", "nurse", "pharmacist", "receptionist", "staff"] as RoleType[]
+                        [
+                          "admin",
+                          "gestao",
+                          "doctor",
+                          "nurse",
+                          "nurse_manager",
+                          "pharmacist",
+                          "receptionist",
+                          "hospital_manager",
+                          "finance",
+                          "staff",
+                        ] as RoleType[]
                       ).map((role) => (
                         <SelectItem key={role} value={role}>
                           {ROLE_LABELS[role]}
@@ -261,26 +293,30 @@ export default function UserManagement() {
                 </DialogFooter>
               </form>
               {activationInfo && (
-                <div className="mt-4 space-y-2 border-t pt-4">
-                  <p className="text-sm font-medium">Dados de ativação</p>
+                <div className="mt-4 space-y-3 border-t pt-4">
+                  <p className="text-sm font-medium text-green-700">Usuário criado com sucesso!</p>
                   <p className="text-xs text-muted-foreground">
-                    Envie o link ou o token abaixo para o profissional concluir a ativação.
+                    Envie o link abaixo para o profissional criar a senha e ativar a conta.
                   </p>
-                  <div className="space-y-1 text-xs">
+                  <div className="space-y-2 text-xs">
                     <div>
                       <span className="font-semibold">Email:</span> {activationInfo.email}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold">Link:</span>
                       <code className="px-2 py-1 rounded bg-muted text-xs flex-1 truncate">
                         {activationInfo.activationUrl}
                       </code>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">Token:</span>
-                      <code className="px-2 py-1 rounded bg-muted text-xs flex-1 truncate">
-                        {activationInfo.activationToken}
-                      </code>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(activationInfo.activationUrl);
+                          toast.success("Link copiado!");
+                        }}
+                      >
+                        Copiar Link
+                      </Button>
                     </div>
                   </div>
                 </div>

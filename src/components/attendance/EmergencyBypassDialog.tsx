@@ -100,13 +100,13 @@ export function EmergencyBypassDialog({
         visitType: 'URGENCIA',
       });
 
-      toast.success('Bypass de emergência criado. Paciente em atendimento imediato.');
+      toast.success('Emergência registrada. Paciente em atendimento imediato.');
       form.reset();
       onOpenChange(false);
       onSuccess?.();
     } catch (error: any) {
       const message =
-        error?.response?.data?.message || 'Erro ao criar bypass de emergência.';
+        error?.response?.data?.message || 'Erro ao registrar emergência.';
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -121,7 +121,7 @@ export function EmergencyBypassDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
-            Bypass de Emergência
+            Atendimento de Emergência
           </DialogTitle>
           <DialogDescription>
             Paciente crítico entra direto em atendimento. Triagem será realizada
@@ -171,10 +171,10 @@ export function EmergencyBypassDialog({
               name="bypassJustification"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Justificativa do bypass *</FormLabel>
+                  <FormLabel>Justificativa da emergência *</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Descreva a razão clínica para bypass do fluxo normal (mín. 10 caracteres)"
+                      placeholder="Descreva a razão clínica para atendimento imediato (mín. 10 caracteres)"
                       rows={3}
                       {...field}
                     />
@@ -237,7 +237,7 @@ export function EmergencyBypassDialog({
                 variant="destructive"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Criando...' : 'Criar Bypass de Emergência'}
+                {isSubmitting ? 'Registrando...' : 'Registrar Emergência'}
               </Button>
             </DialogFooter>
           </form>

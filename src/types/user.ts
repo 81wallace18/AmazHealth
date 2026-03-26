@@ -1,9 +1,13 @@
 export type RoleType =
   | 'admin'
+  | 'gestao'
   | 'doctor'
   | 'nurse'
+  | 'nurse_manager'
   | 'pharmacist'
   | 'receptionist'
+  | 'hospital_manager'
+  | 'finance'
   | 'staff';
 
 export interface OrganizationRole {
@@ -71,4 +75,3 @@ export interface PageResponse<T> {
   size: number;
   number: number;
 }
-

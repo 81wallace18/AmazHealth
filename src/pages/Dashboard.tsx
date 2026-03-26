@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,13 +18,24 @@ import {
   Clock,
 } from "lucide-react";
 import dashboardService from "@/services/dashboardService";
+import { useAuth } from "@/hooks/useAuth";
+import { getPrimaryRole } from "@/auth/rolePriority";
+import type { UserRole } from "@/auth/capabilities";
+
+type QuickLink = {
+  label: string;
+  description: string;
+  to: string;
+};
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: () => dashboardService.getSummary(),
     staleTime: 60_000
   });
+  const primaryRole = getPrimaryRole(user?.roles);
 
   const statsCards = useMemo(() => {
     const summary = {
@@ -65,13 +77,110 @@ export default function Dashboard() {
     ? format(new Date(data.generatedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
     : null;
 
+  const hero = useMemo(() => {
+    const heroByRole: Record<UserRole, { title: string; description: string }> = {
+      ADMIN: {
+        title: "Painel Administrativo",
+        description: "Visão consolidada de operação, acessos, equipes e indicadores estratégicos.",
+      },
+      GESTAO: {
+        title: "Painel Operacional",
+        description: "Acompanhe fluxo assistencial, capacidade hospitalar e resultados da operação.",
+      },
+      HOSPITAL_MANAGER: {
+        title: "Painel Hospitalar",
+        description: "Monitore leitos, internações, capacidade e gargalos da unidade.",
+      },
+      FINANCE: {
+        title: "Painel Financeiro",
+        description: "Acompanhe cobranças, pendências e indicadores financeiros da operação.",
+      },
+      NURSE_MANAGER: {
+        title: "Painel de Enfermagem",
+        description: "Gerencie priorização clínica, triagem e apoio operacional do plantão.",
+      },
+      DOCTOR: {
+        title: "Painel Médico",
+        description: "Acesse rapidamente a fila médica, evoluções e desfechos do plantão.",
+      },
+      NURSE: {
+        title: "Painel de Triagem",
+        description: "Priorize pacientes, acompanhe classificações e distribua o fluxo clínico.",
+      },
+      PHARMACIST: {
+        title: "Painel da Farmácia",
+        description: "Monitore prescrições, dispensações e itens com estoque crítico.",
+      },
+      RECEPTIONIST: {
+        title: "Painel da Recepção",
+        description: "Cadastro de pacientes, abertura de fichas e acompanhamento da fila inicial.",
+      },
+    };
+
+    return (
+      (primaryRole && heroByRole[primaryRole]) || {
+        title: "Dashboard",
+        description: "Visão geral em tempo real das operações hospitalares.",
+      }
+    );
+  }, [primaryRole]);
+
+  const quickLinks = useMemo<QuickLink[]>(() => {
+    const linksByRole: Partial<Record<UserRole, QuickLink[]>> = {
+      ADMIN: [
+        { label: "Usuários", description: "Acessos e permissões", to: "/users" },
+        { label: "Equipe", description: "Gestão de colaboradores", to: "/staff" },
+        { label: "Relatórios", description: "Indicadores e consolidados", to: "/reports" },
+        { label: "Faturamento", description: "Cobranças e repasses", to: "/billing" },
+      ],
+      GESTAO: [
+        { label: "Gestão Hospitalar", description: "Capacidade e operação", to: "/hospital" },
+        { label: "Relatórios", description: "Indicadores operacionais", to: "/reports" },
+        { label: "Equipe", description: "Visão da equipe assistencial", to: "/staff" },
+      ],
+      HOSPITAL_MANAGER: [
+        { label: "Gestão Hospitalar", description: "Leitos, wards e capacidade", to: "/hospital" },
+        { label: "Internação", description: "Pacientes admitidos", to: "/admissions" },
+        { label: "Relatórios", description: "Ocupação e produtividade", to: "/reports" },
+      ],
+      FINANCE: [
+        { label: "Faturamento", description: "Cobranças e repasses", to: "/billing" },
+        { label: "Relatórios", description: "Indicadores financeiros", to: "/reports" },
+      ],
+      NURSE_MANAGER: [
+        { label: "Triagem", description: "Fila e priorização clínica", to: "/triage" },
+        { label: "Pacientes", description: "Acompanhamento do plantão", to: "/patients" },
+        { label: "Gestão Hospitalar", description: "Capacidade assistencial", to: "/hospital" },
+      ],
+      DOCTOR: [
+        { label: "Consultas", description: "Fila médica do plantão", to: "/consultations" },
+        { label: "Prontuários", description: "Histórico e evolução clínica", to: "/medical-records" },
+        { label: "Laboratório", description: "Solicitações e resultados", to: "/laboratory" },
+      ],
+      NURSE: [
+        { label: "Triagem", description: "Classificação de risco e fila", to: "/triage" },
+        { label: "Pacientes", description: "Acompanhamento de pacientes", to: "/patients" },
+      ],
+      PHARMACIST: [
+        { label: "Farmácia", description: "Fila, estoque e alertas", to: "/pharmacy" },
+      ],
+      RECEPTIONIST: [
+        { label: "Recepção", description: "Abrir fichas e acompanhar fila", to: "/reception/triage" },
+        { label: "Pacientes", description: "Cadastro e busca de pacientes", to: "/patients" },
+        { label: "Agendamentos", description: "Agenda e marcações", to: "/appointments" },
+      ],
+    };
+
+    return primaryRole ? linksByRole[primaryRole] ?? [] : [];
+  }, [primaryRole]);
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-3xl font-bold">{hero.title}</h1>
           <p className="text-muted-foreground">
-            Visão geral em tempo real das operações hospitalares
+            {hero.description}
           </p>
           {lastUpdated && (
             <p className="text-xs text-muted-foreground mt-1">
@@ -128,52 +237,41 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Atividades Recentes - Placeholder */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            Atividades Recentes
+            Ações Rápidas
           </CardTitle>
-          <CardDescription>Últimas ações no sistema</CardDescription>
+          <CardDescription>Módulos mais relevantes para o papel atual</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <div>
-              <p><strong>Atendimentos ativos:</strong> {data?.ongoingAttendances ?? 0}</p>
-              <p><strong>Pacientes aguardando entrada hoje:</strong> {data?.todaysAttendances ?? 0}</p>
+          {quickLinks.length === 0 ? (
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div>
+                <p>Não há atalhos configurados para o papel atual.</p>
+                <p>Use a navegação lateral para acessar os módulos disponíveis.</p>
+              </div>
+              <Clock className="h-6 w-6" />
             </div>
-            <Clock className="h-6 w-6" />
-          </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {quickLinks.map((link) => (
+                <Link key={link.to} to={link.to}>
+                  <Card className="h-full transition-colors hover:border-primary">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">{link.label}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm text-muted-foreground">
+                      {link.description}
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {/* Gráficos - Placeholder para futuras implementações */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Atendimentos por Dia</CardTitle>
-            <CardDescription>Últimos 7 dias</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground text-sm">
-              Gráfico será implementado após integração completa com backend
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Taxa de Ocupação</CardTitle>
-            <CardDescription>Leitos hospitalares</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground text-sm">
-              Gráfico será implementado após integração completa com backend
-            </p>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

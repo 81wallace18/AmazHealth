@@ -59,8 +59,8 @@ const medicationTypes: { value: MedicationType; label: string }[] = [
 const prescriptionStatuses = ['DRAFT', 'ACTIVE'] as const;
 
 const itemSchema = z.object({
-  medicineId: z.string().uuid('Selecione um medicamento'),
-  medicineName: z.string().min(2, 'Medicamento é obrigatório'),
+  medicineId: z.string().optional().default(''),
+  medicineName: z.string().min(2, 'Nome do medicamento é obrigatório'),
   medicineDescription: z.string().optional(),
   medicationType: z.enum(medicationTypes.map((m) => m.value) as [MedicationType, ...MedicationType[]]),
   dosage: z.string().min(1, 'Informe a dosagem'),
@@ -337,7 +337,7 @@ export function PrescriptionForm({
         status: values.status,
         notes: values.notes?.trim() || undefined,
         items: values.items.map((item) => ({
-          medicineId: item.medicineId,
+          medicineId: item.medicineId || undefined,
           medicineName: item.medicineName,
           medicineDescription: item.medicineDescription?.trim() || undefined,
           medicationType: item.medicationType,
@@ -536,7 +536,7 @@ export function PrescriptionForm({
                           <FormItem>
                             <FormLabel>Nome</FormLabel>
                             <FormControl>
-                              <Input placeholder="Selecione um medicamento acima" {...field} readOnly />
+                              <Input placeholder="Nome do medicamento" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

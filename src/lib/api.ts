@@ -8,9 +8,9 @@ import { authStorage } from './authStorage';
  */
 const resolvedBaseURL = (() => {
   const fromEnv = import.meta.env.VITE_API_URL;
-  // Em builds de produção, o fallback seguro é relativo (ex.: /api/v1),
-  // evitando apontar para "localhost" do usuário.
-  const fallback = import.meta.env.PROD ? '/api/v1' : 'http://localhost:8080/api/v1';
+  // Usa caminho relativo por padrão para funcionar tanto em localhost
+  // quanto via IP da rede quando o frontend estiver atrás do proxy do Vite/nginx.
+  const fallback = '/api/v1';
   return String(fromEnv || fallback).replace(/\/+$/, '');
 })();
 
@@ -22,6 +22,47 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+/**
+ * Refresh proativo: renova o token antes de expirar.
+ * Agenda renovação a cada 12 minutos (token expira em 15 min).
+ */
+let refreshTimerId: ReturnType<typeof setInterval> | null = null;
+
+function startProactiveRefresh() {
+  stopProactiveRefresh();
+  refreshTimerId = setInterval(async () => {
+    const token = authStorage.getAccessToken();
+    if (!token) return;
+    try {
+      const response = await axios.post(
+        `${resolvedBaseURL}/auth/refresh`,
+        {},
+        { withCredentials: true }
+      );
+      const { accessToken } = response.data;
+      if (accessToken) {
+        authStorage.updateTokens({ accessToken });
+      }
+    } catch {
+      // Refresh falhou silenciosamente — o interceptor de 401 cuida como fallback
+    }
+  }, 6 * 60 * 60 * 1000); // 6 horas (token dura 12h)
+}
+
+function stopProactiveRefresh() {
+  if (refreshTimerId) {
+    clearInterval(refreshTimerId);
+    refreshTimerId = null;
+  }
+}
+
+// Inicia o refresh proativo se já houver token (ex.: reload de página)
+if (authStorage.getAccessToken()) {
+  startProactiveRefresh();
+}
+
+export { startProactiveRefresh, stopProactiveRefresh };
 
 /**
  * Interceptor para adicionar token JWT em todas as requisições.
@@ -65,11 +106,15 @@ api.interceptors.response.use(
         const { accessToken } = response.data;
         authStorage.updateTokens({ accessToken });
 
+        // Reinicia timer de refresh proativo
+        startProactiveRefresh();
+
         // Retry original request com novo token
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
         // Refresh falhou, mas NÃO faz logout automático
+        stopProactiveRefresh();
         return Promise.reject(refreshError);
       }
     }

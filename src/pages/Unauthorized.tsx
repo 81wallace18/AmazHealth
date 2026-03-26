@@ -26,7 +26,7 @@ export function Unauthorized() {
               Entre em contato com o administrador do sistema se precisar de acesso a este recurso.
             </p>
             <Button 
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/')}
               className="w-full"
             >
               Voltar para o Início

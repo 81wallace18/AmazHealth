@@ -110,12 +110,12 @@ export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel,
                               <Button
                                 variant="outline"
                                 size="sm"
-                                aria-label="Bypass de emergência"
+                                aria-label="Atendimento de emergência"
                                 onClick={() => onEmergencyBypass(patient)}
                                 className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
                               >
                                 <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-                                Bypass
+                                Emergência
                               </Button>
                             )}
                           </>

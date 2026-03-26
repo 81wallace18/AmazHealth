@@ -3,9 +3,9 @@ import type { PatientIdentification } from '@/types/patient';
 
 export interface CreateAttendanceDTO {
   patientId: string;
-  doctorId: string;
   chiefComplaint: string;
   visitType: 'URGENCIA' | 'AMBULATORIAL';
+  doctorId?: string;
 }
 
 export type VisitStatus =

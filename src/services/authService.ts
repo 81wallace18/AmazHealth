@@ -33,6 +33,7 @@ export interface AuthResponse {
     staffId?: string | null;
     activeSectorId?: string | null;
     roles: string[];
+    enabledModules?: string[] | null;
   };
 }
 
