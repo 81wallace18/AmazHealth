@@ -28,40 +28,63 @@ export interface Attendance {
   visitCode: string;
   visitType: 'URGENCIA' | 'AMBULATORIAL' | string;
   visitDate: string;
-  status:
-    | 'AWAITING_TRIAGE'
-    | 'AWAITING_DOCTOR'
-    | 'IN_ATTENDANCE'
-    | 'CREATED'
-    | 'TRIAGED'
-    | 'WAITING_DOCTOR'
-    | 'IN_PROGRESS'
-    | 'WAITING_EXAM'
-    | 'EXAM_COMPLETED'
-    | 'DISCHARGED'
-    | 'ADMITTED'
-    | 'TRANSFERRED'
-    | 'OPEN'
-    | 'CLOSED'
-    | 'CANCELLED';
+  status: VisitStatus;
   chiefComplaint?: string;
   diagnosis?: string;
   treatmentPlan?: string;
   notes?: string;
+  outcome?: AttendanceOutcome | null;
+  outcomeDate?: string | null;
+  outcomeNotes?: string | null;
+  finalizedBy?: string | null;
+  emergencyBypass?: boolean;
+  bypassJustification?: string | null;
+  notificationRequired?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface EmergencyBypassPayload {
+  patientId: string;
+  doctorId?: string;
+  chiefComplaint: string;
+  bypassJustification: string;
+  visitType?: string;
 }
 
 export type AttendanceOutcome = 'ALTA' | 'INTERNACAO' | 'OBITO' | 'TRANSFERENCIA' | 'EVASAO';
 
 export interface FinalizeAttendancePayload {
   outcome: AttendanceOutcome;
-  notes?: string;
+  notes: string;
   physicianId?: string;
   admissionReason?: string;
 }
 
 class AttendanceService {
+  private normalizeAttendanceStatus(status: Attendance['status']): VisitStatus {
+    switch (status) {
+      case 'AWAITING_TRIAGE':
+      case 'OPEN':
+        return 'CREATED';
+      case 'AWAITING_DOCTOR':
+        return 'WAITING_DOCTOR';
+      case 'IN_ATTENDANCE':
+        return 'IN_PROGRESS';
+      case 'CLOSED':
+        return 'DISCHARGED';
+      default:
+        return status;
+    }
+  }
+
+  private normalizeAttendance(attendance: Attendance): Attendance {
+    return {
+      ...attendance,
+      status: this.normalizeAttendanceStatus(attendance.status),
+    };
+  }
+
   /**
    * Cria um novo atendimento
    * Endpoint: POST /api/v1/attendances
@@ -69,7 +92,7 @@ class AttendanceService {
    */
   async create(data: CreateAttendanceDTO): Promise<Attendance> {
     const response = await api.post<Attendance>('/attendances', data);
-    return response.data;
+    return this.normalizeAttendance(response.data);
   }
 
   /**
@@ -78,7 +101,7 @@ class AttendanceService {
    */
   async findById(id: string): Promise<Attendance> {
     const response = await api.get<Attendance>(`/attendances/${id}`);
-    return response.data;
+    return this.normalizeAttendance(response.data);
   }
 
   /**
@@ -89,7 +112,7 @@ class AttendanceService {
     const response = await api.get<{ content: Attendance[] }>(`/attendances`, {
       params: { patientId, size: 100 }
     });
-    return response.data.content ?? [];
+    return (response.data.content ?? []).map((attendance) => this.normalizeAttendance(attendance));
   }
 
   /**
@@ -97,8 +120,9 @@ class AttendanceService {
    * Endpoint: GET /api/v1/attendances/status/:status
    */
   async findByStatus(status: Attendance['status']): Promise<Attendance[]> {
-    const response = await api.get<Attendance[]>(`/attendances/status/${status}`);
-    return response.data;
+    const normalizedStatus = this.normalizeAttendanceStatus(status);
+    const response = await api.get<Attendance[]>(`/attendances/status/${normalizedStatus}`);
+    return response.data.map((attendance) => this.normalizeAttendance(attendance));
   }
 
   /**
@@ -106,28 +130,27 @@ class AttendanceService {
    * Endpoint: PATCH /api/attendances/:id/status
    */
   async updateStatus(id: string, status: Attendance['status']): Promise<Attendance> {
-    const response = await api.patch<Attendance>(`/attendances/${id}/status`, { newStatus: status });
-    return response.data;
+    const normalizedStatus = this.normalizeAttendanceStatus(status);
+    const response = await api.patch<Attendance>(`/attendances/${id}/status`, { newStatus: normalizedStatus });
+    return this.normalizeAttendance(response.data);
   }
 
   /**
-   * Compatibilidade com fluxo legado de finalização.
-   * Mapeia desfecho para o status oficial de OpdVisit.
+   * Cria atendimento com bypass de emergência.
+   * Paciente entra direto em IN_PROGRESS, triagem é retroativa.
+   */
+  async createEmergencyBypass(payload: EmergencyBypassPayload): Promise<Attendance> {
+    const response = await api.post<Attendance>('/attendances/emergency-bypass', payload);
+    return this.normalizeAttendance(response.data);
+  }
+
+  /**
+   * Finaliza atendimento com desfecho clínico via endpoint atômico.
+   * Requer evolução clínica previamente registrada (hard stop no backend).
    */
   async finalize(id: string, payload: FinalizeAttendancePayload): Promise<Attendance> {
-    const statusByOutcome: Record<NonNullable<FinalizeAttendancePayload['outcome']>, VisitStatus> = {
-      ALTA: 'DISCHARGED',
-      INTERNACAO: 'ADMITTED',
-      TRANSFERENCIA: 'TRANSFERRED',
-      EVASAO: 'CANCELLED',
-      OBITO: 'CANCELLED',
-    };
-
-    if (payload.notes?.trim()) {
-      await api.post(`/attendances/${id}/evolution`, { notes: payload.notes.trim() });
-    }
-
-    return this.updateStatus(id, statusByOutcome[payload.outcome]);
+    const response = await api.post<Attendance>(`/attendances/${id}/finalize`, payload);
+    return this.normalizeAttendance(response.data);
   }
 
   /**
@@ -157,12 +180,10 @@ class AttendanceService {
       return await this.findById(visitId);
     } catch (error) {
       const statuses: Attendance['status'][] = [
-        'AWAITING_DOCTOR',
-        'IN_ATTENDANCE',
         'WAITING_EXAM',
-        'AWAITING_TRIAGE',
         'WAITING_DOCTOR',
         'IN_PROGRESS',
+        'CREATED',
       ];
 
       for (const status of statuses) {

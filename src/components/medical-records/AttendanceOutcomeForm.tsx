@@ -21,10 +21,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import attendanceService from '@/services/attendanceService';
+import transferService from '@/services/transferService';
+import notificationService from '@/services/notificationService';
+import { medicalRecordService } from '@/services/medicalRecordService';
 import staffService, { type Staff } from '@/services/staffService';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
+import { TransferDocumentForm } from './TransferDocumentForm';
 
 const outcomeOptions = [
   { value: 'ALTA', label: 'Alta' },
@@ -37,7 +41,7 @@ const outcomeOptions = [
 const formSchema = z
   .object({
     outcome: z.enum(['ALTA', 'INTERNACAO', 'TRANSFERENCIA', 'OBITO', 'EVASAO']),
-    notes: z.string().optional(),
+    notes: z.string().min(1, 'Observações clínicas são obrigatórias'),
     physicianId: z.string().optional(),
     admissionReason: z.string().optional(),
   })
@@ -69,6 +73,7 @@ interface AttendanceOutcomeFormProps {
   patientId?: string;
   patientName?: string;
   attendanceNumber?: string;
+  notificationRequired?: boolean;
   onSuccess?: () => void;
 }
 
@@ -78,18 +83,22 @@ export function AttendanceOutcomeForm({
   attendanceId,
   patientName,
   attendanceNumber,
+  notificationRequired = false,
   onSuccess,
 }: AttendanceOutcomeFormProps) {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [doctors, setDoctors] = useState<Staff[]>([]);
   const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const [showTransferForm, setShowTransferForm] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       outcome: 'ALTA',
       notes: '',
+      physicianId: undefined,
+      admissionReason: undefined,
     },
   });
 
@@ -112,11 +121,56 @@ export function AttendanceOutcomeForm({
   }, [open]);
 
   const handleSubmit = async (values: FormValues) => {
+    // Pre-flight: verificar se existe evolução clínica
+    try {
+      const records = await medicalRecordService.findByVisit(attendanceId);
+      const hasEvolution = records.some((r) => r.recordType === 'EVOLUTION');
+      if (!hasEvolution) {
+        toast.error('Registre uma evolução clínica antes de finalizar o atendimento.', { duration: 8000 });
+        return;
+      }
+    } catch {
+      toast.error('Erro ao verificar registros médicos.', { duration: 8000 });
+      return;
+    }
+
+    // Pre-flight: se notificação requerida, verificar se está completa
+    if (notificationRequired) {
+      try {
+        const notifications = await notificationService.findByVisit(attendanceId);
+        const hasCompleted = notifications.some(
+          (n) => n.status === 'COMPLETED' || n.status === 'SENT'
+        );
+        if (!hasCompleted) {
+          toast.error('Complete a notificação compulsória pendente antes de finalizar.', { duration: 8000 });
+          return;
+        }
+      } catch {
+        toast.error('Erro ao verificar notificações compulsórias.', { duration: 8000 });
+        return;
+      }
+    }
+
+    // Pre-flight: se transferência, verificar se documento existe
+    if (values.outcome === 'TRANSFERENCIA') {
+      try {
+        const docs = await transferService.findByVisit(attendanceId);
+        if (docs.length === 0) {
+          toast.error('Preencha o documento de transferência antes de finalizar.', { duration: 8000 });
+          setShowTransferForm(true);
+          return;
+        }
+      } catch {
+        toast.error('Erro ao verificar documento de transferência.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       await attendanceService.finalize(attendanceId, {
         outcome: values.outcome,
-        notes: values.notes?.trim() || undefined,
+        notes: values.notes.trim(),
         physicianId: values.outcome === 'INTERNACAO' ? values.physicianId : undefined,
         admissionReason:
           values.outcome === 'INTERNACAO'
@@ -143,6 +197,15 @@ export function AttendanceOutcomeForm({
 
   return (
     <>
+      <TransferDocumentForm
+        open={showTransferForm}
+        onOpenChange={setShowTransferForm}
+        attendanceId={attendanceId}
+        patientName={patientName}
+        onSuccess={() => {
+          toast.success('Documento de transferência criado. Agora finalize o atendimento.');
+        }}
+      />
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
           <DialogHeader>
@@ -188,7 +251,7 @@ export function AttendanceOutcomeForm({
                     <FormLabel>Observações</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Observações adicionais (opcional)"
+                        placeholder="Observações clínicas (obrigatório)"
                         rows={3}
                         {...field}
                       />
