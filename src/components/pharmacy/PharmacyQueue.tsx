@@ -12,10 +12,12 @@ import { Loader2, RefreshCw, Stethoscope, Eye, CheckCircle2, XCircle } from "luc
 import { pharmacyService } from "@/services/pharmacyService";
 import prescriptionService from "@/services/prescriptionService";
 import type { Prescription, PrescriptionStatus } from "@/types/prescription";
+import type { HorusQueueItem, HorusQueueStatus } from "@/types/pharmacy";
 import { useToast } from "@/hooks/use-toast";
 import { DispensationForm } from "./DispensationForm";
 import { Label } from "@/components/ui/label";
 import { useCapabilities } from "@/auth/useCapabilities";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const statusLabels: Record<PrescriptionStatus, string> = {
   DRAFT: "Rascunho",
@@ -32,27 +34,41 @@ interface PharmacyQueueProps {
 
 export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
   const capabilities = useCapabilities();
+  const [queueMode, setQueueMode] = useState<"LOCAL" | "HORUS">("LOCAL");
   const [statusFilter, setStatusFilter] = useState<PrescriptionStatus | "ALL">("ACTIVE");
   const [pending, setPending] = useState<Prescription[]>([]);
+  const [horusStatusFilter, setHorusStatusFilter] = useState<HorusQueueStatus | "ALL">("ALL");
+  const [horusPending, setHorusPending] = useState<HorusQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Prescription | null>(null);
+  const [selectedHorus, setSelectedHorus] = useState<HorusQueueItem | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [refuseReason, setRefuseReason] = useState("");
   const [refusing, setRefusing] = useState(false);
   const [showDispense, setShowDispense] = useState(false);
+  const [reviewingHorus, setReviewingHorus] = useState(false);
   const { toast } = useToast();
 
   const loadQueue = async () => {
     setLoading(true);
     try {
       setError(null);
-      const response = await pharmacyService.getPendingPrescriptions({
-        status: statusFilter === "ALL" ? undefined : statusFilter,
-        page: 0,
-        size: 50
-      });
-      setPending(response.content);
+      if (queueMode === "LOCAL") {
+        const response = await pharmacyService.getPendingPrescriptions({
+          status: statusFilter === "ALL" ? undefined : statusFilter,
+          page: 0,
+          size: 50
+        });
+        setPending(response.content);
+      } else {
+        const response = await pharmacyService.getHorusQueue({
+          status: horusStatusFilter === "ALL" ? undefined : horusStatusFilter,
+          page: 0,
+          size: 50
+        });
+        setHorusPending(response.content);
+      }
     } catch (err: any) {
       setError(err.message || "Não foi possível carregar a fila da farmácia.");
     } finally {
@@ -62,7 +78,7 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
 
   useEffect(() => {
     void loadQueue();
-  }, [statusFilter]);
+  }, [queueMode, statusFilter, horusStatusFilter]);
 
   const handleOpenDetails = (prescription: Prescription) => {
     setSelected(prescription);
@@ -142,6 +158,32 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
 
   const prescriptionsToShow = useMemo(() => pending, [pending]);
 
+  const handleHorusReview = async (decision: "APPROVE" | "BLOCK" | "DEFER") => {
+    if (!selectedHorus) return;
+    setReviewingHorus(true);
+    try {
+      await pharmacyService.reviewHorusQueueItem(selectedHorus.id, {
+        decision,
+        notes: refuseReason || undefined
+      });
+      toast({
+        title: "Fila HÓRUS atualizada",
+        description: "A revisão humana foi registrada com sucesso."
+      });
+      setSelectedHorus(null);
+      setRefuseReason("");
+      await loadQueue();
+    } catch (err: any) {
+      toast({
+        title: "Falha ao revisar item HÓRUS",
+        description: err.message || "Não foi possível registrar a revisão.",
+        variant: "destructive"
+      });
+    } finally {
+      setReviewingHorus(false);
+    }
+  };
+
   return (
     <Card className="h-full">
       <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -155,17 +197,38 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as PrescriptionStatus | "ALL")}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">Todos</SelectItem>
-              <SelectItem value="ACTIVE">Ativas</SelectItem>
-              <SelectItem value="DRAFT">Rascunhos</SelectItem>
-              <SelectItem value="DISPENSED">Dispensadas</SelectItem>
-            </SelectContent>
-          </Select>
+          <Tabs value={queueMode} onValueChange={(value) => setQueueMode(value as "LOCAL" | "HORUS")}>
+            <TabsList>
+              <TabsTrigger value="LOCAL">Prescrições locais</TabsTrigger>
+              <TabsTrigger value="HORUS">Operação HÓRUS</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {queueMode === "LOCAL" ? (
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as PrescriptionStatus | "ALL")}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos</SelectItem>
+                <SelectItem value="ACTIVE">Ativas</SelectItem>
+                <SelectItem value="DRAFT">Rascunhos</SelectItem>
+                <SelectItem value="DISPENSED">Dispensadas</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <Select value={horusStatusFilter} onValueChange={(value) => setHorusStatusFilter(value as HorusQueueStatus | "ALL")}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Status HÓRUS" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos</SelectItem>
+                <SelectItem value="APT">Aptos</SelectItem>
+                <SelectItem value="PENDING_REVIEW">Pendentes</SelectItem>
+                <SelectItem value="BLOCKED">Bloqueados</SelectItem>
+                <SelectItem value="SENT">Enviados</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <Button variant="outline" size="sm" onClick={loadQueue}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Atualizar
@@ -184,23 +247,38 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Carregando prescrições...
           </div>
-        ) : prescriptionsToShow.length === 0 ? (
+        ) : queueMode === "LOCAL" && prescriptionsToShow.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">Nenhuma prescrição encontrada.</div>
+        ) : queueMode === "HORUS" && horusPending.length === 0 ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">Nenhum item operacional HÓRUS encontrado.</div>
         ) : (
           <ScrollArea className="h-[420px]">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Paciente</TableHead>
-                  <TableHead>Médico</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  {queueMode === "LOCAL" ? (
+                    <>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Médico</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </>
+                  ) : (
+                    <>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Lote</TableHead>
+                      <TableHead>Saldo</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {prescriptionsToShow.map((prescription) => (
+                {queueMode === "LOCAL" ? prescriptionsToShow.map((prescription) => (
                   <TableRow key={prescription.id}>
                     <TableCell className="font-semibold">{prescription.prescriptionCode}</TableCell>
                     <TableCell>{prescription.patientName}</TableCell>
@@ -223,6 +301,32 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
                       >
                         <CheckCircle2 className="mr-2 h-4 w-4" />
                         Aprovar &amp; Dispensar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )) : horusPending.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{item.patientName}</p>
+                        <p className="text-xs text-muted-foreground">{item.patientIdentifier || "sem identificador"}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{item.requestedItemName}</p>
+                        <p className="text-xs text-muted-foreground">{item.mappedMedicineName || "sem mapeamento"}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{item.candidateBatchNumber || "—"}</TableCell>
+                    <TableCell>{item.availableQuantity ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{item.queueStatus}</Badge>
+                    </TableCell>
+                    <TableCell className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setSelectedHorus(item)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Revisar
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -297,6 +401,70 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
                 >
                   {refusing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
                   Recusar prescrição
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!selectedHorus} onOpenChange={(open) => !open && setSelectedHorus(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Operação HÓRUS</DialogTitle>
+          </DialogHeader>
+          {selectedHorus && (
+            <div className="space-y-4">
+              <div className="grid gap-2 text-sm">
+                <span><strong>Paciente:</strong> {selectedHorus.patientName}</span>
+                <span><strong>Solicitação:</strong> {selectedHorus.requestedItemName}</span>
+                <span><strong>Status:</strong> {selectedHorus.queueStatus}</span>
+                <span><strong>Médico:</strong> {selectedHorus.prescriberName || "—"}</span>
+                <span><strong>Lote candidato:</strong> {selectedHorus.candidateBatchNumber || "—"}</span>
+                <span><strong>Validade:</strong> {selectedHorus.candidateExpiryDate || "—"}</span>
+                <span><strong>Saldo disponível:</strong> {selectedHorus.availableQuantity ?? "—"}</span>
+              </div>
+
+              {selectedHorus.decisionReasons && selectedHorus.decisionReasons.length > 0 && (
+                <div className="rounded-md border p-3 text-sm">
+                  <p className="font-semibold mb-2">Motivos da decisão</p>
+                  <ul className="space-y-1">
+                    {selectedHorus.decisionReasons.map((reason) => (
+                      <li key={reason} className="text-muted-foreground">• {reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {(selectedHorus.blockedReason || selectedHorus.reviewNotes) && (
+                <Alert>
+                  <AlertDescription>
+                    {selectedHorus.blockedReason || selectedHorus.reviewNotes}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="horus-review-notes">Notas da revisão</Label>
+                <Textarea
+                  id="horus-review-notes"
+                  value={refuseReason}
+                  onChange={(event) => setRefuseReason(event.target.value)}
+                  placeholder="Informe o motivo da aprovação, bloqueio ou adiamento"
+                />
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button variant="outline" disabled={reviewingHorus} onClick={() => handleHorusReview("DEFER")}>
+                  Adiar
+                </Button>
+                <Button variant="destructive" disabled={reviewingHorus} onClick={() => handleHorusReview("BLOCK")}>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Bloquear
+                </Button>
+                <Button disabled={reviewingHorus} onClick={() => handleHorusReview("APPROVE")}>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Aprovar
                 </Button>
               </div>
             </div>

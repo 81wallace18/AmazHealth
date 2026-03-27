@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertCircle, BellRing } from "lucide-react";
 import { pharmacyService } from "@/services/pharmacyService";
-import type { InventoryAlert, Medicine } from "@/types/pharmacy";
+import type { HorusDashboardSummary, InventoryAlert, Medicine } from "@/types/pharmacy";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export function InventoryAlerts() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<InventoryAlert | null>(null);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+  const [horusSummary, setHorusSummary] = useState<HorusDashboardSummary | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -35,6 +36,8 @@ export function InventoryAlerts() {
       setError(null);
       const data = await pharmacyService.getAlerts();
       setAlerts(data);
+      const horus = await pharmacyService.getHorusDashboard().catch(() => null);
+      setHorusSummary(horus);
     } catch (err: any) {
       setError(err.message || "Não foi possível carregar os alertas de estoque.");
     } finally {
@@ -102,6 +105,23 @@ export function InventoryAlerts() {
         </Select>
       </CardHeader>
       <CardContent className="p-0">
+        {horusSummary && (
+          <div className="grid gap-3 border-b p-4 md:grid-cols-3">
+            <div className="rounded-md border p-3">
+              <p className="text-xs uppercase text-muted-foreground">Fila HÓRUS em revisão</p>
+              <p className="text-2xl font-semibold">{horusSummary.alertsByType.REVIEW_QUEUE ?? 0}</p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-xs uppercase text-muted-foreground">Mapeamentos pendentes</p>
+              <p className="text-2xl font-semibold">{horusSummary.alertsByType.PENDING_MAPPING ?? 0}</p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-xs uppercase text-muted-foreground">Itens bloqueados no HÓRUS</p>
+              <p className="text-2xl font-semibold">{horusSummary.alertsByType.BLOCKED_QUEUE ?? 0}</p>
+            </div>
+          </div>
+        )}
+
         {error && (
           <Alert variant="destructive" className="mx-4 mb-4">
             <AlertDescription>{error}</AlertDescription>

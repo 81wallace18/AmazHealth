@@ -141,3 +141,78 @@ export interface DispenseRequestItem {
   notes?: string;
   prescriptionId: string;
 }
+
+export type HorusQueueStatus =
+  | 'APT'
+  | 'PENDING_REVIEW'
+  | 'BLOCKED'
+  | 'SENT'
+  | 'FAILED'
+  | 'RECONCILED';
+
+export type HorusReviewDecision = 'APPROVE' | 'BLOCK' | 'DEFER';
+
+export interface HorusSnapshotSummary {
+  id: string;
+  runId: string;
+  snapshotAt: string;
+  totalRows: number;
+  totalQuantity: number;
+  createdAt: string;
+}
+
+export interface HorusDashboardSummary {
+  lastSyncAt?: string | null;
+  lastSyncStatus: string;
+  totalRuns: number;
+  totalSnapshotRows: number;
+  totalSnapshotQuantity: number;
+  pendingMappings: number;
+  requestsReceived: number;
+  requestsConflicted: number;
+  queueByStatus: Record<string, number>;
+  alertsByType: Record<string, number>;
+}
+
+export interface HorusQueueItem {
+  id: string;
+  clinicRequestId: string;
+  queueStatus: HorusQueueStatus;
+  patientName: string;
+  patientIdentifier?: string | null;
+  prescriberName?: string | null;
+  requestedAt: string;
+  externalItemCode?: string | null;
+  requestedItemName: string;
+  requestedQuantity: number;
+  mappedMedicineId?: string | null;
+  mappedMedicineName?: string | null;
+  sourceSnapshotId?: string | null;
+  sourceRunId?: string | null;
+  candidateBatchNumber?: string | null;
+  candidateExpiryDate?: string | null;
+  availableQuantity?: number | null;
+  blockedReason?: string | null;
+  decisionReasons?: string[] | null;
+  reviewNotes?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HorusAuditEvent {
+  id: string;
+  entityId?: string | null;
+  action: string;
+  entity: string;
+  createdAt: string;
+  userId?: string | null;
+  metadata?: Record<string, string | number | boolean | null>;
+}
+
+export interface HorusQueueReviewRequest {
+  decision: HorusReviewDecision;
+  notes?: string;
+}

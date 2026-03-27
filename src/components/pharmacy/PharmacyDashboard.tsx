@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { pharmacyService } from "@/services/pharmacyService";
-import type { PharmacyDashboardData, PharmacyStatistics } from "@/types/pharmacy";
+import type { HorusDashboardSummary, HorusSnapshotSummary, PharmacyDashboardData, PharmacyStatistics } from "@/types/pharmacy";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Activity, Boxes, ClipboardCheck, TriangleAlert } from "lucide-react";
+import { Activity, Boxes, ClipboardCheck, DatabaseZap, RefreshCcw, TriangleAlert } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Line, LineChart, CartesianGrid, XAxis } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,6 +14,8 @@ import type { ChartConfig } from "@/components/ui/chart";
 export function PharmacyDashboard() {
   const [summary, setSummary] = useState<PharmacyDashboardData | null>(null);
   const [stats, setStats] = useState<PharmacyStatistics | null>(null);
+  const [horusSummary, setHorusSummary] = useState<HorusDashboardSummary | null>(null);
+  const [horusSnapshot, setHorusSnapshot] = useState<HorusSnapshotSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -28,6 +30,16 @@ export function PharmacyDashboard() {
         ]);
         setSummary(dashboardData);
         setStats(statistics);
+        const [horusData, snapshot] = await Promise.allSettled([
+          pharmacyService.getHorusDashboard(),
+          pharmacyService.getHorusLatestSnapshot()
+        ]);
+        if (horusData.status === "fulfilled") {
+          setHorusSummary(horusData.value);
+        }
+        if (snapshot.status === "fulfilled") {
+          setHorusSnapshot(snapshot.value);
+        }
       } catch (err: any) {
         setError(err.message || "Não foi possível carregar o dashboard da farmácia.");
       } finally {
@@ -97,6 +109,31 @@ export function PharmacyDashboard() {
         />
       </div>
 
+      {horusSummary && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <DashboardCard
+            title="Runs HÓRUS"
+            value={horusSummary.totalRuns}
+            icon={<RefreshCcw className="h-5 w-5 text-primary" />}
+          />
+          <DashboardCard
+            title="Itens na fila HÓRUS"
+            value={(horusSummary.queueByStatus.APT ?? 0) + (horusSummary.queueByStatus.PENDING_REVIEW ?? 0) + (horusSummary.queueByStatus.BLOCKED ?? 0)}
+            icon={<DatabaseZap className="h-5 w-5 text-blue-500" />}
+          />
+          <DashboardCard
+            title="Mapeamentos pendentes"
+            value={horusSummary.pendingMappings}
+            icon={<TriangleAlert className="h-5 w-5 text-amber-500" />}
+          />
+          <DashboardCard
+            title="Solicitações conflitantes"
+            value={horusSummary.requestsConflicted}
+            icon={<ClipboardCheck className="h-5 w-5 text-red-500" />}
+          />
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -120,6 +157,39 @@ export function PharmacyDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {horusSummary && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Operação HÓRUS</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <StatusRow label="Último status do sync" valueLabel={horusSummary.lastSyncStatus} />
+              <StatusRow label="Solicitações recebidas" value={horusSummary.requestsReceived} />
+              <StatusRow label="Aptas" value={horusSummary.queueByStatus.APT ?? 0} />
+              <StatusRow label="Pendentes de revisão" value={horusSummary.queueByStatus.PENDING_REVIEW ?? 0} />
+              <StatusRow label="Bloqueadas" value={horusSummary.queueByStatus.BLOCKED ?? 0} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Snapshot HÓRUS</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <StatusRow label="Linhas importadas" value={horusSnapshot?.totalRows ?? horusSummary.totalSnapshotRows} />
+              <StatusRow label="Quantidade total" value={Math.round(horusSnapshot?.totalQuantity ?? horusSummary.totalSnapshotQuantity)} />
+              <StatusRow
+                label="Último snapshot"
+                valueLabel={horusSnapshot?.snapshotAt ? formatDateTime(horusSnapshot.snapshotAt) : "Sem snapshot"}
+              />
+              <StatusRow label="Alertas de fila" value={horusSummary.alertsByType.REVIEW_QUEUE ?? 0} />
+              <StatusRow label="Alertas de mapeamento" value={horusSummary.alertsByType.PENDING_MAPPING ?? 0} />
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -220,12 +290,12 @@ function DashboardCard({ title, value, icon }: DashboardCardProps) {
   );
 }
 
-function StatusRow({ label, value }: { label: string; value: number }) {
+function StatusRow({ label, value, valueLabel }: { label: string; value?: number; valueLabel?: string }) {
   return (
     <div>
       <div className="flex items-center justify-between text-sm font-medium">
         <span>{label}</span>
-        <span>{value}</span>
+        <span>{valueLabel ?? value ?? 0}</span>
       </div>
       <Separator className="my-2" />
     </div>

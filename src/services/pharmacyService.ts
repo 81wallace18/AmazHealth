@@ -7,7 +7,13 @@ import type {
   InventoryAlert,
   PharmacyStatistics,
   PharmacyDashboardData,
-  DispenseRequestItem
+  DispenseRequestItem,
+  HorusAuditEvent,
+  HorusDashboardSummary,
+  HorusQueueItem,
+  HorusQueueReviewRequest,
+  HorusQueueStatus,
+  HorusSnapshotSummary
 } from '@/types/pharmacy';
 import type { Prescription, PrescriptionStatus } from '@/types/prescription';
 
@@ -129,6 +135,43 @@ export const pharmacyService = {
 
   async getDashboardAlerts(): Promise<InventoryAlert[]> {
     const response = await api.get<InventoryAlert[]>(`${DASHBOARD_URL}/alerts`);
+    return response.data;
+  },
+
+  // ===== HÓRUS Operacional =====
+  async getHorusDashboard(): Promise<HorusDashboardSummary> {
+    const response = await api.get<HorusDashboardSummary>('/horus/dashboard');
+    return response.data;
+  },
+
+  async getHorusLatestSnapshot(): Promise<HorusSnapshotSummary | null> {
+    const response = await api.get<HorusSnapshotSummary | null>('/horus/snapshots/latest');
+    return response.data;
+  },
+
+  async getHorusQueue(params?: { page?: number; size?: number; status?: HorusQueueStatus }): Promise<PaginatedResponse<HorusQueueItem>> {
+    const response = await api.get<PaginatedResponse<HorusQueueItem>>('/horus/queue', {
+      params: {
+        page: params?.page ?? 0,
+        size: params?.size ?? 20,
+        status: params?.status
+      }
+    });
+    return response.data;
+  },
+
+  async reviewHorusQueueItem(queueItemId: string, body: HorusQueueReviewRequest): Promise<HorusQueueItem> {
+    const response = await api.post<HorusQueueItem>(`/horus/queue/${queueItemId}/review`, body);
+    return response.data;
+  },
+
+  async getHorusAudit(params?: { page?: number; size?: number }): Promise<PaginatedResponse<HorusAuditEvent>> {
+    const response = await api.get<PaginatedResponse<HorusAuditEvent>>('/horus/audit', {
+      params: {
+        page: params?.page ?? 0,
+        size: params?.size ?? 20
+      }
+    });
     return response.data;
   }
 };

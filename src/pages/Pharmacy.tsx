@@ -5,6 +5,7 @@ import { PharmacyDashboard } from "@/components/pharmacy/PharmacyDashboard";
 import { PharmacyQueue } from "@/components/pharmacy/PharmacyQueue";
 import { StockManagement } from "@/components/pharmacy/StockManagement";
 import { InventoryAlerts } from "@/components/pharmacy/InventoryAlerts";
+import { HorusAuditLog } from "@/components/pharmacy/HorusAuditLog";
 
 export default function Pharmacy() {
   const capabilities = useCapabilities();
@@ -32,6 +33,7 @@ export default function Pharmacy() {
           <TabsTrigger value="queue">Fila</TabsTrigger>
           <TabsTrigger value="stock">Estoque</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
+          <TabsTrigger value="audit">Auditoria HÓRUS</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-4">
@@ -48,6 +50,10 @@ export default function Pharmacy() {
 
         <TabsContent value="alerts" className="space-y-4">
           <InventoryAlerts />
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-4">
+          <HorusAuditLog />
         </TabsContent>
       </Tabs>
     </div>
