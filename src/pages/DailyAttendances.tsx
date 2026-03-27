@@ -198,14 +198,18 @@ export default function DailyAttendances() {
     void loadData();
   }, [loadData]);
 
-  const activeName = selectedProfessional || myName;
+  const activeName = selectedProfessional || "";
   const filtered = activeName
-    ? (data?.attendances ?? []).filter(
-        (a) =>
+    ? (data?.attendances ?? []).filter((a) => {
+        // Se nenhum profissional associado ainda, mostra pra todos
+        const hasAnyStaff = a.createdByName || a.triageStaffName || a.doctorName;
+        if (!hasAnyStaff) return true;
+        return (
           a.createdByName?.toLowerCase().includes(activeName.toLowerCase()) ||
           a.triageStaffName?.toLowerCase().includes(activeName.toLowerCase()) ||
           a.doctorName?.toLowerCase().includes(activeName.toLowerCase())
-      )
+        );
+      })
     : data?.attendances ?? [];
 
   // Lista de profissionais: equipe da unidade (do endpoint) + usuario logado
@@ -280,7 +284,7 @@ export default function DailyAttendances() {
                 <Input
                   placeholder="Busque um profissional pelo nome..."
                   className="pl-10 bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50"
-                  value={dropdownOpen ? searchText : (selectedProfessional || myName)}
+                  value={dropdownOpen ? searchText : (selectedProfessional || "")}
                   onChange={(e) => {
                     setSearchText(e.target.value);
                     setDropdownOpen(true);
@@ -335,7 +339,7 @@ export default function DailyAttendances() {
               </Button>
             </div>
             <div className="flex items-center gap-3 text-xs text-primary-foreground/80">
-              <span>Profissional: <strong className="text-primary-foreground">{selectedProfessional || myName || "—"}</strong></span>
+              <span>Profissional: <strong className="text-primary-foreground">{selectedProfessional || "Todos"}</strong></span>
               <span className="text-primary-foreground/40">|</span>
               <span>Equipe: <strong className="text-primary-foreground">UBS Serra Pelada</strong></span>
             </div>
@@ -347,7 +351,9 @@ export default function DailyAttendances() {
               <p className="text-muted-foreground py-12 text-center">Carregando atendimentos...</p>
             ) : filtered.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground">
-                Nenhum atendimento de "{selectedProfessional || myName}" neste dia.
+                {selectedProfessional
+                  ? `Nenhum atendimento de "${selectedProfessional}" neste dia.`
+                  : "Nenhum atendimento registrado neste dia."}
               </div>
             ) : (
               <div className="divide-y">
