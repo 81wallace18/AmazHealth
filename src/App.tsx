@@ -110,7 +110,7 @@ const App = () => (
               </RequireRole>
             } />
             <Route path="appointments" element={
-              <RequireRole allowedRoles={["ADMIN", "RECEPTIONIST"]}>
+              <RequireRole allowedRoles={["ADMIN"]}>
                 <Appointments />
               </RequireRole>
             } />
@@ -125,7 +125,7 @@ const App = () => (
               </RequireRole>
             } />
             <Route path="reception/triage" element={
-              <RequireRole allowedRoles={["ADMIN", "RECEPTIONIST"]}>
+              <RequireRole allowedRoles={["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER"]}>
                 <ReceptionTriage />
               </RequireRole>
             } />

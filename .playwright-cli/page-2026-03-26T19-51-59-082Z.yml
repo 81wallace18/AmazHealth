@@ -1,0 +1,117 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T":
+    - list:
+      - status [ref=e24]:
+        - img [ref=e26]
+        - generic [ref=e29]: Login realizado com sucesso!
+  - generic [ref=e31]:
+    - generic [ref=e33]:
+      - generic [ref=e35]:
+        - img [ref=e37]
+        - generic [ref=e40]:
+          - heading "AmazHealth" [level=1] [ref=e41]
+          - paragraph [ref=e42]: Sistema Hospitalar
+      - generic [ref=e43]:
+        - generic [ref=e44]: Principal
+        - list [ref=e46]:
+          - listitem [ref=e47]:
+            - link "Dashboard" [ref=e48] [cursor=pointer]:
+              - /url: /
+              - img [ref=e49]
+              - generic [ref=e51]: Dashboard
+      - generic [ref=e52]:
+        - generic [ref=e53]: Financeiro
+        - list [ref=e55]:
+          - listitem [ref=e56]:
+            - link "Faturamento" [ref=e57] [cursor=pointer]:
+              - /url: /billing
+              - img [ref=e58]
+              - generic [ref=e60]: Faturamento
+      - generic [ref=e61]:
+        - generic [ref=e62]: Gestão
+        - list [ref=e64]:
+          - listitem [ref=e65]:
+            - link "Relatórios" [ref=e66] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e67]
+              - generic [ref=e69]: Relatórios
+      - generic [ref=e71]:
+        - img [ref=e72]
+        - heading "Cobranças" [level=3] [ref=e75]
+        - paragraph [ref=e76]: Acompanhar pendências e faturamento do plantão.
+        - link "Abrir faturamento" [ref=e77] [cursor=pointer]:
+          - /url: /billing
+    - generic [ref=e78]:
+      - banner [ref=e79]:
+        - generic [ref=e81]:
+          - img [ref=e82]
+          - textbox "Busca global indisponível" [disabled] [ref=e85]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e86]:
+          - button [ref=e87] [cursor=pointer]:
+            - img
+          - button "F financeiro.uat" [ref=e88] [cursor=pointer]:
+            - generic [ref=e90]: F
+            - generic [ref=e91]: financeiro.uat
+      - main [ref=e92]:
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - generic [ref=e95]:
+              - heading "Painel Financeiro" [level=1] [ref=e96]
+              - paragraph [ref=e97]: Acompanhe cobranças, pendências e indicadores financeiros da operação.
+              - paragraph [ref=e98]: Atualizado em 26/03/2026 às 16:51
+            - button "Atualizar" [ref=e99] [cursor=pointer]:
+              - img
+              - text: Atualizar
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - heading "Pacientes Ativos" [level=3] [ref=e103]
+                - img [ref=e104]
+              - generic [ref=e109]:
+                - generic [ref=e110]: "10"
+                - paragraph [ref=e111]: Total de pacientes ativos na organização
+                - generic [ref=e112]: Atualizado
+            - generic [ref=e113]:
+              - generic [ref=e114]:
+                - heading "Atendimentos Hoje" [level=3] [ref=e115]
+                - img [ref=e116]
+              - generic [ref=e118]:
+                - generic [ref=e119]: "13"
+                - paragraph [ref=e120]: Entradas registradas nas últimas 24h
+                - generic [ref=e121]: Atualizado
+            - generic [ref=e122]:
+              - generic [ref=e123]:
+                - heading "Leitos Disponíveis" [level=3] [ref=e124]
+                - img [ref=e125]
+              - generic [ref=e128]:
+                - generic [ref=e129]: "0"
+                - paragraph [ref=e130]: Leitos livres ou liberados para uso
+                - generic [ref=e131]: Atualizado
+            - generic [ref=e132]:
+              - generic [ref=e133]:
+                - heading "Consultas em Andamento" [level=3] [ref=e134]
+                - img [ref=e135]
+              - generic [ref=e139]:
+                - generic [ref=e140]: "5"
+                - paragraph [ref=e141]: Atendimentos em triagem/medicina/exames
+                - generic [ref=e142]: Atualizado
+          - generic [ref=e143]:
+            - generic [ref=e144]:
+              - heading "Ações Rápidas" [level=3] [ref=e145]:
+                - img [ref=e146]
+                - text: Ações Rápidas
+              - paragraph [ref=e148]: Módulos mais relevantes para o papel atual
+            - generic [ref=e150]:
+              - link "Faturamento Cobranças e repasses" [ref=e151] [cursor=pointer]:
+                - /url: /billing
+                - generic [ref=e152]:
+                  - heading "Faturamento" [level=3] [ref=e154]
+                  - generic [ref=e155]: Cobranças e repasses
+              - link "Relatórios Indicadores financeiros" [ref=e156] [cursor=pointer]:
+                - /url: /reports
+                - generic [ref=e157]:
+                  - heading "Relatórios" [level=3] [ref=e159]
+                  - generic [ref=e160]: Indicadores financeiros

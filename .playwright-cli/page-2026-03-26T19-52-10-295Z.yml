@@ -1,0 +1,53 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e8]:
+        - img [ref=e10]
+        - generic [ref=e13]:
+          - heading "AmazHealth" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Sistema Hospitalar
+      - generic [ref=e16]:
+        - generic [ref=e17]: Principal
+        - list [ref=e19]:
+          - listitem [ref=e20]:
+            - link "Dashboard" [ref=e21] [cursor=pointer]:
+              - /url: /
+              - img [ref=e22]
+              - generic [ref=e24]: Dashboard
+      - generic [ref=e25]:
+        - generic [ref=e26]: Financeiro
+        - list [ref=e28]:
+          - listitem [ref=e29]:
+            - link "Faturamento" [ref=e30] [cursor=pointer]:
+              - /url: /billing
+              - img [ref=e31]
+              - generic [ref=e33]: Faturamento
+      - generic [ref=e34]:
+        - generic [ref=e35]: Gestão
+        - list [ref=e37]:
+          - listitem [ref=e38]:
+            - link "Relatórios" [ref=e39] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e40]
+              - generic [ref=e42]: Relatórios
+      - generic [ref=e44]:
+        - img [ref=e45]
+        - heading "Cobranças" [level=3] [ref=e48]
+        - paragraph [ref=e49]: Acompanhar pendências e faturamento do plantão.
+        - link "Abrir faturamento" [ref=e50] [cursor=pointer]:
+          - /url: /billing
+    - generic [ref=e51]:
+      - banner [ref=e52]:
+        - generic [ref=e54]:
+          - img [ref=e55]
+          - textbox "Busca global indisponível" [disabled] [ref=e58]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e59]:
+          - button [ref=e60] [cursor=pointer]:
+            - img
+          - button "F financeiro.uat" [ref=e61] [cursor=pointer]:
+            - generic [ref=e63]: F
+            - generic [ref=e64]: financeiro.uat
+      - main [ref=e65]

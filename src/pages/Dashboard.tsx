@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,12 +30,15 @@ type QuickLink = {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const primaryRole = getPrimaryRole(user?.roles);
+  const isReceptionist = primaryRole === "RECEPTIONIST";
+
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: () => dashboardService.getSummary(),
-    staleTime: 60_000
+    staleTime: 60_000,
+    enabled: !isReceptionist,
   });
-  const primaryRole = getPrimaryRole(user?.roles);
 
   const statsCards = useMemo(() => {
     const summary = {
@@ -167,12 +170,16 @@ export default function Dashboard() {
       RECEPTIONIST: [
         { label: "Recepção", description: "Abrir fichas e acompanhar fila", to: "/reception/triage" },
         { label: "Pacientes", description: "Cadastro e busca de pacientes", to: "/patients" },
-        { label: "Agendamentos", description: "Agenda e marcações", to: "/appointments" },
       ],
     };
 
     return primaryRole ? linksByRole[primaryRole] ?? [] : [];
   }, [primaryRole]);
+
+  // Recepcionista vai direto para a tela de Recepção (após todos os hooks)
+  if (isReceptionist) {
+    return <Navigate to="/reception/triage" replace />;
+  }
 
   return (
     <div className="p-6 space-y-6">

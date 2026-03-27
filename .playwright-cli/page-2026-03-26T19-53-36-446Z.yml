@@ -1,0 +1,11 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e59]:
+    - generic [ref=e60]:
+      - img [ref=e62]
+      - heading "Acesso Negado" [level=3] [ref=e65]
+      - paragraph [ref=e66]: Você não tem permissão para acessar esta página ou função.
+    - generic [ref=e68]:
+      - paragraph [ref=e69]: Entre em contato com o administrador do sistema se precisar de acesso a este recurso.
+      - button "Voltar para o Início" [ref=e70] [cursor=pointer]

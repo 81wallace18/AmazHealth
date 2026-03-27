@@ -30,6 +30,9 @@ export interface VitalSigns {
   temperature?: number;            // Temperatura (°C) - opcional
   oxygenSaturation?: number;       // SpO2 (%) - opcional
   glasgowComaScale: number;        // Glasgow (3-15)
+  weight?: number;                 // Peso (kg)
+  height?: number;                 // Estatura (cm)
+  bloodGlucose?: number;           // HGT - Glicemia capilar (mg/dL)
 }
 
 /**

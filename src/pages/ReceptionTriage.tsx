@@ -1,28 +1,63 @@
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw, Search, UserPlus, AlertTriangle, Stethoscope } from "lucide-react";
+import {
+  RefreshCw,
+  Search,
+  UserPlus,
+  AlertTriangle,
+  Stethoscope,
+  Activity,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { ReceptionQueueList } from "@/components/reception/ReceptionQueueList";
 import { PatientRegistrationForm } from "@/components/reception/PatientRegistrationForm";
-import { NewAttendanceDialog } from "@/components/attendance/NewAttendanceDialog";
 import { EmergencyBypassDialog } from "@/components/attendance/EmergencyBypassDialog";
 import receptionService from "@/services/receptionService";
 import attendanceService from "@/services/attendanceService";
 import { patientService } from "@/services/patientService";
+import { triageService } from "@/services/triageService";
+import { useCapabilities } from "@/auth/useCapabilities";
 import type { ReceptionPatientListItem, ReceptionQueueItem } from "@/types/reception";
 import type { Patient } from "@/types/patient";
+import type { ManchesterColor } from "@/types/triage";
 import { toast } from "sonner";
 
+const MANCHESTER_OPTIONS: { value: ManchesterColor; label: string; color: string }[] = [
+  { value: "RED", label: "Emergência", color: "bg-red-500" },
+  { value: "ORANGE", label: "Muito Urgente", color: "bg-orange-500" },
+  { value: "YELLOW", label: "Urgente", color: "bg-yellow-500" },
+  { value: "GREEN", label: "Pouco Urgente", color: "bg-green-500" },
+  { value: "BLUE", label: "Não Urgente", color: "bg-blue-500" },
+];
+
 export default function ReceptionTriage() {
+  const capabilities = useCapabilities();
+
   // Busca
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ReceptionPatientListItem[]>([]);
@@ -39,7 +74,39 @@ export default function ReceptionTriage() {
   const [isBypassOpen, setIsBypassOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
-  // Carrega fila de triagem
+  // Form atendimento + triagem
+  const [chiefComplaint, setChiefComplaint] = useState("");
+  const [vitalsOpen, setVitalsOpen] = useState(false);
+  const [bp, setBp] = useState("");
+  const [hr, setHr] = useState("");
+  const [rr, setRr] = useState("");
+  const [temp, setTemp] = useState("");
+  const [spo2, setSpo2] = useState("");
+  const [glasgow, setGlasgow] = useState("15");
+  const [weight, setWeight] = useState("");
+  const [height, setHeight] = useState("");
+  const [hgt, setHgt] = useState("");
+  const [manchesterColor, setManchesterColor] = useState<ManchesterColor | "">("");
+  const [triageJustification, setTriageJustification] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const resetForm = () => {
+    setChiefComplaint("");
+    setVitalsOpen(false);
+    setBp("");
+    setHr("");
+    setRr("");
+    setTemp("");
+    setSpo2("");
+    setGlasgow("15");
+    setWeight("");
+    setHeight("");
+    setHgt("");
+    setManchesterColor("");
+    setTriageJustification("");
+  };
+
+  // Carrega fila
   const loadQueue = useCallback(async () => {
     try {
       const data = await receptionService.listTriageBoard();
@@ -55,23 +122,21 @@ export default function ReceptionTriage() {
     void loadQueue();
   }, [loadQueue]);
 
-  // Busca de pacientes
-  const handleSearch = async () => {
+  // Busca
+  const handleSearch = useCallback(async () => {
     const q = searchQuery.trim();
     if (q.length < 2) return;
-
     setSearching(true);
     setHasSearched(true);
     try {
       const result = await receptionService.listPatients({ query: q, size: 10 });
       setSearchResults(result.content);
-    } catch (error) {
-      console.error("Erro na busca:", error);
+    } catch {
       setSearchResults([]);
     } finally {
       setSearching(false);
     }
-  };
+  }, [searchQuery]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -80,11 +145,14 @@ export default function ReceptionTriage() {
     }
   };
 
-  // Abrir atendimento
+  // Abrir dialog de atendimento
   const handleOpenAttendance = async (item: ReceptionPatientListItem) => {
     try {
       const patient = await patientService.getById(item.patientId);
       setSelectedPatient(patient);
+      resetForm();
+      // Enfermeira ve sinais vitais aberto por padrao
+      setVitalsOpen(capabilities.canCreateTriage);
       setIsAttendanceOpen(true);
     } catch {
       toast.error("Erro ao carregar dados do paciente.");
@@ -102,18 +170,97 @@ export default function ReceptionTriage() {
     }
   };
 
-  // Criar atendimento
-  const handleCreateAttendance = async (data: { visitType: 'URGENCIA' | 'AMBULATORIAL'; doctorId?: string; chiefComplaint: string }) => {
-    if (!selectedPatient) return;
-    await attendanceService.create({
-      patientId: selectedPatient.id,
-      visitType: data.visitType,
-      chiefComplaint: data.chiefComplaint,
-      ...(data.doctorId ? { doctorId: data.doctorId } : {}),
-    });
-    await loadQueue();
-    // Re-busca para atualizar status "inAttendance"
-    if (hasSearched) await handleSearch();
+  // Sugestao Manchester
+  const handleSuggestColor = async () => {
+    if (!bp || !hr || !glasgow) return;
+    try {
+      const suggestion = await triageService.suggest({
+        vitalSigns: {
+          bloodPressure: bp,
+          heartRate: parseInt(hr),
+          respiratoryRate: rr ? parseInt(rr) : undefined,
+          temperature: temp ? parseFloat(temp) : undefined,
+          oxygenSaturation: spo2 ? parseInt(spo2) : undefined,
+          glasgowComaScale: parseInt(glasgow),
+        },
+      });
+      setManchesterColor(suggestion.suggestedColor);
+      setTriageJustification(suggestion.justification);
+    } catch {
+      // Sugestao falhou - usuario escolhe manualmente
+    }
+  };
+
+  // Submeter atendimento (+ triagem quando sinais vitais abertos)
+  const handleSubmitAttendance = async () => {
+    if (!selectedPatient || !chiefComplaint.trim()) return;
+
+    // Se sinais vitais abertos, validar TODOS os 8 campos obrigatorios
+    if (vitalsOpen) {
+      const missing: string[] = [];
+      if (!bp) missing.push("PA");
+      if (!hr) missing.push("FC");
+      if (!rr) missing.push("FR");
+      if (!temp) missing.push("Temperatura");
+      if (!spo2) missing.push("SPO2");
+      if (!weight) missing.push("Peso");
+      if (!height) missing.push("Estatura");
+      if (!hgt) missing.push("HGT");
+      if (!manchesterColor) missing.push("Classificação Manchester");
+      if (missing.length > 0) {
+        toast.error(`Preencha os campos obrigatórios: ${missing.join(", ")}`);
+        return;
+      }
+    }
+
+    setSubmitting(true);
+    try {
+      // 1. Cria atendimento
+      const attendance = await attendanceService.create({
+        patientId: selectedPatient.id,
+        visitType: "URGENCIA",
+        chiefComplaint: chiefComplaint.trim(),
+      });
+
+      // 2. Se sinais vitais abertos e preenchidos, registra triagem
+      const hasVitals = vitalsOpen && bp && hr && manchesterColor;
+      if (hasVitals) {
+        try {
+          await triageService.registerTriage(attendance.id, {
+            vitalSigns: {
+              bloodPressure: bp,
+              heartRate: parseInt(hr),
+              respiratoryRate: rr ? parseInt(rr) : undefined,
+              temperature: temp ? parseFloat(temp) : undefined,
+              oxygenSaturation: spo2 ? parseInt(spo2) : undefined,
+              glasgowComaScale: parseInt(glasgow),
+              weight: weight ? parseFloat(weight) : undefined,
+              height: height ? parseFloat(height) : undefined,
+              bloodGlucose: hgt ? parseInt(hgt) : undefined,
+            },
+            triageColor: manchesterColor as ManchesterColor,
+            triageJustification: triageJustification || `Classificação ${manchesterColor}`,
+            overrideReason: undefined,
+          });
+          toast.success("Atendimento criado e triagem registrada.");
+        } catch {
+          toast.success("Atendimento criado. Erro na triagem - classifique pelo board.");
+        }
+      } else {
+        toast.success("Atendimento criado. Paciente aguardando triagem.");
+      }
+
+      resetForm();
+      setIsAttendanceOpen(false);
+      setSelectedPatient(null);
+      await loadQueue();
+      if (hasSearched) await handleSearch();
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || "Erro ao criar atendimento.";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Cadastrar paciente
@@ -122,7 +269,6 @@ export default function ReceptionTriage() {
       await patientService.create(data);
       toast.success("Paciente cadastrado com sucesso.");
       setIsRegisterOpen(false);
-      // Re-busca automatica pelo nome cadastrado
       setSearchQuery(`${data.firstName} ${data.lastName}`);
       const result = await receptionService.listPatients({
         query: `${data.firstName} ${data.lastName}`,
@@ -137,22 +283,17 @@ export default function ReceptionTriage() {
     }
   };
 
-  const handleRefresh = async () => {
-    await loadQueue();
-    if (hasSearched) await handleSearch();
-  };
-
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Recepção</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Recepção</h1>
+          <p className="text-sm text-muted-foreground">
             Registrar entrada, localizar paciente e abrir atendimento
           </p>
         </div>
-        <Button variant="outline" onClick={handleRefresh}>
+        <Button variant="outline" size="sm" onClick={() => { loadQueue(); if (hasSearched) handleSearch(); }}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Atualizar
         </Button>
@@ -160,25 +301,28 @@ export default function ReceptionTriage() {
 
       {/* Busca + Cadastro */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
+        <CardContent className="pt-4 sm:pt-6">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nome, CPF ou cartão SUS..."
+                placeholder="Nome, CPF ou cartão SUS..."
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
               />
             </div>
-            <Button onClick={handleSearch} disabled={searching || searchQuery.trim().length < 2}>
-              {searching ? "Buscando..." : "Buscar"}
-            </Button>
-            <Button variant="outline" onClick={() => setIsRegisterOpen(true)}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Novo Paciente
-            </Button>
+            <div className="flex gap-2">
+              <Button className="flex-1 sm:flex-none" onClick={handleSearch} disabled={searching || searchQuery.trim().length < 2}>
+                {searching ? "Buscando..." : "Buscar"}
+              </Button>
+              <Button className="flex-1 sm:flex-none" variant="outline" onClick={() => setIsRegisterOpen(true)}>
+                <UserPlus className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Novo Paciente</span>
+                <span className="sm:hidden">Novo</span>
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -186,8 +330,8 @@ export default function ReceptionTriage() {
       {/* Resultados da busca */}
       {hasSearched && (
         <Card>
-          <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold mb-4">
+          <CardContent className="pt-4 sm:pt-6">
+            <h3 className="text-lg font-semibold mb-3">
               Resultados ({searchResults.length})
             </h3>
             {searchResults.length === 0 ? (
@@ -199,38 +343,29 @@ export default function ReceptionTriage() {
                 {searchResults.map((item) => (
                   <div
                     key={item.patientId}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
-                        {item.patientName
-                          .split(" ")
-                          .slice(0, 2)
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()}
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm flex-shrink-0">
+                        {item.patientName.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()}
                       </div>
-                      <div>
-                        <p className="font-medium">{item.patientName}</p>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{item.patientName}</p>
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                           <span className="font-mono">{item.patientCode}</span>
-                          <span>
-                            {new Date(item.dateOfBirth).toLocaleDateString("pt-BR")}
-                          </span>
+                          <span>{new Date(item.dateOfBirth).toLocaleDateString("pt-BR")}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 ml-13 sm:ml-0">
                       {item.inAttendance ? (
                         <Badge variant="secondary">Atendimento ativo</Badge>
                       ) : (
                         <>
-                          <Button
-                            size="sm"
-                            onClick={() => handleOpenAttendance(item)}
-                          >
+                          <Button size="sm" onClick={() => handleOpenAttendance(item)}>
                             <Stethoscope className="h-4 w-4 mr-1" />
-                            Abrir Atendimento
+                            <span className="hidden sm:inline">Abrir Atendimento</span>
+                            <span className="sm:hidden">Atender</span>
                           </Button>
                           <Button
                             size="sm"
@@ -239,7 +374,8 @@ export default function ReceptionTriage() {
                             onClick={() => handleEmergency(item)}
                           >
                             <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-                            Emergência
+                            <span className="hidden sm:inline">Emergência</span>
+                            <span className="sm:hidden">Urg.</span>
                           </Button>
                         </>
                       )}
@@ -257,9 +393,7 @@ export default function ReceptionTriage() {
         <h2 className="text-xl font-semibold mb-3">
           Fila de Triagem
           {queueItems.length > 0 && (
-            <Badge variant="outline" className="ml-2">
-              {queueItems.length}
-            </Badge>
+            <Badge variant="outline" className="ml-2">{queueItems.length}</Badge>
           )}
         </h2>
         {loadingQueue ? (
@@ -273,14 +407,12 @@ export default function ReceptionTriage() {
         )}
       </div>
 
-      {/* Dialog: Cadastro de paciente */}
+      {/* Dialog: Cadastro */}
       <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Novo Paciente</DialogTitle>
-            <DialogDescription>
-              Preencha os dados para cadastrar um novo paciente.
-            </DialogDescription>
+            <DialogDescription>Preencha os dados para cadastrar um novo paciente.</DialogDescription>
           </DialogHeader>
           <PatientRegistrationForm
             onSubmit={handleRegisterPatient}
@@ -289,16 +421,168 @@ export default function ReceptionTriage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: Novo Atendimento */}
-      <NewAttendanceDialog
-        patient={selectedPatient}
-        open={isAttendanceOpen}
-        onOpenChange={(open) => {
-          setIsAttendanceOpen(open);
-          if (!open) setSelectedPatient(null);
-        }}
-        onSubmit={handleCreateAttendance}
-      />
+      {/* Dialog: Atendimento + Triagem Unificado */}
+      <Dialog open={isAttendanceOpen} onOpenChange={(open) => {
+        setIsAttendanceOpen(open);
+        if (!open) { setSelectedPatient(null); resetForm(); }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Abrir Atendimento
+            </DialogTitle>
+            <DialogDescription>
+              Preencha a queixa e, opcionalmente, os sinais vitais para triagem imediata.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Dados do paciente */}
+          {selectedPatient && (
+            <Card className="bg-muted/50">
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Paciente</p>
+                    <p className="font-semibold">{selectedPatient.firstName} {selectedPatient.lastName}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Código</p>
+                    <p className="font-mono font-semibold">{selectedPatient.patientCode}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="space-y-4">
+            {/* Queixa principal */}
+            <div>
+              <Label htmlFor="complaint">Queixa principal *</Label>
+              <Textarea
+                id="complaint"
+                placeholder="Ex: Dor abdominal há 2 dias, febre..."
+                rows={2}
+                value={chiefComplaint}
+                onChange={(e) => setChiefComplaint(e.target.value)}
+              />
+            </div>
+
+            {/* Sinais Vitais (colapsavel) */}
+            <Collapsible open={vitalsOpen} onOpenChange={setVitalsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full justify-between" type="button">
+                  <span className="flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    Sinais Vitais + Triagem
+                    {!vitalsOpen && <span className="text-xs text-muted-foreground">(opcional)</span>}
+                  </span>
+                  <ChevronRight className={`h-4 w-4 transition-transform ${vitalsOpen ? "rotate-90" : ""}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-4">
+                {/* Sinais vitais - grid responsivo */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <Label htmlFor="bp">PA *</Label>
+                    <Input id="bp" placeholder="120/80" value={bp} onChange={(e) => setBp(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="hr">FC (bpm) *</Label>
+                    <Input id="hr" type="number" placeholder="80" value={hr} onChange={(e) => setHr(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="rr">FR (irpm) *</Label>
+                    <Input id="rr" type="number" placeholder="16" value={rr} onChange={(e) => setRr(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="temp">T°C *</Label>
+                    <Input id="temp" type="number" step="0.1" placeholder="36.5" value={temp} onChange={(e) => setTemp(e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <Label htmlFor="spo2">SPO2 (%) *</Label>
+                    <Input id="spo2" type="number" placeholder="98" value={spo2} onChange={(e) => setSpo2(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="weight">Peso (kg) *</Label>
+                    <Input id="weight" type="number" step="0.1" placeholder="70" value={weight} onChange={(e) => setWeight(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="height">Estatura (cm) *</Label>
+                    <Input id="height" type="number" placeholder="170" value={height} onChange={(e) => setHeight(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="hgt">HGT (mg/dL) *</Label>
+                    <Input id="hgt" type="number" placeholder="100" value={hgt} onChange={(e) => setHgt(e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="glasgow">Glasgow</Label>
+                    <Input id="glasgow" type="number" min="3" max="15" value={glasgow} onChange={(e) => setGlasgow(e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Classificacao Manchester */}
+                <div className="border-t pt-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Classificação Manchester</Label>
+                    {bp && hr && glasgow && (
+                      <Button type="button" variant="ghost" size="sm" onClick={handleSuggestColor}>
+                        Sugerir cor
+                      </Button>
+                    )}
+                  </div>
+                  <Select value={manchesterColor} onValueChange={(v) => setManchesterColor(v as ManchesterColor)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a classificação" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MANCHESTER_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          <span className="flex items-center gap-2">
+                            <span className={`h-3 w-3 rounded-full ${opt.color}`} />
+                            {opt.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {manchesterColor && (
+                    <div>
+                      <Label htmlFor="justification">Justificativa</Label>
+                      <Textarea
+                        id="justification"
+                        placeholder="Justificativa da classificação..."
+                        rows={2}
+                        value={triageJustification}
+                        onChange={(e) => setTriageJustification(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAttendanceOpen(false)} disabled={submitting}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmitAttendance}
+              disabled={submitting || !chiefComplaint.trim()}
+            >
+              {submitting ? "Criando..." : vitalsOpen && manchesterColor ? "Criar Atendimento + Triagem" : "Criar Atendimento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog: Emergência */}
       <EmergencyBypassDialog
@@ -308,10 +592,7 @@ export default function ReceptionTriage() {
           setIsBypassOpen(open);
           if (!open) setSelectedPatient(null);
         }}
-        onSuccess={() => {
-          loadQueue();
-          if (hasSearched) handleSearch();
-        }}
+        onSuccess={() => { loadQueue(); if (hasSearched) handleSearch(); }}
       />
     </div>
   );

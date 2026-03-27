@@ -1,0 +1,31 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e8]:
+        - img [ref=e10]
+        - generic [ref=e13]:
+          - heading "AmazHealth" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Sistema Hospitalar
+      - generic [ref=e16]:
+        - generic [ref=e17]: Principal
+        - list [ref=e19]:
+          - listitem [ref=e20]:
+            - link "Dashboard" [ref=e21] [cursor=pointer]:
+              - /url: /
+              - img [ref=e22]
+              - generic [ref=e24]: Dashboard
+    - generic [ref=e25]:
+      - banner [ref=e26]:
+        - generic [ref=e28]:
+          - img [ref=e29]
+          - textbox "Busca global indisponível" [disabled] [ref=e32]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e33]:
+          - button [ref=e34] [cursor=pointer]:
+            - img
+          - button "US Usuário" [ref=e35] [cursor=pointer]:
+            - generic [ref=e37]: US
+            - generic [ref=e38]: Usuário
+      - main [ref=e39]

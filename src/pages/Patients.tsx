@@ -129,27 +129,8 @@ export default function Patients() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Pacientes</h1>
-          <p className="text-muted-foreground">Cadastro e gerenciamento de pacientes</p>
+          <p className="text-muted-foreground">Consulta e gerenciamento de pacientes</p>
         </div>
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              className="bg-primary hover:bg-primary/90"
-              disabled={!capabilities.canCreatePatients}
-              title={!capabilities.canCreatePatients ? "Você não tem permissão para criar pacientes" : ""}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Paciente
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl w-[calc(100vw-2rem)] sm:w-full max-h-[90vh] overflow-y-auto overflow-x-hidden">
-            <DialogHeader>
-              <DialogTitle>Novo Paciente</DialogTitle>
-              <DialogDescription>Preencha os dados para cadastrar um novo paciente.</DialogDescription>
-            </DialogHeader>
-            <PatientForm onSubmit={handleAddPatient} loading={loading} />
-          </DialogContent>
-        </Dialog>
       </div>
 
       <PatientStats patients={patients} />

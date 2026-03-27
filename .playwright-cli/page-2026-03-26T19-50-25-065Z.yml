@@ -1,0 +1,464 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e8]:
+        - img [ref=e10]
+        - generic [ref=e13]:
+          - heading "AmazHealth" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Sistema Hospitalar
+      - generic [ref=e16]:
+        - generic [ref=e17]: Principal
+        - list [ref=e19]:
+          - listitem [ref=e20]:
+            - link "Dashboard" [ref=e21] [cursor=pointer]:
+              - /url: /
+              - img [ref=e22]
+              - generic [ref=e24]: Dashboard
+      - generic [ref=e25]:
+        - generic [ref=e26]: Atendimento
+        - list [ref=e28]:
+          - listitem [ref=e29]:
+            - link "Pacientes" [ref=e30] [cursor=pointer]:
+              - /url: /patients
+              - img [ref=e31]
+              - generic [ref=e36]: Pacientes
+          - listitem [ref=e37]:
+            - link "Agendamentos" [ref=e38] [cursor=pointer]:
+              - /url: /appointments
+              - img [ref=e39]
+              - generic [ref=e41]: Agendamentos
+          - listitem [ref=e42]:
+            - link "Triagem (Recepção)" [ref=e43] [cursor=pointer]:
+              - /url: /reception/triage
+              - img [ref=e44]
+              - generic [ref=e47]: Triagem (Recepção)
+      - generic [ref=e49]:
+        - img [ref=e50]
+        - heading "Nova Ficha" [level=3] [ref=e53]
+        - paragraph [ref=e54]: Registrar entrada, localizar paciente e abrir atendimento.
+        - link "Abrir recepção" [ref=e55] [cursor=pointer]:
+          - /url: /reception/triage
+    - generic [ref=e56]:
+      - banner [ref=e57]:
+        - generic [ref=e59]:
+          - img [ref=e60]
+          - textbox "Busca global indisponível" [disabled] [ref=e63]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e64]:
+          - button [ref=e65] [cursor=pointer]:
+            - img
+          - button "R recepcao.uat" [ref=e66] [cursor=pointer]:
+            - generic [ref=e68]: R
+            - generic [ref=e69]: recepcao.uat
+      - main [ref=e70]:
+        - generic [ref=e71]:
+          - generic [ref=e72]:
+            - generic [ref=e73]:
+              - heading "Pacientes" [level=1] [ref=e74]
+              - paragraph [ref=e75]: Cadastro e gerenciamento de pacientes
+            - button "Novo Paciente" [ref=e76] [cursor=pointer]:
+              - img
+              - text: Novo Paciente
+          - generic [ref=e77]:
+            - generic [ref=e78]:
+              - generic [ref=e79]:
+                - heading "Total de Pacientes" [level=3] [ref=e80]
+                - img [ref=e81]
+              - generic [ref=e86]:
+                - generic [ref=e87]: "10"
+                - paragraph [ref=e88]: cadastrados no sistema
+            - generic [ref=e89]:
+              - generic [ref=e90]:
+                - heading "Pacientes Ativos" [level=3] [ref=e91]
+                - img [ref=e92]
+              - generic [ref=e94]:
+                - generic [ref=e95]: "10"
+                - paragraph [ref=e96]: em acompanhamento
+            - generic [ref=e97]:
+              - generic [ref=e98]:
+                - heading "Pacientes Inativos" [level=3] [ref=e99]
+                - img [ref=e100]
+              - generic [ref=e102]:
+                - generic [ref=e103]: "0"
+                - paragraph [ref=e104]: sem atividade recente
+            - generic [ref=e105]:
+              - generic [ref=e106]:
+                - heading "Novos Este Mês" [level=3] [ref=e107]
+                - img [ref=e108]
+              - generic [ref=e110]:
+                - generic [ref=e111]: "10"
+                - paragraph [ref=e112]: cadastros em janeiro
+          - generic [ref=e113]:
+            - generic [ref=e115]:
+              - generic [ref=e116]:
+                - heading "Filtros" [level=3] [ref=e117]
+                - generic [ref=e118]:
+                  - img [ref=e119]
+                  - text: 1 ativo
+              - button "Limpar Filtros" [ref=e121] [cursor=pointer]:
+                - img
+                - text: Limpar Filtros
+            - generic [ref=e123]:
+              - generic [ref=e125]:
+                - img [ref=e126]
+                - textbox "Buscar por nome, CPF ou cartão SUS..." [ref=e129]
+              - generic [ref=e130]:
+                - combobox [ref=e131] [cursor=pointer]:
+                  - generic: Ativo
+                  - img [ref=e132]
+                - combobox [ref=e134] [cursor=pointer]:
+                  - generic: Todos os Gêneros
+                  - img [ref=e135]
+                - generic [ref=e138]: Filtrando resultados
+          - generic [ref=e139]:
+            - heading "Lista de Pacientes" [level=3] [ref=e141]
+            - table [ref=e145]:
+              - rowgroup [ref=e146]:
+                - row "Paciente Código Email Idade Contato Tipo Sanguíneo Última Visita Status Ações" [ref=e147]:
+                  - columnheader "Paciente" [ref=e148]
+                  - columnheader "Código" [ref=e149]
+                  - columnheader "Email" [ref=e150]
+                  - columnheader "Idade" [ref=e151]
+                  - columnheader "Contato" [ref=e152]
+                  - columnheader "Tipo Sanguíneo" [ref=e153]
+                  - columnheader "Última Visita" [ref=e154]
+                  - columnheader "Status" [ref=e155]
+                  - columnheader "Ações" [ref=e156]
+              - rowgroup [ref=e157]:
+                - row "CP Carlos Pereira Masculino PAT000010 - 55 anos - - - 26/03/2026 Ativo Atendimento ativo Ver detalhes Editar Imprimir etiqueta" [ref=e158]:
+                  - cell "CP Carlos Pereira Masculino" [ref=e159]:
+                    - generic [ref=e160]:
+                      - generic [ref=e162]: CP
+                      - generic [ref=e163]:
+                        - generic [ref=e164]: Carlos Pereira
+                        - generic [ref=e165]: Masculino
+                  - cell "PAT000010" [ref=e166]
+                  - cell "-" [ref=e167]
+                  - cell "55 anos" [ref=e168]
+                  - cell "- -" [ref=e169]:
+                    - generic [ref=e170]:
+                      - generic [ref=e171]:
+                        - img [ref=e172]
+                        - text: "-"
+                      - generic [ref=e174]:
+                        - img [ref=e175]
+                        - text: "-"
+                  - cell "-" [ref=e178]
+                  - cell "26/03/2026" [ref=e179]
+                  - cell "Ativo" [ref=e180]:
+                    - generic [ref=e181]: Ativo
+                  - cell "Atendimento ativo Ver detalhes Editar Imprimir etiqueta" [ref=e182]:
+                    - generic [ref=e183]:
+                      - generic [ref=e184]: Atendimento ativo
+                      - button "Ver detalhes" [ref=e185] [cursor=pointer]:
+                        - img
+                      - button "Editar" [ref=e186] [cursor=pointer]:
+                        - img
+                      - button "Imprimir etiqueta" [ref=e187] [cursor=pointer]:
+                        - img
+                - row "AO Ana Oliveira Feminino PAT000009 - 33 anos - - - 26/03/2026 Ativo Atendimento ativo Ver detalhes Editar Imprimir etiqueta" [ref=e188]:
+                  - cell "AO Ana Oliveira Feminino" [ref=e189]:
+                    - generic [ref=e190]:
+                      - generic [ref=e192]: AO
+                      - generic [ref=e193]:
+                        - generic [ref=e194]: Ana Oliveira
+                        - generic [ref=e195]: Feminino
+                  - cell "PAT000009" [ref=e196]
+                  - cell "-" [ref=e197]
+                  - cell "33 anos" [ref=e198]
+                  - cell "- -" [ref=e199]:
+                    - generic [ref=e200]:
+                      - generic [ref=e201]:
+                        - img [ref=e202]
+                        - text: "-"
+                      - generic [ref=e204]:
+                        - img [ref=e205]
+                        - text: "-"
+                  - cell "-" [ref=e208]
+                  - cell "26/03/2026" [ref=e209]
+                  - cell "Ativo" [ref=e210]:
+                    - generic [ref=e211]: Ativo
+                  - cell "Atendimento ativo Ver detalhes Editar Imprimir etiqueta" [ref=e212]:
+                    - generic [ref=e213]:
+                      - generic [ref=e214]: Atendimento ativo
+                      - button "Ver detalhes" [ref=e215] [cursor=pointer]:
+                        - img
+                      - button "Editar" [ref=e216] [cursor=pointer]:
+                        - img
+                      - button "Imprimir etiqueta" [ref=e217] [cursor=pointer]:
+                        - img
+                - row "JS Joao Santos Masculino PAT000008 - 41 anos - - - 26/03/2026 Ativo Atendimento ativo Ver detalhes Editar Imprimir etiqueta" [ref=e218]:
+                  - cell "JS Joao Santos Masculino" [ref=e219]:
+                    - generic [ref=e220]:
+                      - generic [ref=e222]: JS
+                      - generic [ref=e223]:
+                        - generic [ref=e224]: Joao Santos
+                        - generic [ref=e225]: Masculino
+                  - cell "PAT000008" [ref=e226]
+                  - cell "-" [ref=e227]
+                  - cell "41 anos" [ref=e228]
+                  - cell "- -" [ref=e229]:
+                    - generic [ref=e230]:
+                      - generic [ref=e231]:
+                        - img [ref=e232]
+                        - text: "-"
+                      - generic [ref=e234]:
+                        - img [ref=e235]
+                        - text: "-"
+                  - cell "-" [ref=e238]
+                  - cell "26/03/2026" [ref=e239]
+                  - cell "Ativo" [ref=e240]:
+                    - generic [ref=e241]: Ativo
+                  - cell "Atendimento ativo Ver detalhes Editar Imprimir etiqueta" [ref=e242]:
+                    - generic [ref=e243]:
+                      - generic [ref=e244]: Atendimento ativo
+                      - button "Ver detalhes" [ref=e245] [cursor=pointer]:
+                        - img
+                      - button "Editar" [ref=e246] [cursor=pointer]:
+                        - img
+                      - button "Imprimir etiqueta" [ref=e247] [cursor=pointer]:
+                        - img
+                - row "MS Maria Silva Feminino PAT000007 - 35 anos - - - 26/03/2026 Ativo Atendimento ativo Ver detalhes Editar Imprimir etiqueta" [ref=e248]:
+                  - cell "MS Maria Silva Feminino" [ref=e249]:
+                    - generic [ref=e250]:
+                      - generic [ref=e252]: MS
+                      - generic [ref=e253]:
+                        - generic [ref=e254]: Maria Silva
+                        - generic [ref=e255]: Feminino
+                  - cell "PAT000007" [ref=e256]
+                  - cell "-" [ref=e257]
+                  - cell "35 anos" [ref=e258]
+                  - cell "- -" [ref=e259]:
+                    - generic [ref=e260]:
+                      - generic [ref=e261]:
+                        - img [ref=e262]
+                        - text: "-"
+                      - generic [ref=e264]:
+                        - img [ref=e265]
+                        - text: "-"
+                  - cell "-" [ref=e268]
+                  - cell "26/03/2026" [ref=e269]
+                  - cell "Ativo" [ref=e270]:
+                    - generic [ref=e271]: Ativo
+                  - cell "Atendimento ativo Ver detalhes Editar Imprimir etiqueta" [ref=e272]:
+                    - generic [ref=e273]:
+                      - generic [ref=e274]: Atendimento ativo
+                      - button "Ver detalhes" [ref=e275] [cursor=pointer]:
+                        - img
+                      - button "Editar" [ref=e276] [cursor=pointer]:
+                        - img
+                      - button "Imprimir etiqueta" [ref=e277] [cursor=pointer]:
+                        - img
+                - row "LC Lucia Costa Feminino PAT000006 - 31 anos - - - 26/03/2026 Ativo Atendimento ativo Ver detalhes Editar Imprimir etiqueta" [ref=e278]:
+                  - cell "LC Lucia Costa Feminino" [ref=e279]:
+                    - generic [ref=e280]:
+                      - generic [ref=e282]: LC
+                      - generic [ref=e283]:
+                        - generic [ref=e284]: Lucia Costa
+                        - generic [ref=e285]: Feminino
+                  - cell "PAT000006" [ref=e286]
+                  - cell "-" [ref=e287]
+                  - cell "31 anos" [ref=e288]
+                  - cell "- -" [ref=e289]:
+                    - generic [ref=e290]:
+                      - generic [ref=e291]:
+                        - img [ref=e292]
+                        - text: "-"
+                      - generic [ref=e294]:
+                        - img [ref=e295]
+                        - text: "-"
+                  - cell "-" [ref=e298]
+                  - cell "26/03/2026" [ref=e299]
+                  - cell "Ativo" [ref=e300]:
+                    - generic [ref=e301]: Ativo
+                  - cell "Atendimento ativo Ver detalhes Editar Imprimir etiqueta" [ref=e302]:
+                    - generic [ref=e303]:
+                      - generic [ref=e304]: Atendimento ativo
+                      - button "Ver detalhes" [ref=e305] [cursor=pointer]:
+                        - img
+                      - button "Editar" [ref=e306] [cursor=pointer]:
+                        - img
+                      - button "Imprimir etiqueta" [ref=e307] [cursor=pointer]:
+                        - img
+                - row "CP Carlos Pereira Masculino PAT000005 - 32 anos - - - 26/03/2026 Ativo Iniciar atendimento Bypass de emergência Ver detalhes Editar Imprimir etiqueta" [ref=e308]:
+                  - cell "CP Carlos Pereira Masculino" [ref=e309]:
+                    - generic [ref=e310]:
+                      - generic [ref=e312]: CP
+                      - generic [ref=e313]:
+                        - generic [ref=e314]: Carlos Pereira
+                        - generic [ref=e315]: Masculino
+                  - cell "PAT000005" [ref=e316]
+                  - cell "-" [ref=e317]
+                  - cell "32 anos" [ref=e318]
+                  - cell "- -" [ref=e319]:
+                    - generic [ref=e320]:
+                      - generic [ref=e321]:
+                        - img [ref=e322]
+                        - text: "-"
+                      - generic [ref=e324]:
+                        - img [ref=e325]
+                        - text: "-"
+                  - cell "-" [ref=e328]
+                  - cell "26/03/2026" [ref=e329]
+                  - cell "Ativo" [ref=e330]:
+                    - generic [ref=e331]: Ativo
+                  - cell "Iniciar atendimento Bypass de emergência Ver detalhes Editar Imprimir etiqueta" [ref=e332]:
+                    - generic [ref=e333]:
+                      - button "Iniciar atendimento" [ref=e334] [cursor=pointer]:
+                        - img
+                        - text: Atender
+                      - button "Bypass de emergência" [ref=e335] [cursor=pointer]:
+                        - img
+                        - text: Bypass
+                      - button "Ver detalhes" [ref=e336] [cursor=pointer]:
+                        - img
+                      - button "Editar" [ref=e337] [cursor=pointer]:
+                        - img
+                      - button "Imprimir etiqueta" [ref=e338] [cursor=pointer]:
+                        - img
+                - row "AO Ana Oliveira Feminino PAT000004 - 34 anos - - - 26/03/2026 Ativo Iniciar atendimento Bypass de emergência Ver detalhes Editar Imprimir etiqueta" [ref=e339]:
+                  - cell "AO Ana Oliveira Feminino" [ref=e340]:
+                    - generic [ref=e341]:
+                      - generic [ref=e343]: AO
+                      - generic [ref=e344]:
+                        - generic [ref=e345]: Ana Oliveira
+                        - generic [ref=e346]: Feminino
+                  - cell "PAT000004" [ref=e347]
+                  - cell "-" [ref=e348]
+                  - cell "34 anos" [ref=e349]
+                  - cell "- -" [ref=e350]:
+                    - generic [ref=e351]:
+                      - generic [ref=e352]:
+                        - img [ref=e353]
+                        - text: "-"
+                      - generic [ref=e355]:
+                        - img [ref=e356]
+                        - text: "-"
+                  - cell "-" [ref=e359]
+                  - cell "26/03/2026" [ref=e360]
+                  - cell "Ativo" [ref=e361]:
+                    - generic [ref=e362]: Ativo
+                  - cell "Iniciar atendimento Bypass de emergência Ver detalhes Editar Imprimir etiqueta" [ref=e363]:
+                    - generic [ref=e364]:
+                      - button "Iniciar atendimento" [ref=e365] [cursor=pointer]:
+                        - img
+                        - text: Atender
+                      - button "Bypass de emergência" [ref=e366] [cursor=pointer]:
+                        - img
+                        - text: Bypass
+                      - button "Ver detalhes" [ref=e367] [cursor=pointer]:
+                        - img
+                      - button "Editar" [ref=e368] [cursor=pointer]:
+                        - img
+                      - button "Imprimir etiqueta" [ref=e369] [cursor=pointer]:
+                        - img
+                - row "JS Joao Santos Masculino PAT000003 - 35 anos - - - 26/03/2026 Ativo Iniciar atendimento Bypass de emergência Ver detalhes Editar Imprimir etiqueta" [ref=e370]:
+                  - cell "JS Joao Santos Masculino" [ref=e371]:
+                    - generic [ref=e372]:
+                      - generic [ref=e374]: JS
+                      - generic [ref=e375]:
+                        - generic [ref=e376]: Joao Santos
+                        - generic [ref=e377]: Masculino
+                  - cell "PAT000003" [ref=e378]
+                  - cell "-" [ref=e379]
+                  - cell "35 anos" [ref=e380]
+                  - cell "- -" [ref=e381]:
+                    - generic [ref=e382]:
+                      - generic [ref=e383]:
+                        - img [ref=e384]
+                        - text: "-"
+                      - generic [ref=e386]:
+                        - img [ref=e387]
+                        - text: "-"
+                  - cell "-" [ref=e390]
+                  - cell "26/03/2026" [ref=e391]
+                  - cell "Ativo" [ref=e392]:
+                    - generic [ref=e393]: Ativo
+                  - cell "Iniciar atendimento Bypass de emergência Ver detalhes Editar Imprimir etiqueta" [ref=e394]:
+                    - generic [ref=e395]:
+                      - button "Iniciar atendimento" [ref=e396] [cursor=pointer]:
+                        - img
+                        - text: Atender
+                      - button "Bypass de emergência" [ref=e397] [cursor=pointer]:
+                        - img
+                        - text: Bypass
+                      - button "Ver detalhes" [ref=e398] [cursor=pointer]:
+                        - img
+                      - button "Editar" [ref=e399] [cursor=pointer]:
+                        - img
+                      - button "Imprimir etiqueta" [ref=e400] [cursor=pointer]:
+                        - img
+                - row "MS Maria Silva Feminino PAT000002 - 36 anos - - - 26/03/2026 Ativo Iniciar atendimento Bypass de emergência Ver detalhes Editar Imprimir etiqueta" [ref=e401]:
+                  - cell "MS Maria Silva Feminino" [ref=e402]:
+                    - generic [ref=e403]:
+                      - generic [ref=e405]: MS
+                      - generic [ref=e406]:
+                        - generic [ref=e407]: Maria Silva
+                        - generic [ref=e408]: Feminino
+                  - cell "PAT000002" [ref=e409]
+                  - cell "-" [ref=e410]
+                  - cell "36 anos" [ref=e411]
+                  - cell "- -" [ref=e412]:
+                    - generic [ref=e413]:
+                      - generic [ref=e414]:
+                        - img [ref=e415]
+                        - text: "-"
+                      - generic [ref=e417]:
+                        - img [ref=e418]
+                        - text: "-"
+                  - cell "-" [ref=e421]
+                  - cell "26/03/2026" [ref=e422]
+                  - cell "Ativo" [ref=e423]:
+                    - generic [ref=e424]: Ativo
+                  - cell "Iniciar atendimento Bypass de emergência Ver detalhes Editar Imprimir etiqueta" [ref=e425]:
+                    - generic [ref=e426]:
+                      - button "Iniciar atendimento" [ref=e427] [cursor=pointer]:
+                        - img
+                        - text: Atender
+                      - button "Bypass de emergência" [ref=e428] [cursor=pointer]:
+                        - img
+                        - text: Bypass
+                      - button "Ver detalhes" [ref=e429] [cursor=pointer]:
+                        - img
+                      - button "Editar" [ref=e430] [cursor=pointer]:
+                        - img
+                      - button "Imprimir etiqueta" [ref=e431] [cursor=pointer]:
+                        - img
+                - row "JS João Silva Teste Masculino PAT000001 - 36 anos - - - 26/03/2026 Ativo Iniciar atendimento Bypass de emergência Ver detalhes Editar Imprimir etiqueta" [ref=e432]:
+                  - cell "JS João Silva Teste Masculino" [ref=e433]:
+                    - generic [ref=e434]:
+                      - generic [ref=e436]: JS
+                      - generic [ref=e437]:
+                        - generic [ref=e438]: João Silva Teste
+                        - generic [ref=e439]: Masculino
+                  - cell "PAT000001" [ref=e440]
+                  - cell "-" [ref=e441]
+                  - cell "36 anos" [ref=e442]
+                  - cell "- -" [ref=e443]:
+                    - generic [ref=e444]:
+                      - generic [ref=e445]:
+                        - img [ref=e446]
+                        - text: "-"
+                      - generic [ref=e448]:
+                        - img [ref=e449]
+                        - text: "-"
+                  - cell "-" [ref=e452]
+                  - cell "26/03/2026" [ref=e453]
+                  - cell "Ativo" [ref=e454]:
+                    - generic [ref=e455]: Ativo
+                  - cell "Iniciar atendimento Bypass de emergência Ver detalhes Editar Imprimir etiqueta" [ref=e456]:
+                    - generic [ref=e457]:
+                      - button "Iniciar atendimento" [ref=e458] [cursor=pointer]:
+                        - img
+                        - text: Atender
+                      - button "Bypass de emergência" [ref=e459] [cursor=pointer]:
+                        - img
+                        - text: Bypass
+                      - button "Ver detalhes" [ref=e460] [cursor=pointer]:
+                        - img
+                      - button "Editar" [ref=e461] [cursor=pointer]:
+                        - img
+                      - button "Imprimir etiqueta" [ref=e462] [cursor=pointer]:
+                        - img

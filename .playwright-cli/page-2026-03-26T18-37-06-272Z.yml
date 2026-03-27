@@ -1,0 +1,199 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T":
+    - list:
+      - status [ref=e24]:
+        - img [ref=e26]
+        - generic [ref=e29]: Login realizado com sucesso!
+  - generic [ref=e31]:
+    - generic [ref=e33]:
+      - generic [ref=e35]:
+        - img [ref=e37]
+        - generic [ref=e40]:
+          - heading "AmazHealth" [level=1] [ref=e41]
+          - paragraph [ref=e42]: Sistema Hospitalar
+      - generic [ref=e43]:
+        - generic [ref=e44]: Principal
+        - list [ref=e46]:
+          - listitem [ref=e47]:
+            - link "Dashboard" [ref=e48] [cursor=pointer]:
+              - /url: /
+              - img [ref=e49]
+              - generic [ref=e51]: Dashboard
+      - generic [ref=e52]:
+        - generic [ref=e53]: Atendimento
+        - list [ref=e55]:
+          - listitem [ref=e56]:
+            - link "Pacientes" [ref=e57] [cursor=pointer]:
+              - /url: /patients
+              - img [ref=e58]
+              - generic [ref=e63]: Pacientes
+          - listitem [ref=e64]:
+            - link "Agendamentos" [ref=e65] [cursor=pointer]:
+              - /url: /appointments
+              - img [ref=e66]
+              - generic [ref=e68]: Agendamentos
+          - listitem [ref=e69]:
+            - link "Prontuários" [ref=e70] [cursor=pointer]:
+              - /url: /medical-records
+              - img [ref=e71]
+              - generic [ref=e74]: Prontuários
+          - listitem [ref=e75]:
+            - link "Consultas" [ref=e76] [cursor=pointer]:
+              - /url: /consultations
+              - img [ref=e77]
+              - generic [ref=e81]: Consultas
+          - listitem [ref=e82]:
+            - link "Triagem" [ref=e83] [cursor=pointer]:
+              - /url: /triage
+              - img [ref=e84]
+              - generic [ref=e87]: Triagem
+          - listitem [ref=e88]:
+            - link "Triagem (Recepção)" [ref=e89] [cursor=pointer]:
+              - /url: /reception/triage
+              - img [ref=e90]
+              - generic [ref=e93]: Triagem (Recepção)
+      - generic [ref=e94]:
+        - generic [ref=e95]: Hospitalização
+        - list [ref=e97]:
+          - listitem [ref=e98]:
+            - link "Gestão Hospitalar" [ref=e99] [cursor=pointer]:
+              - /url: /hospital
+              - img [ref=e100]
+              - generic [ref=e103]: Gestão Hospitalar
+          - listitem [ref=e104]:
+            - link "Internação" [ref=e105] [cursor=pointer]:
+              - /url: /admissions
+              - img [ref=e106]
+              - generic [ref=e109]: Internação
+      - generic [ref=e110]:
+        - generic [ref=e111]: Exames
+        - list [ref=e113]:
+          - listitem [ref=e114]:
+            - link "Laboratório" [ref=e115] [cursor=pointer]:
+              - /url: /laboratory
+              - img [ref=e116]
+              - generic [ref=e118]: Laboratório
+      - generic [ref=e119]:
+        - generic [ref=e120]: Medicamentos
+        - list [ref=e122]:
+          - listitem [ref=e123]:
+            - link "Farmácia" [ref=e124] [cursor=pointer]:
+              - /url: /pharmacy
+              - img [ref=e125]
+              - generic [ref=e128]: Farmácia
+      - generic [ref=e129]:
+        - generic [ref=e130]: Financeiro
+        - list [ref=e132]:
+          - listitem [ref=e133]:
+            - link "Faturamento" [ref=e134] [cursor=pointer]:
+              - /url: /billing
+              - img [ref=e135]
+              - generic [ref=e137]: Faturamento
+      - generic [ref=e138]:
+        - generic [ref=e139]: Gestão
+        - list [ref=e141]:
+          - listitem [ref=e142]:
+            - link "Relatórios" [ref=e143] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e144]
+              - generic [ref=e146]: Relatórios
+          - listitem [ref=e147]:
+            - link "Equipe" [ref=e148] [cursor=pointer]:
+              - /url: /staff
+              - img [ref=e149]
+              - generic [ref=e154]: Equipe
+          - listitem [ref=e155]:
+            - link "Usuários" [ref=e156] [cursor=pointer]:
+              - /url: /users
+              - img [ref=e157]
+              - generic [ref=e160]: Usuários
+      - generic [ref=e162]:
+        - img [ref=e163]
+        - heading "Gerir Usuários" [level=3] [ref=e166]
+        - paragraph [ref=e167]: Criar acessos, revisar perfis e auditar permissões.
+        - link "Abrir usuários" [ref=e168] [cursor=pointer]:
+          - /url: /users
+    - generic [ref=e169]:
+      - banner [ref=e170]:
+        - generic [ref=e172]:
+          - img [ref=e173]
+          - textbox "Busca global indisponível" [disabled] [ref=e176]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e177]:
+          - button [ref=e178] [cursor=pointer]:
+            - img
+          - button "S superadmin" [ref=e179] [cursor=pointer]:
+            - generic [ref=e181]: S
+            - generic [ref=e182]: superadmin
+      - main [ref=e183]:
+        - generic [ref=e184]:
+          - generic [ref=e185]:
+            - generic [ref=e186]:
+              - heading "Painel Administrativo" [level=1] [ref=e187]
+              - paragraph [ref=e188]: Visão consolidada de operação, acessos, equipes e indicadores estratégicos.
+              - paragraph [ref=e189]: Atualizado em 26/03/2026 às 15:37
+            - button "Atualizar" [ref=e190] [cursor=pointer]:
+              - img
+              - text: Atualizar
+          - generic [ref=e191]:
+            - generic [ref=e192]:
+              - generic [ref=e193]:
+                - heading "Pacientes Ativos" [level=3] [ref=e194]
+                - img [ref=e195]
+              - generic [ref=e200]:
+                - generic [ref=e201]: "1"
+                - paragraph [ref=e202]: Total de pacientes ativos na organização
+                - generic [ref=e203]: Atualizado
+            - generic [ref=e204]:
+              - generic [ref=e205]:
+                - heading "Atendimentos Hoje" [level=3] [ref=e206]
+                - img [ref=e207]
+              - generic [ref=e209]:
+                - generic [ref=e210]: "6"
+                - paragraph [ref=e211]: Entradas registradas nas últimas 24h
+                - generic [ref=e212]: Atualizado
+            - generic [ref=e213]:
+              - generic [ref=e214]:
+                - heading "Leitos Disponíveis" [level=3] [ref=e215]
+                - img [ref=e216]
+              - generic [ref=e219]:
+                - generic [ref=e220]: "0"
+                - paragraph [ref=e221]: Leitos livres ou liberados para uso
+                - generic [ref=e222]: Atualizado
+            - generic [ref=e223]:
+              - generic [ref=e224]:
+                - heading "Consultas em Andamento" [level=3] [ref=e225]
+                - img [ref=e226]
+              - generic [ref=e230]:
+                - generic [ref=e231]: "0"
+                - paragraph [ref=e232]: Atendimentos em triagem/medicina/exames
+                - generic [ref=e233]: Atualizado
+          - generic [ref=e234]:
+            - generic [ref=e235]:
+              - heading "Ações Rápidas" [level=3] [ref=e236]:
+                - img [ref=e237]
+                - text: Ações Rápidas
+              - paragraph [ref=e239]: Módulos mais relevantes para o papel atual
+            - generic [ref=e241]:
+              - link "Usuários Acessos e permissões" [ref=e242] [cursor=pointer]:
+                - /url: /users
+                - generic [ref=e243]:
+                  - heading "Usuários" [level=3] [ref=e245]
+                  - generic [ref=e246]: Acessos e permissões
+              - link "Equipe Gestão de colaboradores" [ref=e247] [cursor=pointer]:
+                - /url: /staff
+                - generic [ref=e248]:
+                  - heading "Equipe" [level=3] [ref=e250]
+                  - generic [ref=e251]: Gestão de colaboradores
+              - link "Relatórios Indicadores e consolidados" [ref=e252] [cursor=pointer]:
+                - /url: /reports
+                - generic [ref=e253]:
+                  - heading "Relatórios" [level=3] [ref=e255]
+                  - generic [ref=e256]: Indicadores e consolidados
+              - link "Faturamento Cobranças e repasses" [ref=e257] [cursor=pointer]:
+                - /url: /billing
+                - generic [ref=e258]:
+                  - heading "Faturamento" [level=3] [ref=e260]
+                  - generic [ref=e261]: Cobranças e repasses

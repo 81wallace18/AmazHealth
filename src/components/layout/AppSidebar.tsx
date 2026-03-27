@@ -51,6 +51,7 @@ const navigationItems: NavigationItem[] = [
     url: "/",
     icon: BarChart3,
     group: "Principal",
+    allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "PHARMACIST", "HOSPITAL_MANAGER", "FINANCE"],
   },
   {
     title: "Pacientes",
@@ -65,7 +66,7 @@ const navigationItems: NavigationItem[] = [
     url: "/appointments",
     icon: Calendar,
     group: "Atendimento",
-    allowedRoles: ["ADMIN", "RECEPTIONIST"],
+    allowedRoles: ["ADMIN"],
     module: "AMBULATORIAL",
   },
   {
@@ -97,7 +98,7 @@ const navigationItems: NavigationItem[] = [
     url: "/reception/triage",
     icon: UserPlus,
     group: "Atendimento",
-    allowedRoles: ["ADMIN", "RECEPTIONIST"],
+    allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER"],
     module: "URGENCIA",
   },
   {
