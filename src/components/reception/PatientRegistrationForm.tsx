@@ -76,6 +76,7 @@ type PatientFormData = z.infer<typeof patientSchema>;
 interface PatientRegistrationFormProps {
   onSubmit: (data: PatientCreateRequest) => Promise<void>;
   onCancel?: () => void;
+  onExistingPatient?: (patient: any) => void;
   initialData?: Partial<PatientFormData>;
   duplicates?: any[];
 }
@@ -83,11 +84,13 @@ interface PatientRegistrationFormProps {
 export function PatientRegistrationForm({
   onSubmit,
   onCancel,
+  onExistingPatient,
   initialData,
   duplicates = []
 }: PatientRegistrationFormProps) {
   const [loading, setLoading] = useState(false);
   const [optionalsOpen, setOptionalsOpen] = useState(false);
+  const [foundPatient, setFoundPatient] = useState<any>(null);
 
   const {
     register,
@@ -95,6 +98,7 @@ export function PatientRegistrationForm({
     formState: { errors },
     setValue,
     watch,
+    reset,
   } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
     defaultValues: {
@@ -102,6 +106,37 @@ export function PatientRegistrationForm({
       ...initialData,
     },
   });
+
+  // Auto-busca por CNS ou CPF
+  const searchByDocument = async (value: string, type: 'cns' | 'cpf') => {
+    const digits = value.replace(/\D/g, '');
+    if ((type === 'cpf' && digits.length === 11) || (type === 'cns' && digits.length >= 15)) {
+      try {
+        const { patientService } = await import('@/services/patientService');
+        const result = await patientService.search({ query: digits, size: 1 });
+        if (result.content.length > 0) {
+          const p = result.content[0];
+          setFoundPatient(p);
+          // Preenche formulario com dados do paciente encontrado
+          setValue('fullName', `${p.firstName} ${p.lastName}`);
+          setValue('gender', p.gender);
+          setValue('motherName', p.motherName || '');
+          setValue('dateOfBirth', p.dateOfBirth?.split('T')[0] || '');
+          setValue('cns', p.cns || '');
+          setValue('cpf', p.cpf || '');
+          setValue('fatherName', p.fatherName || '');
+          setValue('address', p.address || '');
+          setValue('birthCity', p.birthCity || '');
+          setValue('maritalStatus', p.maritalStatus);
+          setValue('phone', p.phone || '');
+        } else {
+          setFoundPatient(null);
+        }
+      } catch {
+        setFoundPatient(null);
+      }
+    }
+  };
 
   const handleFormSubmit = async (data: PatientFormData) => {
     try {
@@ -144,6 +179,32 @@ export function PatientRegistrationForm({
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Cartao SUS + CPF (primeiro - identifica o paciente) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="cns">Cartão SUS *</Label>
+          <Input
+            id="cns"
+            {...register('cns')}
+            placeholder="000 0000 0000 0000"
+            maxLength={15}
+            onBlur={(e) => searchByDocument(e.target.value, 'cns')}
+          />
+          {errors.cns && <p className="text-xs text-red-500">{errors.cns.message}</p>}
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="cpf">CPF</Label>
+          <Input
+            id="cpf"
+            {...register('cpf')}
+            onChange={handleCpfChange}
+            placeholder="000.000.000-00"
+            maxLength={14}
+            onBlur={(e) => searchByDocument(e.target.value, 'cpf')}
+          />
+        </div>
+      </div>
 
       {/* Nome + Sexo */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -206,19 +267,6 @@ export function PatientRegistrationForm({
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
-
-      {/* Cartao SUS + CPF */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="cns">Cartão SUS *</Label>
-          <Input id="cns" {...register('cns')} placeholder="000 0000 0000 0000" maxLength={15} />
-          {errors.cns && <p className="text-xs text-red-500">{errors.cns.message}</p>}
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="cpf">CPF</Label>
-          <Input id="cpf" {...register('cpf')} onChange={handleCpfChange} placeholder="000.000.000-00" maxLength={14} />
         </div>
       </div>
 
@@ -303,15 +351,35 @@ export function PatientRegistrationForm({
         </CollapsibleContent>
       </Collapsible>
 
+      {/* Aviso paciente encontrado */}
+      {foundPatient && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Paciente <strong>{foundPatient.firstName} {foundPatient.lastName}</strong> ({foundPatient.patientCode}) já existe no sistema.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Botoes */}
       <div className="flex justify-between gap-4 pt-2">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
         )}
-        <Button type="submit" disabled={loading} className="ml-auto">
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Cadastrar Paciente
-        </Button>
+        {foundPatient && onExistingPatient ? (
+          <Button
+            type="button"
+            className="ml-auto"
+            onClick={() => onExistingPatient(foundPatient)}
+          >
+            Abrir Atendimento
+          </Button>
+        ) : (
+          <Button type="submit" disabled={loading} className="ml-auto">
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Cadastrar e Abrir Atendimento
+          </Button>
+        )}
       </div>
     </form>
   );

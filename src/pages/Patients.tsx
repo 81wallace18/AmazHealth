@@ -12,6 +12,8 @@ import { PatientTable } from "@/components/patients/PatientTable";
 import { PatientDetails } from "@/components/patients/PatientDetails";
 import { useCapabilities } from "@/auth/useCapabilities";
 import attendanceService from "@/services/attendanceService";
+import { patientService } from "@/services/patientService";
+import { toast } from "sonner";
 
 export default function Patients() {
   const { patients, loading, addPatient, updatePatient, deletePatient, refetch } = usePatients();
@@ -96,6 +98,34 @@ export default function Patients() {
     setIsBypassOpen(true);
   };
 
+  const handlePrintLabel = async (patient: any) => {
+    try {
+      const data = await patientService.getIdentification(patient.id);
+      const printWindow = window.open("", "_blank", "width=400,height=300");
+      if (printWindow) {
+        printWindow.document.write(`
+          <html><head><title>Etiqueta</title><style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .code { font-family: monospace; font-size: 18px; font-weight: bold; }
+            .name { font-size: 16px; margin: 8px 0; }
+            .info { font-size: 12px; color: #666; }
+          </style></head><body>
+            <div class="code">${data.patientCode}</div>
+            <div class="name">${data.fullName}</div>
+            <div class="info">Nasc: ${new Date(data.dateOfBirth).toLocaleDateString("pt-BR")}</div>
+            ${data.attendanceNumber ? `<div class="info">Atendimento: ${data.attendanceNumber}</div>` : ""}
+            <div class="info">UBS Serra Pelada</div>
+          </body></html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      }
+      await patientService.printIdentification(patient.id);
+    } catch {
+      toast.error("Erro ao imprimir etiqueta.");
+    }
+  };
+
   const handleCreateAttendance = async (data: { visitType: 'URGENCIA' | 'AMBULATORIAL'; doctorId?: string; chiefComplaint: string }) => {
     if (!attendancePatient) return;
     await attendanceService.create({
@@ -150,7 +180,7 @@ export default function Patients() {
         onView={openView}
         onEdit={openEdit}
         onDelete={capabilities.canDeletePatients ? handleDeletePatient : undefined}
-        onStartAttendance={capabilities.canCreateAttendance ? handleStartAttendance : undefined}
+        onPrintLabel={handlePrintLabel}
         onEmergencyBypass={capabilities.canCreateAttendance ? handleEmergencyBypass : undefined}
       />
 

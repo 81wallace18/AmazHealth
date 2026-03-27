@@ -263,19 +263,18 @@ export default function ReceptionTriage() {
     }
   };
 
-  // Cadastrar paciente
+  // Cadastrar paciente → abre atendimento automaticamente
   const handleRegisterPatient = async (data: any) => {
     try {
-      await patientService.create(data);
-      toast.success("Paciente cadastrado com sucesso.");
+      const patient = await patientService.create(data);
+      toast.success("Paciente cadastrado. Preencha a queixa para abrir o atendimento.");
       setIsRegisterOpen(false);
-      setSearchQuery(`${data.firstName} ${data.lastName}`);
-      const result = await receptionService.listPatients({
-        query: `${data.firstName} ${data.lastName}`,
-        size: 10,
-      });
-      setSearchResults(result.content);
-      setHasSearched(true);
+
+      // Abre dialog de atendimento automaticamente com o paciente recem criado
+      setSelectedPatient(patient);
+      resetForm();
+      setVitalsOpen(capabilities.canCreateTriage);
+      setIsAttendanceOpen(true);
     } catch (error: any) {
       const msg = error?.response?.data?.message || "Erro ao cadastrar paciente.";
       toast.error(msg);
@@ -309,7 +308,20 @@ export default function ReceptionTriage() {
                 placeholder="Nome, CPF ou cartão SUS..."
                 className="pl-10"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  // Auto-busca quando digitar CPF (11+) ou CNS (15)
+                  const digits = val.replace(/\D/g, "");
+                  if (digits.length >= 11) {
+                    setSearching(true);
+                    setHasSearched(true);
+                    receptionService.listPatients({ query: digits, size: 10 })
+                      .then((r) => setSearchResults(r.content))
+                      .catch(() => setSearchResults([]))
+                      .finally(() => setSearching(false));
+                  }
+                }}
                 onKeyDown={handleSearchKeyDown}
               />
             </div>
@@ -319,7 +331,7 @@ export default function ReceptionTriage() {
               </Button>
               <Button className="flex-1 sm:flex-none" variant="outline" onClick={() => setIsRegisterOpen(true)}>
                 <UserPlus className="h-4 w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Novo Paciente</span>
+                <span className="hidden sm:inline">Novo Atendimento</span>
                 <span className="sm:hidden">Novo</span>
               </Button>
             </div>
@@ -411,12 +423,19 @@ export default function ReceptionTriage() {
       <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Novo Paciente</DialogTitle>
-            <DialogDescription>Preencha os dados para cadastrar um novo paciente.</DialogDescription>
+            <DialogTitle>Novo Atendimento</DialogTitle>
+            <DialogDescription>Cadastre o paciente para abrir um novo atendimento.</DialogDescription>
           </DialogHeader>
           <PatientRegistrationForm
             onSubmit={handleRegisterPatient}
             onCancel={() => setIsRegisterOpen(false)}
+            onExistingPatient={(patient) => {
+              setIsRegisterOpen(false);
+              setSelectedPatient(patient);
+              resetForm();
+              setVitalsOpen(capabilities.canCreateTriage);
+              setIsAttendanceOpen(true);
+            }}
           />
         </DialogContent>
       </Dialog>

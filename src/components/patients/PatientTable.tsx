@@ -90,39 +90,34 @@ export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel,
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        {patient.hasActiveAttendance ? (
+                        {patient.hasActiveAttendance && (
                           <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                             Atendimento ativo
                           </Badge>
-                        ) : onStartAttendance ? (
-                          <>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              aria-label="Iniciar atendimento"
-                              onClick={() => onStartAttendance(patient)}
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                            >
-                              <UserPlus className="h-4 w-4 mr-1" />
-                              Atender
-                            </Button>
-                            {onEmergencyBypass && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                aria-label="Atendimento de emergência"
-                                onClick={() => onEmergencyBypass(patient)}
-                                className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
-                              >
-                                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-                                Emergência
-                              </Button>
-                            )}
-                          </>
-                        ) : (
-                          <Badge variant="outline" className="text-muted-foreground">
-                            Não atendido
-                          </Badge>
+                        )}
+                        {!patient.hasActiveAttendance && onStartAttendance && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            aria-label="Enviar para triagem"
+                            onClick={() => onStartAttendance(patient)}
+                            className="bg-primary hover:bg-primary/90"
+                          >
+                            <UserPlus className="h-3.5 w-3.5 mr-1" />
+                            Triagem
+                          </Button>
+                        )}
+                        {!patient.hasActiveAttendance && onEmergencyBypass && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            aria-label="Atendimento de emergência"
+                            onClick={() => onEmergencyBypass(patient)}
+                            className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+                          >
+                            <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                            Emergência
+                          </Button>
                         )}
                         <Button variant="ghost" size="sm" aria-label="Ver detalhes" onClick={() => onView?.(patient)}>
                           <Eye className="h-4 w-4" />
