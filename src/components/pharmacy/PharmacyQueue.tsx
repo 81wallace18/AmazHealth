@@ -81,6 +81,7 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
   }, [queueMode, statusFilter, horusStatusFilter]);
 
   const handleOpenDetails = (prescription: Prescription) => {
+    setRefuseReason("");
     setSelected(prescription);
     setShowDetails(true);
   };
@@ -94,6 +95,7 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
       });
       return;
     }
+    setRefuseReason("");
     setSelected(prescription);
     setShowDispense(true);
   };
@@ -324,7 +326,14 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
                       <Badge variant="outline">{item.queueStatus}</Badge>
                     </TableCell>
                     <TableCell className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setSelectedHorus(item)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setRefuseReason("");
+                          setSelectedHorus(item);
+                        }}
+                      >
                         <Eye className="mr-2 h-4 w-4" />
                         Revisar
                       </Button>
