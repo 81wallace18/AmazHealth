@@ -22,6 +22,7 @@ import Staff from "./pages/Staff";
 import UserManagement from "./pages/UserManagement";
 import Triage from "./pages/Triage";
 import ReceptionTriage from "./pages/ReceptionTriage";
+import DailyAttendances from "./pages/DailyAttendances";
 import Auth from "./pages/Auth";
 import ActivateAccount from "./pages/ActivateAccount";
 import NotFound from "./pages/NotFound";
@@ -94,6 +95,11 @@ const App = () => (
             </ProtectedRoute>
           }>
             <Route index element={<Dashboard />} />
+            <Route path="daily-attendances" element={
+              <RequireRole allowedRoles={["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "RECEPTIONIST", "HOSPITAL_MANAGER"]}>
+                <DailyAttendances />
+              </RequireRole>
+            } />
             <Route path="hospital" element={
               <RequireRole allowedRoles={["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER"]}>
                 <Hospital />

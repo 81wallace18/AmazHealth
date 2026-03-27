@@ -13,6 +13,7 @@ import {
   Leaf,
   Building,
   ChevronRight,
+  ClipboardList,
 } from "lucide-react";
 import {
   Sidebar,
@@ -52,6 +53,14 @@ const navigationItems: NavigationItem[] = [
     icon: BarChart3,
     group: "Principal",
     allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "PHARMACIST", "HOSPITAL_MANAGER", "FINANCE"],
+  },
+  {
+    title: "Atendimentos",
+    url: "/daily-attendances",
+    icon: ClipboardList,
+    group: "Principal",
+    allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "RECEPTIONIST", "HOSPITAL_MANAGER"],
+    module: "URGENCIA",
   },
   {
     title: "Pacientes",
@@ -290,13 +299,13 @@ export function AppSidebar() {
       collapsible={isMobile ? "offcanvas" : "icon"}
     >
       <SidebarContent>
-        {/* Logo/Brand */}
-        <div className="p-4 border-b">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-primary rounded-lg flex-shrink-0">
+        {/* Logo/Brand + Toggle */}
+        <div className="border-b p-4 group-data-[collapsible=icon]:px-1 group-data-[collapsible=icon]:py-2">
+          <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
+            <div className="rounded-lg bg-gradient-primary p-2 flex-shrink-0 group-data-[collapsible=icon]:p-1.5">
               <Leaf className="h-6 w-6 text-white" />
             </div>
-            <div className="overflow-hidden">
+            <div className="overflow-hidden flex-1 group-data-[collapsible=icon]:hidden">
               <h1 className="text-lg font-bold text-primary truncate">AmazHealth</h1>
               <p className="text-xs text-muted-foreground truncate">Sistema Hospitalar</p>
             </div>

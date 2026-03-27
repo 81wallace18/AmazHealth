@@ -39,11 +39,10 @@ export function AppHeader() {
   };
 
   return (
-    <header className="h-14 border-b bg-card shadow-soft flex items-center px-4 gap-4">
-      <SidebarTrigger />
-
-      <div className="flex-1 flex items-center gap-4">
-        <div className="relative max-w-sm flex-1">
+    <header className="flex h-14 items-center gap-3 border-b bg-card px-4 shadow-soft sm:px-6">
+      <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+        <SidebarTrigger className="h-10 w-10 shrink-0" />
+        <div className="relative min-w-0 max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Busca global será ativada em breve"
