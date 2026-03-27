@@ -243,8 +243,9 @@ export default function ReceptionTriage() {
             overrideReason: undefined,
           });
           toast.success("Atendimento criado e triagem registrada.");
-        } catch {
-          toast.success("Atendimento criado. Erro na triagem - classifique pelo board.");
+        } catch (triageError: any) {
+          const triageMsg = triageError?.response?.data?.message || "Erro na triagem";
+          toast.warning(`Atendimento criado, mas triagem falhou: ${triageMsg}. Classifique pelo board de triagem.`, { duration: 8000 });
         }
       } else {
         toast.success("Atendimento criado. Paciente aguardando triagem.");
