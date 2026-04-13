@@ -90,6 +90,10 @@ export default function MedicalRecords() {
     treatment: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const canOnlyRecordEvolution =
+    !user?.roles?.includes("DOCTOR") &&
+    !user?.roles?.includes("ADMIN") &&
+    (user?.roles?.includes("NURSE") || user?.roles?.includes("NURSE_MANAGER"));
 
   useEffect(() => {
     document.title = "Prontuários Médicos | Gestão de Prontuários";
@@ -298,7 +302,7 @@ export default function MedicalRecords() {
               title={!capabilities.canRecordEvolution ? "Você não tem permissão para registrar prontuários" : ""}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Novo Prontuário
+              {canOnlyRecordEvolution ? "Nova Evolução" : "Novo Prontuário"}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -306,7 +310,9 @@ export default function MedicalRecords() {
               <div>
                 <h2 className="text-lg font-semibold">Novo Prontuário</h2>
                 <p className="text-sm text-muted-foreground">
-                  Preencha os dados clínicos do atendimento.
+                  {canOnlyRecordEvolution
+                    ? "Registre a evolução do atendimento. O desfecho clínico continua restrito ao fluxo médico."
+                    : "Preencha os dados clínicos do atendimento."}
                 </p>
               </div>
 
@@ -322,16 +328,21 @@ export default function MedicalRecords() {
                   <Select
                     value={form.recordType}
                     onValueChange={(value) => setForm((prev) => ({ ...prev, recordType: value as RecordType }))}
+                    disabled={canOnlyRecordEvolution}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ANAMNESIS">Anamnese</SelectItem>
                       <SelectItem value="EVOLUTION">Evolução</SelectItem>
-                      <SelectItem value="PROCEDURE">Procedimento</SelectItem>
-                      <SelectItem value="DISCHARGE_SUMMARY">Resumo de Alta</SelectItem>
-                      <SelectItem value="OTHER">Outro</SelectItem>
+                      {!canOnlyRecordEvolution && (
+                        <>
+                          <SelectItem value="ANAMNESIS">Anamnese</SelectItem>
+                          <SelectItem value="PROCEDURE">Procedimento</SelectItem>
+                          <SelectItem value="DISCHARGE_SUMMARY">Resumo de Alta</SelectItem>
+                          <SelectItem value="OTHER">Outro</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -343,6 +354,12 @@ export default function MedicalRecords() {
                   />
                 </div>
               </div>
+
+              {canOnlyRecordEvolution && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                  Este acesso permite registrar apenas evolução de enfermagem. Prescrição e finalização clínica permanecem bloqueadas neste contexto.
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>História da Doença Atual</Label>

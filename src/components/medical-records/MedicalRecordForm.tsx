@@ -36,6 +36,7 @@ import { DiagnosisPicker } from '@/components/medical-records/DiagnosisPicker';
 import type { IcdSystem } from '@/types/icd';
 import type { RecordType } from '@/types/medicalRecord';
 import { RECORD_TYPE_LABELS } from '@/types/medicalRecord';
+import { useAuth } from '@/hooks/useAuth';
 import { Loader2, FileText } from 'lucide-react';
 
 const formSchema = z.object({
@@ -113,11 +114,19 @@ export function MedicalRecordForm({
   defaultValues,
   recordId,
 }: MedicalRecordFormProps) {
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('soap');
   const [secondaryCodeInput, setSecondaryCodeInput] = useState('');
 
   const isEditing = !!recordId;
+  const canOnlyRecordEvolution =
+    !user?.roles?.includes('DOCTOR') &&
+    !user?.roles?.includes('ADMIN') &&
+    (user?.roles?.includes('NURSE') || user?.roles?.includes('NURSE_MANAGER'));
+  const allowedRecordTypes = (
+    Object.entries(RECORD_TYPE_LABELS) as [RecordType, string][]
+  ).filter(([value]) => !canOnlyRecordEvolution || value === 'EVOLUTION');
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -222,16 +231,18 @@ export function MedicalRecordForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo de Registro *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={canOnlyRecordEvolution}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o tipo" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {(
-                        Object.entries(RECORD_TYPE_LABELS) as [RecordType, string][]
-                      ).map(([value, label]) => (
+                      {allowedRecordTypes.map(([value, label]) => (
                         <SelectItem key={value} value={value}>
                           {label}
                         </SelectItem>
@@ -239,6 +250,11 @@ export function MedicalRecordForm({
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                  {canOnlyRecordEvolution && (
+                    <FormDescription>
+                      Neste contexto, enfermagem pode registrar apenas evolução.
+                    </FormDescription>
+                  )}
                 </FormItem>
               )}
             />

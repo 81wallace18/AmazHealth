@@ -39,6 +39,8 @@ export interface Attendance {
   finalizedBy?: string | null;
   emergencyBypass?: boolean;
   bypassJustification?: string | null;
+  bypassJustifiedBy?: string | null;
+  bypassJustifiedAt?: string | null;
   notificationRequired?: boolean;
   createdAt: string;
   updatedAt: string;

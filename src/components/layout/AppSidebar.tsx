@@ -83,7 +83,7 @@ const navigationItems: NavigationItem[] = [
     url: "/medical-records",
     icon: FileText,
     group: "Atendimento",
-    allowedRoles: ["ADMIN", "DOCTOR"],
+    allowedRoles: ["ADMIN", "DOCTOR", "NURSE", "NURSE_MANAGER"],
     module: "URGENCIA",
   },
   {
