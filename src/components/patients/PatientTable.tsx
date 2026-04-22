@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Phone, Mail, Eye, Pencil, Trash2, Printer, UserPlus, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ interface PatientTableProps {
   onEmergencyBypass?: (patient: Patient) => void;
 }
 
-export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel, onStartAttendance, onEmergencyBypass }: PatientTableProps) {
+export const PatientTable = memo(function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel, onStartAttendance, onEmergencyBypass }: PatientTableProps) {
   return (
     <Card>
       <CardHeader>
@@ -150,4 +151,4 @@ export function PatientTable({ patients, onView, onEdit, onDelete, onPrintLabel,
       </CardContent>
     </Card>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FileText, Plus, Search, User, Calendar, Eye, Download, Edit, AlertTriangle, Heart, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -217,7 +217,7 @@ export default function MedicalRecords() {
     };
   }, [visitId, user?.roles, user?.staffId]);
 
-  const filteredRecords = records.filter(record => {
+  const filteredRecords = useMemo(() => records.filter(record => {
     const patientName = record.patient ? `${record.patient.first_name} ${record.patient.last_name}` : '';
     const doctorName = record.doctor ? `${record.doctor.first_name} ${record.doctor.last_name}` : '';
     const matchesSearch = patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -225,11 +225,11 @@ export default function MedicalRecords() {
                          record.diagnosis?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.chief_complaint?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === "all" || record.record_type === typeFilter;
-    
-    return matchesSearch && matchesType;
-  });
 
-  const stats = {
+    return matchesSearch && matchesType;
+  }), [records, searchTerm, typeFilter]);
+
+  const stats = useMemo(() => ({
     total: records.length,
     consultas: records.filter(r => r.record_type === "consultation").length,
     exames: records.filter(r => r.record_type === "examination").length,
@@ -238,7 +238,7 @@ export default function MedicalRecords() {
       const recordDate = new Date(r.created_at).toISOString().split('T')[0];
       return recordDate === today;
     }).length
-  };
+  }), [records]);
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();

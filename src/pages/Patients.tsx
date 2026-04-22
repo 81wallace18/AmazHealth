@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -36,16 +36,16 @@ export default function Patients() {
     if (meta) meta.setAttribute('content', 'Gestão de pacientes: cadastro, filtros e atualização');
   }, []);
 
-  const filteredPatients = patients.filter(patient => {
+  const filteredPatients = useMemo(() => patients.filter(patient => {
     const fullName = `${patient.firstName} ${patient.lastName}`;
     const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          patient.patientCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          patient.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || patient.status === statusFilter;
     const matchesGender = genderFilter === "all" || patient.gender === genderFilter;
-    
+
     return matchesSearch && matchesStatus && matchesGender;
-  });
+  }), [patients, searchTerm, statusFilter, genderFilter]);
 
   const handleAddPatient = async (data: any) => {
     try {

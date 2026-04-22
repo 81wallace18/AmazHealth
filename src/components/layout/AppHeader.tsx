@@ -59,6 +59,7 @@ export function AppHeader() {
           variant="ghost"
           size="icon"
           className="relative"
+          aria-label="Notificações"
           onClick={() => {
             handleUnavailableFeature("Notificações");
           }}
@@ -68,7 +69,7 @@ export function AppHeader() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-3">
+            <Button variant="ghost" className="flex items-center gap-2 px-3" aria-label="Menu do usuário">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/placeholder-avatar.jpg" />
                 <AvatarFallback>
