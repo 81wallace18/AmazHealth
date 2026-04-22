@@ -25,6 +25,8 @@ import ReceptionTriage from "./pages/ReceptionTriage";
 import DailyAttendances from "./pages/DailyAttendances";
 import Auth from "./pages/Auth";
 import ActivateAccount from "./pages/ActivateAccount";
+import DutyManagement from "./pages/DutyManagement";
+import NightShiftReview from "./pages/NightShiftReview";
 import NotFound from "./pages/NotFound";
 import { Unauthorized } from "./pages/Unauthorized";
 
@@ -168,6 +170,16 @@ const App = () => (
             <Route path="users" element={
               <RequireRole allowedRoles={["ADMIN"]}>
                 <UserManagement />
+              </RequireRole>
+            } />
+            <Route path="duties" element={
+              <RequireRole allowedRoles={["ADMIN", "NURSE_MANAGER"]}>
+                <DutyManagement />
+              </RequireRole>
+            } />
+            <Route path="night-shift-review" element={
+              <RequireRole allowedRoles={["ADMIN", "DOCTOR", "NURSE_MANAGER"]}>
+                <NightShiftReview />
               </RequireRole>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

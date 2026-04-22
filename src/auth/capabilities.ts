@@ -69,6 +69,10 @@ export interface UserCapabilities {
   canViewKPIs: boolean;
   canAccessOperational: boolean;
   
+  // Duty / Night Shift
+  canManageDuties: boolean;
+  canReviewNightActions: boolean;
+
   // System
   canAccessAdmin: boolean;
 }
@@ -113,10 +117,12 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canManageBilling: true,
     canViewReports: true,
     canViewKPIs: true,
+    canManageDuties: true,
+    canReviewNightActions: true,
     canAccessOperational: true,
     canAccessAdmin: true,
   },
-  
+
   GESTAO: {
     // Operational management, no financial
     canListPatients: true,
@@ -156,10 +162,12 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canManageBilling: false,
     canViewReports: true,
     canViewKPIs: true,
+    canManageDuties: false,
+    canReviewNightActions: false,
     canAccessOperational: true,
     canAccessAdmin: false,
   },
-  
+
   DOCTOR: {
     // Full clinical access
     canListPatients: true,
@@ -199,10 +207,12 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canManageBilling: false,
     canViewReports: false,
     canViewKPIs: false,
+    canManageDuties: false,
+    canReviewNightActions: true,
     canAccessOperational: false,
     canAccessAdmin: false,
   },
-  
+
   NURSE: {
     // Triage and operational access
     canListPatients: true,
@@ -242,6 +252,8 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canManageBilling: false,
     canViewReports: false,
     canViewKPIs: false,
+    canManageDuties: false,
+    canReviewNightActions: false,
     canAccessOperational: false,
     canAccessAdmin: false,
   },
@@ -285,10 +297,12 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canManageBilling: false,
     canViewReports: true,
     canViewKPIs: true,
+    canManageDuties: true,
+    canReviewNightActions: true,
     canAccessOperational: true,
     canAccessAdmin: false,
   },
-  
+
   PHARMACIST: {
     // Pharmacy management with global read access
     canListPatients: true,
@@ -328,10 +342,12 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canManageBilling: false,
     canViewReports: false,
     canViewKPIs: false,
+    canManageDuties: false,
+    canReviewNightActions: false,
     canAccessOperational: false,
     canAccessAdmin: false,
   },
-  
+
   RECEPTIONIST: {
     // Patient registration and attendance creation
     canListPatients: true,
@@ -371,6 +387,8 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canManageBilling: false,
     canViewReports: false,
     canViewKPIs: false,
+    canManageDuties: false,
+    canReviewNightActions: false,
     canAccessOperational: false,
     canAccessAdmin: false,
   },
@@ -414,10 +432,12 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canManageBilling: false,
     canViewReports: true,
     canViewKPIs: true,
+    canManageDuties: false,
+    canReviewNightActions: false,
     canAccessOperational: true,
     canAccessAdmin: false,
   },
-  
+
   FINANCE: {
     // Financial only access
     canListPatients: true,
@@ -457,6 +477,8 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canManageBilling: true,
     canViewReports: true,
     canViewKPIs: true,
+    canManageDuties: false,
+    canReviewNightActions: false,
     canAccessOperational: false,
     canAccessAdmin: false,
   },

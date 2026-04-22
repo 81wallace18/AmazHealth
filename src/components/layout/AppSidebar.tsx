@@ -14,6 +14,8 @@ import {
   Building,
   ChevronRight,
   ClipboardList,
+  Moon,
+  Eye,
 } from "lucide-react";
 import {
   Sidebar,
@@ -35,6 +37,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
 import { getPrimaryRole, normalizeRole } from "@/auth/rolePriority";
 import type { UserRole } from "@/auth/capabilities";
+import { NightModeIndicator } from "@/components/layout/NightModeIndicator";
 
 interface NavigationItem {
   title: string;
@@ -171,7 +174,23 @@ const navigationItems: NavigationItem[] = [
     icon: UserPlus,
     group: "Gestão",
     allowedRoles: ["ADMIN"],
-  }
+  },
+  {
+    title: "Plantoes",
+    url: "/duties",
+    icon: Moon,
+    group: "Gestão",
+    allowedRoles: ["ADMIN", "NURSE_MANAGER"],
+    module: "URGENCIA",
+  },
+  {
+    title: "Revisao Noturna",
+    url: "/night-shift-review",
+    icon: Eye,
+    group: "Gestão",
+    allowedRoles: ["ADMIN", "DOCTOR", "NURSE_MANAGER"],
+    module: "URGENCIA",
+  },
 ];
 
 export function AppSidebar() {
@@ -311,6 +330,13 @@ export function AppSidebar() {
             </div>
           </div>
         </div>
+
+        {/* Night Shift Indicator */}
+        {user?.activeShift === 'NIGHT' && (
+          <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden">
+            <NightModeIndicator sectorName={user?.activeSectorName} startsAt={user?.activeDutyStartsAt} />
+          </div>
+        )}
 
         {/* Navigation Groups */}
         {orderedGroups.map(([groupName, items]) => {

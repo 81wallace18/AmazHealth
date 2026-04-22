@@ -9,6 +9,7 @@ import {
 } from '@/services/authService';
 import { authStorage } from '@/lib/authStorage';
 import { startProactiveRefresh, stopProactiveRefresh } from '@/lib/api';
+import dutyService from '@/services/dutyService';
 
 interface User {
   id: string;
@@ -22,6 +23,10 @@ interface User {
   roles: string[];
   enabledModules?: string[] | null;
   organizations?: OrganizationInfo[];
+  activeShift?: 'DAY' | 'NIGHT' | null;
+  activeDutyId?: string | null;
+  activeSectorName?: string | null;
+  activeDutyStartsAt?: string | null;
 }
 
 const normalizeRoles = (roles?: string[]) =>
@@ -95,6 +100,20 @@ export function useAuth() {
 
           const profile = await authService.getProfile();
           const normalized = mapProfileToUser(profile);
+
+          // Enriquecer com informações de plantão ativo
+          try {
+            const duty = await dutyService.getMyCurrentDuty();
+            if (duty) {
+              normalized.activeShift = duty.shiftType;
+              normalized.activeDutyId = duty.id;
+              normalized.activeSectorName = duty.sectorName;
+              normalized.activeDutyStartsAt = duty.startsAt;
+            }
+          } catch {
+            // Duty context is optional
+          }
+
           persistUser(normalized);
         } catch (error) {
           console.warn('[useAuth] Token inválido ao carregar, limpando sessão');
