@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { toast } from "sonner";
 
 export function AppHeader() {
@@ -42,16 +43,7 @@ export function AppHeader() {
     <header className="flex h-14 items-center gap-3 border-b bg-card px-4 shadow-soft sm:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
         <SidebarTrigger className="h-10 w-10 shrink-0" />
-        <div className="relative min-w-0 max-w-md flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Busca global será ativada em breve"
-            className="pl-10"
-            disabled
-            readOnly
-            aria-label="Busca global indisponível"
-          />
-        </div>
+        <GlobalSearch />
       </div>
 
       <div className="flex items-center gap-2">

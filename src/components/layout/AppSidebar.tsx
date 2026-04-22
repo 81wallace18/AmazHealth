@@ -16,6 +16,7 @@ import {
   ClipboardList,
   Moon,
   Eye,
+  TrendingUp,
 } from "lucide-react";
 import {
   Sidebar,
@@ -152,6 +153,14 @@ const navigationItems: NavigationItem[] = [
     group: "Financeiro",
     allowedRoles: ["ADMIN", "FINANCE"],
     module: "FATURAMENTO",
+  },
+  {
+    title: "Painel Gerencial",
+    url: "/gestora-dashboard",
+    icon: TrendingUp,
+    group: "Gestão",
+    allowedRoles: ["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER"],
+    module: "URGENCIA",
   },
   {
     title: "Relatórios",

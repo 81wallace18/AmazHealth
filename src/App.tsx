@@ -8,6 +8,7 @@ import { useAuth } from "./hooks/useAuth";
 import { RequireCapability } from "./components/RequireCapability";
 import { RequireRole } from "./components/RequireRole";
 import Dashboard from "./pages/Dashboard";
+import GestoraDashboard from "./pages/GestoraDashboard";
 import Hospital from "./pages/Hospital";
 import Consultations from "./pages/Consultations";
 import Patients from "./pages/Patients";
@@ -97,6 +98,11 @@ const App = () => (
             </ProtectedRoute>
           }>
             <Route index element={<Dashboard />} />
+            <Route path="gestora-dashboard" element={
+              <RequireRole allowedRoles={["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER"]}>
+                <GestoraDashboard />
+              </RequireRole>
+            } />
             <Route path="daily-attendances" element={
               <RequireRole allowedRoles={["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "RECEPTIONIST", "HOSPITAL_MANAGER"]}>
                 <DailyAttendances />

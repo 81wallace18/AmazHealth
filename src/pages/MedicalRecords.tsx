@@ -305,7 +305,7 @@ export default function MedicalRecords() {
               {canOnlyRecordEvolution ? "Nova Evolução" : "Novo Prontuário"}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full max-w-[95vw] lg:max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="space-y-6">
               <div>
                 <h2 className="text-lg font-semibold">Novo Prontuário</h2>
