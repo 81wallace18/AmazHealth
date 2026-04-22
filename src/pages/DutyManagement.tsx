@@ -40,11 +40,10 @@ export default function DutyManagement() {
 
   const loadFormData = async () => {
     try {
-      const [staffResult, sectors] = await Promise.all([
-        staffService.findAll({ page: 0, size: 100 }),
+      const [staff, sectors] = await Promise.all([
+        staffService.findAllActive(),
         sectorService.list(),
       ]);
-      const staff = staffResult.content;
       setStaffList(staff);
       setSectorList(sectors);
     } catch {

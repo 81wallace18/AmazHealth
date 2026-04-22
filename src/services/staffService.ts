@@ -96,6 +96,14 @@ class StaffService {
   }
 
   /**
+   * Lista todos profissionais ativos (para dropdowns — acessível a mais roles)
+   */
+  async findAllActive(): Promise<Staff[]> {
+    const response = await api.get(`${this.baseUrl}/active-all`);
+    return response.data;
+  }
+
+  /**
    * Cria novo profissional
    */
   async create(data: StaffRequest): Promise<Staff> {
