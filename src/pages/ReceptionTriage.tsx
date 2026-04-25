@@ -87,7 +87,9 @@ export default function ReceptionTriage() {
   const [height, setHeight] = useState("");
   const [hgt, setHgt] = useState("");
   const [manchesterColor, setManchesterColor] = useState<ManchesterColor | "">("");
+  const [suggestedColor, setSuggestedColor] = useState<ManchesterColor | "">("");
   const [triageJustification, setTriageJustification] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const resetForm = () => {
@@ -103,7 +105,9 @@ export default function ReceptionTriage() {
     setHeight("");
     setHgt("");
     setManchesterColor("");
+    setSuggestedColor("");
     setTriageJustification("");
+    setOverrideReason("");
   };
 
   // Carrega fila
@@ -185,6 +189,8 @@ export default function ReceptionTriage() {
         },
       });
       setManchesterColor(suggestion.suggestedColor);
+      setSuggestedColor(suggestion.suggestedColor);
+      setOverrideReason("");
       setTriageJustification(suggestion.justification);
     } catch {
       // Sugestao falhou - usuario escolhe manualmente
@@ -207,6 +213,9 @@ export default function ReceptionTriage() {
       if (!height) missing.push("Estatura");
       if (!hgt) missing.push("HGT");
       if (!manchesterColor) missing.push("Classificação Manchester");
+      if (suggestedColor && manchesterColor && suggestedColor !== manchesterColor && !overrideReason.trim()) {
+        missing.push("Motivo da alteração da classificação");
+      }
       if (missing.length > 0) {
         toast.error(`Preencha os campos obrigatórios: ${missing.join(", ")}`);
         return;
@@ -240,7 +249,7 @@ export default function ReceptionTriage() {
             },
             triageColor: manchesterColor as ManchesterColor,
             triageJustification: triageJustification || `Classificação ${manchesterColor}`,
-            overrideReason: undefined,
+            overrideReason: overrideReason || (suggestedColor && suggestedColor !== manchesterColor ? "Classificação definida pelo profissional de saúde" : undefined),
           });
           toast.success("Atendimento criado e triagem registrada.");
         } catch (triageError: any) {
@@ -582,6 +591,21 @@ export default function ReceptionTriage() {
                         rows={2}
                         value={triageJustification}
                         onChange={(e) => setTriageJustification(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  {suggestedColor && manchesterColor && suggestedColor !== manchesterColor && (
+                    <div>
+                      <Label htmlFor="overrideReason">
+                        Motivo da alteração <span className="text-destructive">*</span>
+                      </Label>
+                      <Textarea
+                        id="overrideReason"
+                        placeholder="Justifique por que a classificação difere da sugestão do sistema..."
+                        rows={2}
+                        value={overrideReason}
+                        onChange={(e) => setOverrideReason(e.target.value)}
                       />
                     </div>
                   )}
