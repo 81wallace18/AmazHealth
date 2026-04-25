@@ -7,6 +7,24 @@ import type { AttendanceReport, PharmacyReport, TriageReport } from "@/types/rep
 
 const formatCount = (value?: number) => value ?? 0;
 
+const STATUS_PT: Record<string, string> = {
+  CREATED: 'Criado',
+  TRIAGEM: 'Triagem',
+  AVALIACAO: 'Avaliação',
+  DESFECHO: 'Desfecho',
+  FECHADO: 'Fechado',
+  IN_PROGRESS: 'Em andamento',
+  DISCHARGED: 'Alta',
+  ADMITTED: 'Internado',
+  TRANSFERRED: 'Transferido',
+  DECEASED: 'Óbito',
+  ESCAPED: 'Evasão',
+  COMPLETED: 'Concluído',
+};
+
+const translateStatus = (status: string) =>
+  STATUS_PT[status] ?? status.replace(/_/g, ' ').toLowerCase();
+
 export default function Reports() {
   const [triageReport, setTriageReport] = useState<TriageReport | null>(null);
   const [attendanceReport, setAttendanceReport] = useState<AttendanceReport | null>(null);
@@ -108,7 +126,7 @@ export default function Reports() {
             <div className="grid grid-cols-1 gap-2 text-sm">
               {Object.entries(attendanceTotals.statusCounts).map(([status, count]) => (
                 <div key={status} className="flex items-center justify-between">
-                  <span className="capitalize">{status.replace(/_/g, " ").toLowerCase()}</span>
+                  <span>{translateStatus(status)}</span>
                   <span className="font-semibold">{count}</span>
                 </div>
               ))}
