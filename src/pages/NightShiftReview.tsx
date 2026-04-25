@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import dutyService, { ReviewResponse } from '@/services/dutyService';
 
 const ACTION_LABELS: Record<string, string> = {
-  EVOLUTION_CREATED: 'Evolucao registrada',
+  EVOLUTION_CREATED: 'Evolução registrada',
   TRIAGE_PERFORMED: 'Triagem realizada',
 };
 
@@ -33,7 +33,7 @@ export default function NightShiftReview() {
       const data = await dutyService.getPendingReviews(0, 50);
       setActions(data.content);
     } catch (error) {
-      toast.error('Erro ao carregar acoes pendentes');
+      toast.error('Erro ao carregar ações pendentes');
     } finally {
       setLoading(false);
     }
@@ -48,16 +48,16 @@ export default function NightShiftReview() {
     try {
       if (reviewDialog.type === 'review') {
         await dutyService.reviewAction(reviewDialog.action.id, { reviewNotes: notes || undefined });
-        toast.success('Acao marcada como revisada');
+        toast.success('Ação marcada como revisada');
       } else {
         await dutyService.clearAction(reviewDialog.action.id, { reviewNotes: notes || undefined });
-        toast.success('Acao liberada');
+        toast.success('Ação liberada');
       }
       setReviewDialog(null);
       setNotes('');
       loadActions();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Erro ao processar revisao');
+      toast.error(error?.response?.data?.message || 'Erro ao processar revisão');
     }
   };
 
@@ -70,33 +70,33 @@ export default function NightShiftReview() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Revisao de Plantao</h1>
-        <p className="text-muted-foreground">Revise acoes realizadas durante plantoes noturnos</p>
+        <h1 className="text-2xl font-bold tracking-tight">Revisão de Plantão</h1>
+        <p className="text-muted-foreground">Revise ações realizadas durante plantões noturnos</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Moon className="h-5 w-5 text-indigo-500" />
-            Acoes Pendentes de Revisao
+            Ações Pendentes de Revisão
           </CardTitle>
-          <CardDescription>{actions.length} acao(oes) aguardando revisao</CardDescription>
+          <CardDescription>{actions.length} ação(ões) aguardando revisão</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Carregando...</p>
           ) : actions.length === 0 ? (
-            <p className="text-muted-foreground text-sm py-8 text-center">Nenhuma acao pendente de revisao</p>
+            <p className="text-muted-foreground text-sm py-8 text-center">Nenhuma ação pendente de revisão</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Profissional</TableHead>
-                  <TableHead>Acao</TableHead>
+                  <TableHead>Ação</TableHead>
                   <TableHead>Entidade</TableHead>
                   <TableHead>Data/Hora</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Acoes</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -142,7 +142,7 @@ export default function NightShiftReview() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {reviewDialog?.type === 'review' ? 'Revisar Acao' : 'Liberar Acao'}
+              {reviewDialog?.type === 'review' ? 'Revisar Ação' : 'Liberar Ação'}
             </DialogTitle>
             <DialogDescription>
               {reviewDialog?.action.actorStaffName} - {ACTION_LABELS[reviewDialog?.action.actionType || ''] || reviewDialog?.action.actionType}
@@ -150,11 +150,11 @@ export default function NightShiftReview() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Observacoes (opcional)</Label>
+              <Label>Observações (opcional)</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Adicione observacoes sobre a revisao..."
+                placeholder="Adicione observações sobre a revisão..."
                 rows={3}
               />
             </div>
@@ -162,7 +162,7 @@ export default function NightShiftReview() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setReviewDialog(null)}>Cancelar</Button>
             <Button onClick={handleReview}>
-              {reviewDialog?.type === 'review' ? 'Confirmar Revisao' : 'Confirmar Liberacao'}
+              {reviewDialog?.type === 'review' ? 'Confirmar Revisão' : 'Confirmar Liberação'}
             </Button>
           </DialogFooter>
         </DialogContent>

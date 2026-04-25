@@ -32,7 +32,7 @@ export default function DutyManagement() {
       const data = await dutyService.getActiveDuties();
       setDuties(data);
     } catch (error) {
-      toast.error('Erro ao carregar plantoes ativos');
+      toast.error('Erro ao carregar plantões ativos');
     } finally {
       setLoading(false);
     }
@@ -63,22 +63,22 @@ export default function DutyManagement() {
     }
     try {
       await dutyService.startDuty(form);
-      toast.success('Plantao iniciado com sucesso');
+      toast.success('Plantão iniciado com sucesso');
       setDialogOpen(false);
       setForm({ staffId: '', sectorId: '', shiftType: 'NIGHT' });
       loadDuties();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Erro ao iniciar plantao');
+      toast.error(error?.response?.data?.message || 'Erro ao iniciar plantão');
     }
   };
 
   const handleEnd = async (dutyId: string) => {
     try {
       await dutyService.endDuty(dutyId);
-      toast.success('Plantao encerrado');
+      toast.success('Plantão encerrado');
       loadDuties();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Erro ao encerrar plantao');
+      toast.error(error?.response?.data?.message || 'Erro ao encerrar plantão');
     }
   };
 
@@ -92,20 +92,20 @@ export default function DutyManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Gestao de Plantao</h1>
-          <p className="text-muted-foreground">Registre e acompanhe plantoes ativos</p>
+          <h1 className="text-2xl font-bold tracking-tight">Gestão de Plantão</h1>
+          <p className="text-muted-foreground">Registre e acompanhe plantões ativos</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Play className="mr-2 h-4 w-4" />
-              Iniciar Plantao
+              Iniciar Plantão
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Iniciar Plantao</DialogTitle>
-              <DialogDescription>Registre o inicio de plantao de um profissional</DialogDescription>
+              <DialogTitle>Iniciar Plantão</DialogTitle>
+              <DialogDescription>Registre o início de plantão de um profissional</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -155,14 +155,14 @@ export default function DutyManagement() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Plantoes Ativos</CardTitle>
-          <CardDescription>{duties.length} plantao(oes) em andamento</CardDescription>
+          <CardTitle>Plantões Ativos</CardTitle>
+          <CardDescription>{duties.length} plantão(ões) em andamento</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Carregando...</p>
           ) : duties.length === 0 ? (
-            <p className="text-muted-foreground text-sm py-8 text-center">Nenhum plantao ativo no momento</p>
+            <p className="text-muted-foreground text-sm py-8 text-center">Nenhum plantão ativo no momento</p>
           ) : (
             <Table>
               <TableHeader>
@@ -171,8 +171,8 @@ export default function DutyManagement() {
                   <TableHead>Setor</TableHead>
                   <TableHead>Turno</TableHead>
                   <TableHead>Inicio</TableHead>
-                  <TableHead>Previsao Fim</TableHead>
-                  <TableHead className="text-right">Acoes</TableHead>
+                  <TableHead>Previsão Fim</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

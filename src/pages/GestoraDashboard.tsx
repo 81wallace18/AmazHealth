@@ -103,14 +103,14 @@ export default function GestoraDashboardPage() {
       {loading ? (
         <p className="text-muted-foreground text-center py-12">Carregando...</p>
       ) : !data ? (
-        <p className="text-muted-foreground text-center py-12">Sem dados disponiveis</p>
+        <p className="text-muted-foreground text-center py-12">Sem dados disponíveis</p>
       ) : (
         <>
           {/* KPI Cards */}
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total no Periodo</CardTitle>
+                <CardTitle className="text-sm font-medium">Total no Período</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -130,7 +130,7 @@ export default function GestoraDashboardPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Media Diaria</CardTitle>
+                <CardTitle className="text-sm font-medium">Média Diária</CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -150,11 +150,11 @@ export default function GestoraDashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Atendimentos por Dia</CardTitle>
-                <CardDescription>Volume diario no periodo selecionado</CardDescription>
+                <CardDescription>Volume diário no período selecionado</CardDescription>
               </CardHeader>
               <CardContent>
                 {data.dailyCounts.length === 0 ? (
-                  <p className="text-muted-foreground text-sm text-center py-8">Sem dados no periodo</p>
+                  <p className="text-muted-foreground text-sm text-center py-8">Sem dados no período</p>
                 ) : (
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={data.dailyCounts}>
@@ -177,7 +177,7 @@ export default function GestoraDashboardPage() {
               </CardHeader>
               <CardContent>
                 {data.topComplaints.length === 0 ? (
-                  <p className="text-muted-foreground text-sm text-center py-8">Sem dados no periodo</p>
+                  <p className="text-muted-foreground text-sm text-center py-8">Sem dados no período</p>
                 ) : (
                   <div className="space-y-3">
                     {data.topComplaints.map((item, idx) => (
