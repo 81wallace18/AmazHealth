@@ -27,7 +27,7 @@ export function GlobalSearch() {
     }
     setLoading(true);
     try {
-      const data = await patientService.search({ search: term, page: 0, size: 8 });
+      const data = await patientService.search({ query: term, page: 0, size: 8 });
       const patients: SearchResult[] = (data.content || []).slice(0, 8).map((p: any) => ({
         id: p.id,
         type: 'patient' as const,
