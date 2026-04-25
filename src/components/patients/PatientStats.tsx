@@ -60,7 +60,7 @@ export function PatientStats({ patients }: PatientStatsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-blue-600">{stats.novosEsseMes}</div>
-          <p className="text-xs text-muted-foreground">cadastros em janeiro</p>
+          <p className="text-xs text-muted-foreground">cadastros em {new Date().toLocaleDateString('pt-BR', { month: 'long' })}</p>
         </CardContent>
       </Card>
     </div>
