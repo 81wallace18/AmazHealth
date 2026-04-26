@@ -119,7 +119,7 @@ const App = () => (
               </RequireRole>
             } />
             <Route path="patients" element={
-              <RequireRole allowedRoles={["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "DOCTOR"]}>
+              <RequireRole allowedRoles={["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "DOCTOR", "PHARMACIST"]}>
                 <Patients />
               </RequireRole>
             } />
