@@ -5,6 +5,39 @@ import { pharmacyService } from "@/services/pharmacyService";
 import type { HorusDashboardSummary, HorusSnapshotSummary, PharmacyDashboardData, PharmacyStatistics } from "@/types/pharmacy";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Activity, Boxes, ClipboardCheck, DatabaseZap, RefreshCcw, TriangleAlert } from "lucide-react";
+
+const STOCK_STATUS_PT: Record<string, string> = {
+  AVAILABLE: "Disponível",
+  LOW: "Baixo",
+  CRITICAL: "Crítico",
+  EXPIRED: "Vencido",
+  NEAR_EXPIRY: "Próximo da validade",
+  OUT_OF_STOCK: "Sem estoque",
+  RESERVED: "Reservado",
+  BLOCKED: "Bloqueado",
+};
+
+const STOCK_CATEGORY_PT: Record<string, string> = {
+  ANALGESIC: "Analgésico",
+  ANTIBIOTIC: "Antibiótico",
+  ANTI_INFLAMMATORY: "Anti-inflamatório",
+  ANTIPYRETIC: "Antipirético",
+  ANTIHYPERTENSIVE: "Anti-hipertensivo",
+  ANTIDIABETIC: "Antidiabético",
+  GASTROPROTECTOR: "Gastroprotetor",
+  ANTIBIOTICS: "Antibióticos",
+  CONTROLLED: "Controlado",
+  PSYCHOTROPIC: "Psicotrópico",
+  CONTRACEPTIVE: "Contraceptivo",
+  VITAMIN: "Vitamina",
+  HORMONE: "Hormônio",
+  VACCINE: "Vacina",
+  SUPPLEMENT: "Suplemento",
+  OTHER: "Outros",
+};
+
+const translatePharmacy = (key: string, dict: Record<string, string>) =>
+  dict[key.toUpperCase()] ?? key;
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Line, LineChart, CartesianGrid, XAxis } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -141,7 +174,7 @@ export function PharmacyDashboard() {
           </CardHeader>
           <CardContent className="space-y-2">
             {Object.entries(summary.stockByStatus).map(([status, value]) => (
-              <StatusRow key={status} label={status} value={value} />
+              <StatusRow key={status} label={translatePharmacy(status, STOCK_STATUS_PT)} value={value} />
             ))}
           </CardContent>
         </Card>
@@ -152,7 +185,7 @@ export function PharmacyDashboard() {
           </CardHeader>
           <CardContent className="space-y-2">
             {Object.entries(summary.stockByCategory).map(([category, value]) => (
-              <StatusRow key={category} label={category} value={value} />
+              <StatusRow key={category} label={translatePharmacy(category, STOCK_CATEGORY_PT)} value={value} />
             ))}
           </CardContent>
         </Card>
