@@ -518,34 +518,34 @@ export default function ReceptionTriage() {
                   </div>
                   <div>
                     <Label htmlFor="hr">FC (bpm) *</Label>
-                    <Input id="hr" type="number" placeholder="80" value={hr} onChange={(e) => setHr(e.target.value)} />
+                    <Input id="hr" type="number" min="20" max="250" placeholder="80" value={hr} onChange={(e) => setHr(e.target.value)} />
                   </div>
                   <div>
                     <Label htmlFor="rr">FR (irpm) *</Label>
-                    <Input id="rr" type="number" placeholder="16" value={rr} onChange={(e) => setRr(e.target.value)} />
+                    <Input id="rr" type="number" min="5" max="80" placeholder="16" value={rr} onChange={(e) => setRr(e.target.value)} />
                   </div>
                   <div>
                     <Label htmlFor="temp">T°C *</Label>
-                    <Input id="temp" type="number" step="0.1" placeholder="36.5" value={temp} onChange={(e) => setTemp(e.target.value)} />
+                    <Input id="temp" type="number" step="0.1" min="30" max="45" placeholder="36.5" value={temp} onChange={(e) => setTemp(e.target.value)} />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
                     <Label htmlFor="spo2">SPO2 (%) *</Label>
-                    <Input id="spo2" type="number" placeholder="98" value={spo2} onChange={(e) => setSpo2(e.target.value)} />
+                    <Input id="spo2" type="number" min="0" max="100" placeholder="98" value={spo2} onChange={(e) => setSpo2(e.target.value)} />
                   </div>
                   <div>
                     <Label htmlFor="weight">Peso (kg) *</Label>
-                    <Input id="weight" type="number" step="0.1" placeholder="70" value={weight} onChange={(e) => setWeight(e.target.value)} />
+                    <Input id="weight" type="number" step="0.1" min="0" max="500" placeholder="70" value={weight} onChange={(e) => setWeight(e.target.value)} />
                   </div>
                   <div>
                     <Label htmlFor="height">Estatura (cm) *</Label>
-                    <Input id="height" type="number" placeholder="170" value={height} onChange={(e) => setHeight(e.target.value)} />
+                    <Input id="height" type="number" min="20" max="250" placeholder="170" value={height} onChange={(e) => setHeight(e.target.value)} />
                   </div>
                   <div>
                     <Label htmlFor="hgt">HGT (mg/dL) *</Label>
-                    <Input id="hgt" type="number" placeholder="100" value={hgt} onChange={(e) => setHgt(e.target.value)} />
+                    <Input id="hgt" type="number" min="0" max="1000" placeholder="100" value={hgt} onChange={(e) => setHgt(e.target.value)} />
                   </div>
                 </div>
 
