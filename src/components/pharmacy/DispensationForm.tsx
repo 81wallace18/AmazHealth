@@ -47,9 +47,18 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
     const loadStock = async () => {
       const nextState: Record<string, ItemFormState> = {};
       for (const item of prescription.items) {
+        const stateKey = item.id ?? item.medicineId ?? item.medicineName;
+        if (!item.medicineId) {
+          nextState[stateKey] = {
+            quantity: item.quantity,
+            batchNumber: "",
+            stock: []
+          };
+          continue;
+        }
         try {
           const stockPage = await pharmacyService.getStockByMedicine(item.medicineId, { page: 0, size: 50 });
-          nextState[item.id ?? item.medicineId] = {
+          nextState[stateKey] = {
             quantity: item.quantity,
             batchNumber: stockPage.content[0]?.batchNumber ?? "",
             expirationDate: stockPage.content[0]?.expiryDate,
@@ -57,7 +66,7 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
             stock: stockPage.content
           };
         } catch (err) {
-          nextState[item.id ?? item.medicineId] = {
+          nextState[stateKey] = {
             quantity: item.quantity,
             batchNumber: "",
             stock: []
@@ -73,8 +82,8 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
   const handleChange = (item: PrescriptionItem, field: keyof ItemFormState, value: string | number) => {
     setItemState((prev) => ({
       ...prev,
-      [item.id ?? item.medicineId]: {
-        ...prev[item.id ?? item.medicineId],
+      [item.id ?? item.medicineId ?? item.medicineName]: {
+        ...prev[item.id ?? item.medicineId ?? item.medicineName],
         [field]: value
       }
     }));
@@ -87,7 +96,7 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
 
     try {
       const payload = items.map((item) => {
-        const state = itemState[item.id ?? item.medicineId];
+        const state = itemState[item.id ?? item.medicineId ?? item.medicineName];
         if (!state || !state.batchNumber) {
           throw new Error(`Selecione o lote para ${item.medicineName}`);
         }
@@ -154,7 +163,7 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
         <ScrollArea className="h-[60vh] pr-4">
           <div className="space-y-6">
             {items.map((item) => {
-              const formState = itemState[item.id ?? item.medicineId];
+              const formState = itemState[item.id ?? item.medicineId ?? item.medicineName];
               const stockOptions = formState?.stock ?? [];
 
               return (
