@@ -29,6 +29,15 @@ interface ItemFormState {
   stock: MedicineStock[];
 }
 
+/**
+ * Gera uma chave única e estável para cada item da prescrição.
+ * Prioriza: id real (UUID) → medicineId (UUID) → posição no array (não colide
+ * com medicamentos sem id que tenham o mesmo nome).
+ */
+function stateKeyFor(item: PrescriptionItem, idx: number): string {
+  return item.id ?? item.medicineId ?? `idx-${idx}`;
+}
+
 export function DispensationForm({ open, prescription, onClose, onSuccess }: DispensationFormProps) {
   const [loading, setLoading] = useState(false);
   const [itemState, setItemState] = useState<Record<string, ItemFormState>>({});
@@ -46,8 +55,9 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
 
     const loadStock = async () => {
       const nextState: Record<string, ItemFormState> = {};
-      for (const item of prescription.items) {
-        const stateKey = item.id ?? item.medicineId ?? item.medicineName;
+      for (let idx = 0; idx < prescription.items.length; idx++) {
+        const item = prescription.items[idx];
+        const stateKey = stateKeyFor(item, idx);
         if (!item.medicineId) {
           nextState[stateKey] = {
             quantity: item.quantity,
@@ -79,11 +89,12 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
     void loadStock();
   }, [open, prescription]);
 
-  const handleChange = (item: PrescriptionItem, field: keyof ItemFormState, value: string | number) => {
+  const handleChange = (item: PrescriptionItem, idx: number, field: keyof ItemFormState, value: string | number) => {
+    const key = stateKeyFor(item, idx);
     setItemState((prev) => ({
       ...prev,
-      [item.id ?? item.medicineId ?? item.medicineName]: {
-        ...prev[item.id ?? item.medicineId ?? item.medicineName],
+      [key]: {
+        ...prev[key],
         [field]: value
       }
     }));
@@ -95,8 +106,8 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
     setError(null);
 
     try {
-      const payload = items.map((item) => {
-        const state = itemState[item.id ?? item.medicineId ?? item.medicineName];
+      const payload = items.map((item, idx) => {
+        const state = itemState[stateKeyFor(item, idx)];
         if (!state || !state.batchNumber) {
           throw new Error(`Selecione o lote para ${item.medicineName}`);
         }
@@ -162,12 +173,13 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
 
         <ScrollArea className="h-[60vh] pr-4">
           <div className="space-y-6">
-            {items.map((item) => {
-              const formState = itemState[item.id ?? item.medicineId ?? item.medicineName];
+            {items.map((item, idx) => {
+              const key = stateKeyFor(item, idx);
+              const formState = itemState[key];
               const stockOptions = formState?.stock ?? [];
 
               return (
-                <div key={item.id ?? item.medicineId} className="rounded-md border p-4 space-y-3">
+                <div key={key} className="rounded-md border p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-semibold">{item.medicineName}</p>
@@ -181,7 +193,7 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
                       <Label>Lote *</Label>
                       <Select
                         value={formState?.batchNumber}
-                        onValueChange={(value) => handleChange(item, "batchNumber", value)}
+                        onValueChange={(value) => handleChange(item, idx, "batchNumber", value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder={stockOptions.length === 0 ? "Sem estoque disponível" : "Selecione"} />
@@ -202,7 +214,7 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
                         type="number"
                         min={1}
                         value={formState?.quantity ?? item.quantity}
-                        onChange={(event) => handleChange(item, "quantity", Number(event.target.value))}
+                        onChange={(event) => handleChange(item, idx, "quantity", Number(event.target.value))}
                       />
                     </div>
 
@@ -210,7 +222,7 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
                       <Label>Observações</Label>
                       <Input
                         value={formState?.observations ?? ""}
-                        onChange={(event) => handleChange(item, "observations", event.target.value)}
+                        onChange={(event) => handleChange(item, idx, "observations", event.target.value)}
                         placeholder="Observações adicionais"
                       />
                     </div>
