@@ -90,7 +90,7 @@ export default function GestoraDashboardPage() {
             <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-36" />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Ate</Label>
+            <Label className="text-xs">Até</Label>
             <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-36" />
           </div>
           <Button onClick={loadData} disabled={loading} size="sm">
@@ -197,8 +197,8 @@ export default function GestoraDashboardPage() {
             {/* Triage Distribution */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Classificacao de Risco</CardTitle>
-                <CardDescription>Distribuicao por cor Manchester</CardDescription>
+                <CardTitle className="text-base">Classificação de Risco</CardTitle>
+                <CardDescription>Distribuição por cor Manchester</CardDescription>
               </CardHeader>
               <CardContent>
                 {triagePieData.length === 0 ? (
@@ -222,8 +222,8 @@ export default function GestoraDashboardPage() {
             {/* Outcome Distribution */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Desfechos Clinicos</CardTitle>
-                <CardDescription>Distribuicao de resultados dos atendimentos</CardDescription>
+                <CardTitle className="text-base">Desfechos Clínicos</CardTitle>
+                <CardDescription>Distribuição de resultados dos atendimentos</CardDescription>
               </CardHeader>
               <CardContent>
                 {outcomePieData.length === 0 ? (

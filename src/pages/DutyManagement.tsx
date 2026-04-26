@@ -170,7 +170,7 @@ export default function DutyManagement() {
                   <TableHead>Profissional</TableHead>
                   <TableHead>Setor</TableHead>
                   <TableHead>Turno</TableHead>
-                  <TableHead>Inicio</TableHead>
+                  <TableHead>Início</TableHead>
                   <TableHead>Previsão Fim</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
