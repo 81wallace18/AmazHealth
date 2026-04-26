@@ -20,10 +20,19 @@ const STATUS_PT: Record<string, string> = {
   DECEASED: 'Óbito',
   ESCAPED: 'Evasão',
   COMPLETED: 'Concluído',
+  CANCELLED: 'Cancelado',
+  CANCELED: 'Cancelado',
+  WAITING_EXAM: 'Aguardando exame',
+  WAITING_DOCTOR: 'Aguardando médico',
+  EXAM_COMPLETED: 'Exame concluído',
+  TRIAGED: 'Triado',
+  PENDING: 'Pendente',
+  ACTIVE: 'Ativo',
+  INACTIVE: 'Inativo',
 };
 
 const translateStatus = (status: string) =>
-  STATUS_PT[status] ?? status.replace(/_/g, ' ').toLowerCase();
+  STATUS_PT[status.toUpperCase().replace(/ /g, '_')] ?? status.replace(/_/g, ' ').toLowerCase();
 
 export default function Reports() {
   const [triageReport, setTriageReport] = useState<TriageReport | null>(null);
