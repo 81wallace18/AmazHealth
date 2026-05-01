@@ -1,8 +1,9 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { queryClient, persistOptions } from "./lib/persistedQueryClient";
 import { AppLayout } from "./components/layout/AppLayout";
 import { useAuth } from "./hooks/useAuth";
 import { RequireCapability } from "./components/RequireCapability";
@@ -28,10 +29,9 @@ import Auth from "./pages/Auth";
 import ActivateAccount from "./pages/ActivateAccount";
 import DutyManagement from "./pages/DutyManagement";
 import NightShiftReview from "./pages/NightShiftReview";
+import SyncQueue from "./pages/SyncQueue";
 import NotFound from "./pages/NotFound";
 import { Unauthorized } from "./pages/Unauthorized";
-
-const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -76,7 +76,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -188,6 +188,7 @@ const App = () => (
                 <NightShiftReview />
               </RequireRole>
             } />
+            <Route path="sync-queue" element={<SyncQueue />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           </Route>
           <Route path="/unauthorized" element={<Unauthorized />} />
@@ -195,7 +196,7 @@ const App = () => (
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+  </PersistQueryClientProvider>
 );
 
 export default App;
