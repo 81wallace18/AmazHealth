@@ -8,6 +8,7 @@ export const ROLE_PRIORITY: UserRole[] = [
   "NURSE_MANAGER",
   "DOCTOR",
   "NURSE",
+  "NURSE_TECHNICIAN",
   "PHARMACIST",
   "RECEPTIONIST",
 ];

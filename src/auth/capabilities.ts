@@ -1,14 +1,15 @@
 // Centralized capability mapping based on role
 // Aligns with docs/MATRIZ_PERMISSOES.md
 
-export type UserRole = 
-  | 'ADMIN' 
-  | 'GESTAO' 
-  | 'DOCTOR' 
-  | 'NURSE' 
+export type UserRole =
+  | 'ADMIN'
+  | 'GESTAO'
+  | 'DOCTOR'
+  | 'NURSE'
   | 'NURSE_MANAGER'
-  | 'PHARMACIST' 
-  | 'RECEPTIONIST' 
+  | 'NURSE_TECHNICIAN'
+  | 'PHARMACIST'
+  | 'RECEPTIONIST'
   | 'HOSPITAL_MANAGER'
   | 'FINANCE';
 
@@ -247,6 +248,52 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canReadPharmacyGlobal: false,
     canRequestExams: false,
     canReadExamResults: true,
+    canInputExamResults: false,
+    canAccessFinancial: false,
+    canManageBilling: false,
+    canViewReports: false,
+    canViewKPIs: false,
+    canManageDuties: false,
+    canReviewNightActions: false,
+    canAccessOperational: false,
+    canAccessAdmin: false,
+  },
+
+  NURSE_TECHNICIAN: {
+    // Técnico de enfermagem — base bem restritiva. Policies de organização podem
+    // ligar canCreateTriage / canDispenseMedication via useCapabilities() → useOrgConfig().
+    canListPatients: true,
+    canReadPatients: true,
+    canCreatePatients: false,
+    canUpdatePatients: false,
+    canDeletePatients: false,
+    canListStaff: false,
+    canReadStaff: false,
+    canCreateStaff: false,
+    canUpdateStaff: false,
+    canDeleteStaff: false,
+    canManageRoles: false,
+    canCreateAttendance: false,
+    canReadAttendance: true,
+    canUpdateAttendanceStatus: false,
+    canStartAttendance: false,
+    canRecordEvolution: false,
+    canDefineOutcome: false,
+    canAdmitPatient: false,
+    canCreateTriage: false,        // policy override: nursing_technician_can_triage
+    canUpdateTriage: false,        // policy override
+    canReadTriage: true,
+    canViewTriageBoard: true,
+    canCreatePrescription: false,
+    canReadPrescription: true,
+    canUpdatePrescription: false,
+    canCancelPrescription: false,
+    canExportPrescription: false,
+    canManageStock: false,
+    canDispenseMedication: false,  // policy override: nursing_technician_can_dispense
+    canReadPharmacyGlobal: false,
+    canRequestExams: false,
+    canReadExamResults: false,
     canInputExamResults: false,
     canAccessFinancial: false,
     canManageBilling: false,
