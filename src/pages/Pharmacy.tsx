@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useCapabilities } from "@/auth/useCapabilities";
+import { useOrgConfig, INTEGRATIONS } from "@/hooks/useOrgConfig";
 import { PharmacyDashboard } from "@/components/pharmacy/PharmacyDashboard";
 import { PharmacyQueue } from "@/components/pharmacy/PharmacyQueue";
 import { StockManagement } from "@/components/pharmacy/StockManagement";
@@ -9,6 +10,8 @@ import { HorusAuditLog } from "@/components/pharmacy/HorusAuditLog";
 
 export default function Pharmacy() {
   const capabilities = useCapabilities();
+  const { hasIntegration } = useOrgConfig();
+  const horusEnabled = hasIntegration(INTEGRATIONS.HORUS_PHARMACY);
 
   return (
     <div className="p-6 space-y-6">
@@ -33,7 +36,7 @@ export default function Pharmacy() {
           <TabsTrigger value="queue">Fila</TabsTrigger>
           <TabsTrigger value="stock">Estoque</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
-          <TabsTrigger value="audit">Auditoria HÓRUS</TabsTrigger>
+          {horusEnabled && <TabsTrigger value="audit">Auditoria HÓRUS</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-4">
@@ -52,9 +55,11 @@ export default function Pharmacy() {
           <InventoryAlerts />
         </TabsContent>
 
-        <TabsContent value="audit" className="space-y-4">
-          <HorusAuditLog />
-        </TabsContent>
+        {horusEnabled && (
+          <TabsContent value="audit" className="space-y-4">
+            <HorusAuditLog />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

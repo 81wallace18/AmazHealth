@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DispensationForm } from "./DispensationForm";
 import { Label } from "@/components/ui/label";
 import { useCapabilities } from "@/auth/useCapabilities";
+import { useOrgConfig, INTEGRATIONS } from "@/hooks/useOrgConfig";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const statusLabels: Record<PrescriptionStatus, string> = {
@@ -34,6 +35,8 @@ interface PharmacyQueueProps {
 
 export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
   const capabilities = useCapabilities();
+  const { hasIntegration } = useOrgConfig();
+  const horusEnabled = hasIntegration(INTEGRATIONS.HORUS_PHARMACY);
   const [queueMode, setQueueMode] = useState<"LOCAL" | "HORUS">("LOCAL");
   const [statusFilter, setStatusFilter] = useState<PrescriptionStatus | "ALL">("ACTIVE");
   const [pending, setPending] = useState<Prescription[]>([]);
@@ -199,12 +202,14 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Tabs value={queueMode} onValueChange={(value) => setQueueMode(value as "LOCAL" | "HORUS")}>
-            <TabsList>
-              <TabsTrigger value="LOCAL">Prescrições locais</TabsTrigger>
-              <TabsTrigger value="HORUS">Operação HÓRUS</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {horusEnabled && (
+            <Tabs value={queueMode} onValueChange={(value) => setQueueMode(value as "LOCAL" | "HORUS")}>
+              <TabsList>
+                <TabsTrigger value="LOCAL">Prescrições locais</TabsTrigger>
+                <TabsTrigger value="HORUS">Operação HÓRUS</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
           {queueMode === "LOCAL" ? (
             <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as PrescriptionStatus | "ALL")}>
               <SelectTrigger className="w-[200px]">
