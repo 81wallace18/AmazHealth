@@ -1,6 +1,10 @@
 import type { UserRole } from "./capabilities";
 
 export const ROLE_PRIORITY: UserRole[] = [
+  "PLATFORM_ADMIN",
+  "PLATFORM_SUPPORT",
+  "TENANT_ADMIN",
+  "TENANT_MANAGER",
   "ADMIN",
   "GESTAO",
   "HOSPITAL_MANAGER",

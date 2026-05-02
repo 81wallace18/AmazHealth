@@ -11,7 +11,11 @@ export type UserRole =
   | 'PHARMACIST'
   | 'RECEPTIONIST'
   | 'HOSPITAL_MANAGER'
-  | 'FINANCE';
+  | 'FINANCE'
+  | 'PLATFORM_ADMIN'
+  | 'PLATFORM_SUPPORT'
+  | 'TENANT_ADMIN'
+  | 'TENANT_MANAGER';
 
 export interface UserCapabilities {
   // Patients
@@ -528,6 +532,70 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canReviewNightActions: false,
     canAccessOperational: false,
     canAccessAdmin: false,
+  },
+
+  PLATFORM_ADMIN: {
+    // Equipe da plataforma — acesso total cross-tenant.
+    canListPatients: true, canReadPatients: true, canCreatePatients: true, canUpdatePatients: true, canDeletePatients: true,
+    canListStaff: true, canReadStaff: true, canCreateStaff: true, canUpdateStaff: true, canDeleteStaff: true, canManageRoles: true,
+    canCreateAttendance: true, canReadAttendance: true, canUpdateAttendanceStatus: true, canStartAttendance: true,
+    canRecordEvolution: true, canDefineOutcome: true, canAdmitPatient: true,
+    canCreateTriage: true, canUpdateTriage: true, canReadTriage: true, canViewTriageBoard: true,
+    canCreatePrescription: true, canReadPrescription: true, canUpdatePrescription: true, canCancelPrescription: true, canExportPrescription: true,
+    canManageStock: true, canDispenseMedication: true, canReadPharmacyGlobal: true,
+    canRequestExams: true, canReadExamResults: true, canInputExamResults: true,
+    canAccessFinancial: true, canManageBilling: true,
+    canViewReports: true, canViewKPIs: true,
+    canManageDuties: true, canReviewNightActions: true,
+    canAccessOperational: true, canAccessAdmin: true,
+  },
+
+  PLATFORM_SUPPORT: {
+    // Suporte interno — read-only.
+    canListPatients: true, canReadPatients: true, canCreatePatients: false, canUpdatePatients: false, canDeletePatients: false,
+    canListStaff: true, canReadStaff: true, canCreateStaff: false, canUpdateStaff: false, canDeleteStaff: false, canManageRoles: false,
+    canCreateAttendance: false, canReadAttendance: true, canUpdateAttendanceStatus: false, canStartAttendance: false,
+    canRecordEvolution: false, canDefineOutcome: false, canAdmitPatient: false,
+    canCreateTriage: false, canUpdateTriage: false, canReadTriage: true, canViewTriageBoard: true,
+    canCreatePrescription: false, canReadPrescription: true, canUpdatePrescription: false, canCancelPrescription: false, canExportPrescription: false,
+    canManageStock: false, canDispenseMedication: false, canReadPharmacyGlobal: true,
+    canRequestExams: false, canReadExamResults: true, canInputExamResults: false,
+    canAccessFinancial: false, canManageBilling: false,
+    canViewReports: true, canViewKPIs: true,
+    canManageDuties: false, canReviewNightActions: false,
+    canAccessOperational: false, canAccessAdmin: false,
+  },
+
+  TENANT_ADMIN: {
+    // Gestor da prefeitura/secretaria/rede — acesso administrativo às clínicas filhas.
+    canListPatients: true, canReadPatients: true, canCreatePatients: false, canUpdatePatients: false, canDeletePatients: false,
+    canListStaff: true, canReadStaff: true, canCreateStaff: true, canUpdateStaff: true, canDeleteStaff: false, canManageRoles: true,
+    canCreateAttendance: false, canReadAttendance: true, canUpdateAttendanceStatus: false, canStartAttendance: false,
+    canRecordEvolution: false, canDefineOutcome: false, canAdmitPatient: false,
+    canCreateTriage: false, canUpdateTriage: false, canReadTriage: true, canViewTriageBoard: true,
+    canCreatePrescription: false, canReadPrescription: true, canUpdatePrescription: false, canCancelPrescription: false, canExportPrescription: true,
+    canManageStock: false, canDispenseMedication: false, canReadPharmacyGlobal: true,
+    canRequestExams: false, canReadExamResults: true, canInputExamResults: false,
+    canAccessFinancial: true, canManageBilling: false,
+    canViewReports: true, canViewKPIs: true,
+    canManageDuties: false, canReviewNightActions: false,
+    canAccessOperational: true, canAccessAdmin: false,
+  },
+
+  TENANT_MANAGER: {
+    // Read-only no nível tenant — para relatórios consolidados.
+    canListPatients: true, canReadPatients: true, canCreatePatients: false, canUpdatePatients: false, canDeletePatients: false,
+    canListStaff: true, canReadStaff: true, canCreateStaff: false, canUpdateStaff: false, canDeleteStaff: false, canManageRoles: false,
+    canCreateAttendance: false, canReadAttendance: true, canUpdateAttendanceStatus: false, canStartAttendance: false,
+    canRecordEvolution: false, canDefineOutcome: false, canAdmitPatient: false,
+    canCreateTriage: false, canUpdateTriage: false, canReadTriage: true, canViewTriageBoard: true,
+    canCreatePrescription: false, canReadPrescription: true, canUpdatePrescription: false, canCancelPrescription: false, canExportPrescription: true,
+    canManageStock: false, canDispenseMedication: false, canReadPharmacyGlobal: true,
+    canRequestExams: false, canReadExamResults: true, canInputExamResults: false,
+    canAccessFinancial: false, canManageBilling: false,
+    canViewReports: true, canViewKPIs: true,
+    canManageDuties: false, canReviewNightActions: false,
+    canAccessOperational: false, canAccessAdmin: false,
   },
 };
 
