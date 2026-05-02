@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrgConfig } from "@/hooks/useOrgConfig";
 import { getPrimaryRole, normalizeRole } from "@/auth/rolePriority";
 import type { UserRole } from "@/auth/capabilities";
 import { NightModeIndicator } from "@/components/layout/NightModeIndicator";
@@ -48,6 +49,10 @@ interface NavigationItem {
   allowedRoles?: UserRole[];
   /** Modulo da organizacao necessario. Sem module = sempre visivel. */
   module?: string;
+  /** Integracao da organizacao necessaria (HORUS_PHARMACY, ESUS_PEC). */
+  integration?: string;
+  /** Policy operacional necessaria (ex: night_shift_review). */
+  policy?: string;
 }
 
 const navigationItems: NavigationItem[] = [
@@ -191,6 +196,7 @@ const navigationItems: NavigationItem[] = [
     group: "Gestão",
     allowedRoles: ["ADMIN", "NURSE_MANAGER"],
     module: "URGENCIA",
+    policy: "night_shift_review",
   },
   {
     title: "Revisao Noturna",
@@ -199,6 +205,7 @@ const navigationItems: NavigationItem[] = [
     group: "Gestão",
     allowedRoles: ["ADMIN", "DOCTOR", "NURSE_MANAGER"],
     module: "URGENCIA",
+    policy: "night_shift_review",
   },
 ];
 
@@ -206,6 +213,7 @@ export function AppSidebar() {
   const isMobile = useIsMobile();
   const location = useLocation();
   const { user } = useAuth();
+  const { hasIntegration, hasPolicy } = useOrgConfig();
   const primaryRole = getPrimaryRole(user?.roles);
   const normalizedRoles = new Set(
     (user?.roles ?? [])
@@ -234,6 +242,14 @@ export function AppSidebar() {
       if (!enabledModules.includes(item.module)) {
         return false;
       }
+    }
+    // Filtro por integracao
+    if (item.integration && !hasIntegration(item.integration)) {
+      return false;
+    }
+    // Filtro por policy operacional
+    if (item.policy && !hasPolicy(item.policy)) {
+      return false;
     }
     return true;
   });
@@ -340,8 +356,8 @@ export function AppSidebar() {
           </div>
         </div>
 
-        {/* Night Shift Indicator */}
-        {user?.activeShift === 'NIGHT' && (
+        {/* Night Shift Indicator — só pra orgs com policy night_shift_review ON */}
+        {hasPolicy('night_shift_review') && user?.activeShift === 'NIGHT' && (
           <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden">
             <NightModeIndicator sectorName={user?.activeSectorName} startsAt={user?.activeDutyStartsAt} />
           </div>
