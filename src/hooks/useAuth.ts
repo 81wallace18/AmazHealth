@@ -8,6 +8,7 @@ import {
   OrganizationInfo,
 } from '@/services/authService';
 import { authStorage } from '@/lib/authStorage';
+import { knownUsers } from '@/lib/knownUsers';
 import { startProactiveRefresh, stopProactiveRefresh } from '@/lib/api';
 import dutyService from '@/services/dutyService';
 
@@ -161,6 +162,12 @@ export function useAuth() {
 
       syncAuthResponse(response, rememberMe);
       startProactiveRefresh();
+      // Salva no picker do device pra próxima vez aparecer só pedindo senha
+      knownUsers.upsert({
+        login,
+        fullName: response.user.fullName,
+        organizationName: response.user.organizationName,
+      });
       toast.success('Login realizado com sucesso!');
       return { error: null, message: null };
     } catch (error: any) {
