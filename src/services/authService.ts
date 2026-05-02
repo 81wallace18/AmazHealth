@@ -36,6 +36,7 @@ export interface AuthResponse {
     enabledModules?: string[] | null;
     integrations?: string[] | null;
     operationalPolicies?: Record<string, unknown> | null;
+    isPlatformUser?: boolean;
   };
 }
 
@@ -58,6 +59,7 @@ export interface MeResponse {
   enabledModules?: string[] | null;
   integrations?: string[] | null;
   operationalPolicies?: Record<string, unknown> | null;
+  isPlatformUser?: boolean;
 }
 
 export interface ActivateAccountRequest {

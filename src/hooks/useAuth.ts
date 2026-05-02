@@ -24,6 +24,7 @@ interface User {
   enabledModules?: string[] | null;
   integrations?: string[] | null;
   operationalPolicies?: Record<string, unknown> | null;
+  isPlatformUser?: boolean;
   organizations?: OrganizationInfo[];
   activeShift?: 'DAY' | 'NIGHT' | null;
   activeDutyId?: string | null;
@@ -47,6 +48,7 @@ const mapAuthUser = (authUser: AuthResponse['user']): User => ({
   enabledModules: authUser.enabledModules ?? null,
   integrations: authUser.integrations ?? null,
   operationalPolicies: authUser.operationalPolicies ?? null,
+  isPlatformUser: authUser.isPlatformUser ?? false,
 });
 
 const mapProfileToUser = (profile: MeResponse): User => ({
@@ -62,6 +64,7 @@ const mapProfileToUser = (profile: MeResponse): User => ({
   enabledModules: profile.enabledModules ?? null,
   integrations: profile.integrations ?? null,
   operationalPolicies: profile.operationalPolicies ?? null,
+  isPlatformUser: profile.isPlatformUser ?? false,
   organizations: profile.organizations,
 });
 
