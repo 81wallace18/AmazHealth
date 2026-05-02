@@ -192,7 +192,11 @@ export default function Auth() {
                     <FormItem>
                       <FormLabel>Email ou Username</FormLabel>
                       <FormControl>
-                        <Input placeholder="seu.email@exemplo.com ou username" {...field} />
+                        <Input
+                          placeholder="seu.email@exemplo.com ou username"
+                          autoFocus
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
