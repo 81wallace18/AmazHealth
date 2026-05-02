@@ -34,6 +34,8 @@ export interface AuthResponse {
     activeSectorId?: string | null;
     roles: string[];
     enabledModules?: string[] | null;
+    integrations?: string[] | null;
+    operationalPolicies?: Record<string, unknown> | null;
   };
 }
 
@@ -53,6 +55,9 @@ export interface MeResponse {
   staffId?: string | null;
   activeSectorId?: string | null;
   organizations: OrganizationInfo[];
+  enabledModules?: string[] | null;
+  integrations?: string[] | null;
+  operationalPolicies?: Record<string, unknown> | null;
 }
 
 export interface ActivateAccountRequest {

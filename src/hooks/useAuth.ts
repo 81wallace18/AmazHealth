@@ -22,6 +22,8 @@ interface User {
   activeSectorId?: string | null;
   roles: string[];
   enabledModules?: string[] | null;
+  integrations?: string[] | null;
+  operationalPolicies?: Record<string, unknown> | null;
   organizations?: OrganizationInfo[];
   activeShift?: 'DAY' | 'NIGHT' | null;
   activeDutyId?: string | null;
@@ -43,6 +45,8 @@ const mapAuthUser = (authUser: AuthResponse['user']): User => ({
   activeSectorId: authUser.activeSectorId ?? null,
   roles: normalizeRoles(authUser.roles),
   enabledModules: authUser.enabledModules ?? null,
+  integrations: authUser.integrations ?? null,
+  operationalPolicies: authUser.operationalPolicies ?? null,
 });
 
 const mapProfileToUser = (profile: MeResponse): User => ({
@@ -55,6 +59,9 @@ const mapProfileToUser = (profile: MeResponse): User => ({
   staffId: profile.staffId ?? null,
   activeSectorId: profile.activeSectorId ?? null,
   roles: normalizeRoles(profile.activeRoles),
+  enabledModules: profile.enabledModules ?? null,
+  integrations: profile.integrations ?? null,
+  operationalPolicies: profile.operationalPolicies ?? null,
   organizations: profile.organizations,
 });
 
@@ -101,17 +108,25 @@ export function useAuth() {
           const profile = await authService.getProfile();
           const normalized = mapProfileToUser(profile);
 
-          // Enriquecer com informações de plantão ativo
-          try {
-            const duty = await dutyService.getMyCurrentDuty();
-            if (duty) {
-              normalized.activeShift = duty.shiftType;
-              normalized.activeDutyId = duty.id;
-              normalized.activeSectorName = duty.sectorName;
-              normalized.activeDutyStartsAt = duty.startsAt;
+          // Enriquecer com informações de plantão ativo apenas se a policy estiver ON
+          // (evita chamada que retornaria 403 em orgs sem night_shift_review).
+          const nightShiftEnabled = Boolean(
+            (normalized.operationalPolicies as Record<string, unknown> | null | undefined)?.[
+              'night_shift_review'
+            ]
+          );
+          if (nightShiftEnabled) {
+            try {
+              const duty = await dutyService.getMyCurrentDuty();
+              if (duty) {
+                normalized.activeShift = duty.shiftType;
+                normalized.activeDutyId = duty.id;
+                normalized.activeSectorName = duty.sectorName;
+                normalized.activeDutyStartsAt = duty.startsAt;
+              }
+            } catch {
+              // Duty context is optional
             }
-          } catch {
-            // Duty context is optional
           }
 
           persistUser(normalized);
