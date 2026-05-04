@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
-const HEALTH_PATH = '/actuator/health';
+const HEALTH_PATH = '/status';
 const PING_INTERVAL_MS = 15_000;
 const PING_TIMEOUT_MS = 5_000;
 
 function resolveHealthUrl(): string {
   const base = import.meta.env.VITE_API_URL || '/api/v1';
-  // Strip /api/v1 suffix if present — actuator vive na raiz do backend
-  const root = String(base).replace(/\/api\/v1\/?$/, '');
-  return `${root}${HEALTH_PATH}`;
+  return `${String(base).replace(/\/$/, '')}${HEALTH_PATH}`;
 }
 
 export interface OnlineStatus {
