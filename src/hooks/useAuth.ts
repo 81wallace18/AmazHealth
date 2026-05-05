@@ -145,6 +145,18 @@ export function useAuth() {
     validateSession();
   }, []);
 
+  // Detecta limpeza de sessão feita externamente (outra aba ou devtools)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if ((e.key === 'user' || e.key === 'accessToken') && e.newValue === null) {
+        clearSession();
+        navigate('/auth');
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [navigate]);
+
 
   const signIn = async (
     login: string,

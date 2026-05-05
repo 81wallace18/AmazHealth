@@ -83,6 +83,17 @@ export default function ReceptionTriage() {
   const [temp, setTemp] = useState("");
   const [spo2, setSpo2] = useState("");
   const [glasgow, setGlasgow] = useState("15");
+  const [vitalErrors, setVitalErrors] = useState<Record<string, string>>({});
+
+  const validateVital = (field: string, value: string, min: number, max: number, label: string) => {
+    if (!value) { setVitalErrors(p => { const n = {...p}; delete n[field]; return n; }); return; }
+    const n = parseFloat(value);
+    if (isNaN(n) || n < min || n > max) {
+      setVitalErrors(p => ({ ...p, [field]: `${label}: ${min}–${max}` }));
+    } else {
+      setVitalErrors(p => { const n2 = {...p}; delete n2[field]; return n2; });
+    }
+  };
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [hgt, setHgt] = useState("");
@@ -203,6 +214,10 @@ export default function ReceptionTriage() {
 
     // Se sinais vitais abertos, validar TODOS os 8 campos obrigatorios
     if (vitalsOpen) {
+      if (Object.keys(vitalErrors).length > 0) {
+        toast.error("Corrija os valores fora do intervalo antes de continuar.");
+        return;
+      }
       const missing: string[] = [];
       if (!bp) missing.push("PA");
       if (!hr) missing.push("FC");
@@ -519,7 +534,10 @@ export default function ReceptionTriage() {
                   </div>
                   <div>
                     <Label htmlFor="hr">FC (bpm) *</Label>
-                    <Input id="hr" type="number" min="20" max="250" placeholder="80" value={hr} onChange={(e) => setHr(e.target.value)} />
+                    <Input id="hr" type="number" min="20" max="250" placeholder="80" value={hr}
+                      onChange={(e) => { setHr(e.target.value); validateVital('hr', e.target.value, 20, 250, 'FC'); }}
+                      className={vitalErrors.hr ? 'border-destructive' : ''} />
+                    {vitalErrors.hr && <p className="text-xs text-destructive mt-1">{vitalErrors.hr}</p>}
                   </div>
                   <div>
                     <Label htmlFor="rr">FR (irpm) *</Label>
@@ -527,14 +545,20 @@ export default function ReceptionTriage() {
                   </div>
                   <div>
                     <Label htmlFor="temp">T°C *</Label>
-                    <Input id="temp" type="number" step="0.1" min="30" max="45" placeholder="36.5" value={temp} onChange={(e) => setTemp(e.target.value)} />
+                    <Input id="temp" type="number" step="0.1" min="32" max="43" placeholder="36.5" value={temp}
+                      onChange={(e) => { setTemp(e.target.value); validateVital('temp', e.target.value, 32, 43, 'Temp'); }}
+                      className={vitalErrors.temp ? 'border-destructive' : ''} />
+                    {vitalErrors.temp && <p className="text-xs text-destructive mt-1">{vitalErrors.temp}</p>}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
                     <Label htmlFor="spo2">SPO2 (%) *</Label>
-                    <Input id="spo2" type="number" min="0" max="100" placeholder="98" value={spo2} onChange={(e) => setSpo2(e.target.value)} />
+                    <Input id="spo2" type="number" min="50" max="100" placeholder="98" value={spo2}
+                      onChange={(e) => { setSpo2(e.target.value); validateVital('spo2', e.target.value, 50, 100, 'SpO₂'); }}
+                      className={vitalErrors.spo2 ? 'border-destructive' : ''} />
+                    {vitalErrors.spo2 && <p className="text-xs text-destructive mt-1">{vitalErrors.spo2}</p>}
                   </div>
                   <div>
                     <Label htmlFor="weight">Peso (kg) *</Label>

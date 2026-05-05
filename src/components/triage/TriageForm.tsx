@@ -42,9 +42,24 @@ interface TriageFormProps {
   onCancel: () => void;
 }
 
+// Valida range e retorna mensagem de erro ou null
+function validateRange(value: string, min: number, max: number, label: string): string | null {
+  if (value === '') return null;
+  const n = parseFloat(value);
+  if (isNaN(n)) return `${label}: valor inválido`;
+  if (n < min || n > max) return `${label}: deve estar entre ${min} e ${max}`;
+  return null;
+}
+
 export function TriageForm({ visitId, patientName, onSuccess, onCancel }: TriageFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Field-level validation errors
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
+
+  const setFieldError = (field: string, msg: string | null) =>
+    setFieldErrors(prev => ({ ...prev, [field]: msg }));
 
   // Vital Signs State
   const [bloodPressureSys, setBloodPressureSys] = useState('');
@@ -95,7 +110,8 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
 
   const hasManchesterSelection = Boolean(triageColor) && triageJustification.trim().length >= 10;
 
-  const isFormValid = hasMandatoryVitals && hasManchesterSelection;
+  const hasFieldErrors = Object.values(fieldErrors).some(Boolean);
+  const isFormValid = hasMandatoryVitals && hasManchesterSelection && !hasFieldErrors;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -337,12 +353,17 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
                 id="hr"
                 type="number"
                 value={heartRate}
-                onChange={(e) => setHeartRate(e.target.value)}
+                onChange={(e) => {
+                  setHeartRate(e.target.value);
+                  setFieldError('hr', validateRange(e.target.value, 20, 250, 'FC'));
+                }}
                 placeholder="72"
                 required
                 min="20"
                 max="250"
+                className={fieldErrors.hr ? 'border-destructive' : ''}
               />
+              {fieldErrors.hr && <p className="text-xs text-destructive">{fieldErrors.hr}</p>}
             </div>
 
             {/* Glasgow (OBRIGATÓRIO) */}
@@ -355,15 +376,20 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
                 id="glasgow"
                 type="number"
                 value={glasgow}
-                onChange={(e) => setGlasgow(e.target.value)}
+                onChange={(e) => {
+                  setGlasgow(e.target.value);
+                  setFieldError('glasgow', validateRange(e.target.value, 3, 15, 'Glasgow'));
+                }}
                 placeholder="15"
                 required
                 min="3"
                 max="15"
+                className={fieldErrors.glasgow ? 'border-destructive' : ''}
               />
-              <p className="text-sm text-gray-500">
-                15 = Totalmente consciente | 3-8 = Coma
-              </p>
+              {fieldErrors.glasgow
+                ? <p className="text-xs text-destructive">{fieldErrors.glasgow}</p>
+                : <p className="text-sm text-gray-500">15 = Totalmente consciente | 3-8 = Coma</p>
+              }
             </div>
 
             {/* Respiratory Rate (OPCIONAL) */}
@@ -394,11 +420,16 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
                 type="number"
                 step="0.1"
                 value={temperature}
-                onChange={(e) => setTemperature(e.target.value)}
+                onChange={(e) => {
+                  setTemperature(e.target.value);
+                  setFieldError('temp', validateRange(e.target.value, 32, 43, 'Temperatura'));
+                }}
                 placeholder="36.5"
                 min="32"
                 max="43"
+                className={fieldErrors.temp ? 'border-destructive' : ''}
               />
+              {fieldErrors.temp && <p className="text-xs text-destructive">{fieldErrors.temp}</p>}
             </div>
 
             {/* Oxygen Saturation (OPCIONAL) */}
@@ -411,11 +442,16 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
                 id="spo2"
                 type="number"
                 value={oxygenSaturation}
-                onChange={(e) => setOxygenSaturation(e.target.value)}
+                onChange={(e) => {
+                  setOxygenSaturation(e.target.value);
+                  setFieldError('spo2', validateRange(e.target.value, 50, 100, 'SpO₂'));
+                }}
                 placeholder="98"
                 min="50"
                 max="100"
+                className={fieldErrors.spo2 ? 'border-destructive' : ''}
               />
+              {fieldErrors.spo2 && <p className="text-xs text-destructive">{fieldErrors.spo2}</p>}
             </div>
           </div>
 

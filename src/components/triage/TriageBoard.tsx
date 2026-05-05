@@ -8,7 +8,7 @@
  * - Atualização sem refresh (auto-refresh a cada 30s)
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,6 +54,21 @@ export function TriageBoard({
   disableToggle = false,
   onToggleAutoRefresh,
 }: TriageBoardProps) {
+  // Tick de 1 minuto para atualizar timers em tempo real sem esperar re-fetch
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(tick);
+  }, []);
+
+  // Calcula minutos de espera a partir do entryTime (mais preciso que o campo estático do backend)
+  const getWaitingMinutes = (patient: TriageBoardItem): number => {
+    if (patient.entryTime) {
+      return Math.floor((now - new Date(patient.entryTime).getTime()) / 60_000);
+    }
+    return patient.waitingTimeMinutes;
+  };
+
   // Auto-refresh every 30 seconds
   useEffect(() => {
     if (!autoRefresh || !onRefresh) return;
@@ -149,7 +164,8 @@ export function TriageBoard({
                     </p>
                   ) : (
                     columnPatients.map((patient) => {
-                      const exceeded = isWaitingTimeExceeded(color, patient.waitingTimeMinutes);
+                      const waitMins = getWaitingMinutes(patient);
+                      const exceeded = isWaitingTimeExceeded(color, waitMins);
 
                       return (
                         <div
@@ -202,7 +218,7 @@ export function TriageBoard({
                           <span className="text-amber-600 font-medium">Triagem pendente</span>
                         ) : (
                           <span className={exceeded ? 'text-red-600 font-semibold' : 'text-gray-600'}>
-                            {formatWaitingTime(patient.waitingTimeMinutes)}
+                            {formatWaitingTime(waitMins)}
                           </span>
                         )}
                         {exceeded && !patient.emergencyBypass && <AlertTriangle className="h-3 w-3 text-red-600 ml-1" />}
