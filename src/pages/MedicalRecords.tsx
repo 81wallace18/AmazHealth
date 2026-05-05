@@ -32,12 +32,19 @@ const statusColors = {
   "discharge": "bg-gray-500/10 text-gray-700 border-gray-200"
 };
 
-const statusLabels = {
+const statusLabels: Record<string, string> = {
+  "TRIAGE": "Triagem",
+  "ANAMNESIS": "Anamnese",
+  "EVOLUTION": "Evolução",
+  "DISCHARGE_SUMMARY": "Resumo de Alta",
+  "PROCEDURE": "Procedimento",
+  "OTHER": "Outro",
+  // legado
   "consultation": "Consulta",
   "examination": "Exame",
-  "procedure": "Procedimento", 
+  "procedure": "Procedimento",
   "surgery": "Cirurgia",
-  "discharge": "Alta"
+  "discharge": "Alta",
 };
 
 const attendanceStatusLabels: Record<AttendanceVisitStatus, string> = {

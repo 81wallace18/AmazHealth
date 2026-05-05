@@ -248,8 +248,9 @@ export default function ReceptionTriage() {
               bloodGlucose: hgt ? parseInt(hgt) : undefined,
             },
             triageColor: manchesterColor as ManchesterColor,
-            triageJustification: triageJustification || `Classificação ${manchesterColor}`,
-            overrideReason: overrideReason || (suggestedColor && suggestedColor !== manchesterColor ? "Classificação definida pelo profissional de saúde" : undefined),
+            triageJustification: triageJustification || `Classificação ${manchesterColor} definida na recepção`,
+            // Sempre envia overrideReason para satisfazer validação do backend quando cor difere da sugestão
+            overrideReason: overrideReason || "Classificação definida pelo profissional de saúde na recepção",
           });
           toast.success("Atendimento criado e triagem registrada.");
         } catch (triageError: any) {

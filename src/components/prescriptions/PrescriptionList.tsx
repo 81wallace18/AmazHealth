@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { AlertCircle, Stethoscope } from 'lucide-react';
+import { AlertCircle, Stethoscope, XCircle } from 'lucide-react';
 import prescriptionService from '@/services/prescriptionService';
 import type { Prescription, PrescriptionStatus } from '@/types/prescription';
 import { format } from 'date-fns';
@@ -55,6 +55,22 @@ interface PrescriptionListProps {
 
 export function PrescriptionList({ patientId, version = 0, onError }: PrescriptionListProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const handleCancel = useCallback(async (prescriptionId: string) => {
+    if (!confirm('Confirmar cancelamento desta prescrição?')) return;
+    setCancellingId(prescriptionId);
+    try {
+      await prescriptionService.cancel(prescriptionId);
+      toast.success('Prescrição cancelada.');
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Erro ao cancelar prescrição.');
+    } finally {
+      setCancellingId(null);
+    }
+  }, [refetch]);
+
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['prescriptions', 'patient', patientId, version],
     queryFn: async () => {
@@ -204,6 +220,19 @@ export function PrescriptionList({ patientId, version = 0, onError }: Prescripti
                       ))}
                     </TableBody>
                   </Table>
+                  {(prescription.status === 'ACTIVE' || prescription.status === 'DRAFT') && (
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleCancel(prescription.id)}
+                        disabled={cancellingId === prescription.id}
+                      >
+                        <XCircle className="mr-1 h-4 w-4" />
+                        {cancellingId === prescription.id ? 'Cancelando...' : 'Cancelar prescrição'}
+                      </Button>
+                    </div>
+                  )}
                 </AccordionContent>
               </AccordionItem>
             ))}

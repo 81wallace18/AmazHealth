@@ -69,6 +69,11 @@ export const prescriptionService = {
     const response = await api.post<Prescription>(`${BASE_URL}/${id}/pharmacy-validation`, payload);
     return response.data;
   },
+
+  async cancel(id: string): Promise<Prescription> {
+    const response = await api.post<Prescription>(`${BASE_URL}/${id}/cancel`);
+    return response.data;
+  },
 };
 
 export default prescriptionService;
