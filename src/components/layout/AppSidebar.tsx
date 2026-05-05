@@ -190,7 +190,7 @@ const navigationItems: NavigationItem[] = [
     allowedRoles: ["ADMIN"],
   },
   {
-    title: "Plantoes",
+    title: "Plantões",
     url: "/duties",
     icon: Moon,
     group: "Gestão",
@@ -199,7 +199,7 @@ const navigationItems: NavigationItem[] = [
     policy: "night_shift_review",
   },
   {
-    title: "Revisao Noturna",
+    title: "Revisão Noturna",
     url: "/night-shift-review",
     icon: Eye,
     group: "Gestão",

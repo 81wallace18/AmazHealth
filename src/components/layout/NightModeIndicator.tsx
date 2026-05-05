@@ -14,7 +14,7 @@ export function NightModeIndicator({ sectorName, startsAt }: NightModeIndicatorP
   return (
     <div className="flex items-center gap-2 rounded-md bg-indigo-900/90 px-3 py-1.5 text-xs text-indigo-100">
       <Moon className="h-3.5 w-3.5" />
-      <span className="font-medium">Plantao Noturno</span>
+      <span className="font-medium">Plantão Noturno</span>
       {sectorName && (
         <>
           <span className="text-indigo-300">|</span>
@@ -24,7 +24,7 @@ export function NightModeIndicator({ sectorName, startsAt }: NightModeIndicatorP
       {startTime && (
         <>
           <span className="text-indigo-300">|</span>
-          <span>Inicio: {startTime}</span>
+          <span>Início: {startTime}</span>
         </>
       )}
     </div>
