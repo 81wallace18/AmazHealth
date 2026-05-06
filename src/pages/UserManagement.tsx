@@ -32,7 +32,8 @@ import { useAuth } from "@/hooks/useAuth";
 
 const createUserSchema = z.object({
   fullName: z.string().min(1, "Nome completo é obrigatório"),
-  email: z.string().email("Email inválido"),
+  email: z.string().email("Email inválido").or(z.literal("")).optional(),
+  cpf: z.string().optional(),
   role: z.enum([
     "admin",
     "gestao",
@@ -90,8 +91,9 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [activationInfo, setActivationInfo] = useState<{
     email: string;
-    activationUrl: string;
-    activationToken: string;
+    activationUrl?: string;
+    activationToken?: string;
+    tempPassword?: string;
   } | null>(null);
 
   const form = useForm<CreateUserFormValues>({
@@ -99,11 +101,12 @@ export default function UserManagement() {
     defaultValues: {
       fullName: "",
       email: "",
+      cpf: "",
       role: "staff",
     },
   });
 
-  const isAdmin = user?.roles?.includes("ADMIN") || user?.roles?.includes("admin");
+  const isAdmin = user?.roles?.includes("ADMIN") || user?.roles?.includes("admin") || user?.roles?.includes("HOSPITAL_MANAGER");
 
   const loadUsers = async () => {
     try {
@@ -132,9 +135,12 @@ export default function UserManagement() {
         email: response.email,
         activationToken: response.activationToken,
         activationUrl: response.activationUrl,
+        tempPassword: response.tempPassword,
       });
-      toast.success("Usuário criado com sucesso. Compartilhe o link de ativação.");
-      form.reset({ fullName: "", email: "", role: "staff" });
+      toast.success(response.tempPassword
+        ? "Profissional criado. Entregue a senha temporária pessoalmente."
+        : "Usuário criado. Compartilhe o link de ativação.");
+      form.reset({ fullName: "", email: "", cpf: "", role: "staff" });
       await loadUsers();
     } catch (error: any) {
       const message = error?.response?.data?.message || "Erro ao criar usuário.";
@@ -228,7 +234,7 @@ export default function UserManagement() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email <span className="text-muted-foreground text-xs">(opcional)</span></Label>
                   <Input
                     id="email"
                     type="email"
@@ -240,6 +246,14 @@ export default function UserManagement() {
                       {form.formState.errors.email.message}
                     </p>
                   )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cpf">CPF <span className="text-muted-foreground text-xs">(opcional — permite login por CPF)</span></Label>
+                  <Input
+                    id="cpf"
+                    {...form.register("cpf")}
+                    placeholder="000.000.000-00"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Perfil</Label>
@@ -294,31 +308,59 @@ export default function UserManagement() {
               </form>
               {activationInfo && (
                 <div className="mt-4 space-y-3 border-t pt-4">
-                  <p className="text-sm font-medium text-green-700">Usuário criado com sucesso!</p>
-                  <p className="text-xs text-muted-foreground">
-                    Envie o link abaixo para o profissional criar a senha e ativar a conta.
-                  </p>
-                  <div className="space-y-2 text-xs">
-                    <div>
-                      <span className="font-semibold">Email:</span> {activationInfo.email}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <code className="px-2 py-1 rounded bg-muted text-xs flex-1 truncate">
-                        {activationInfo.activationUrl}
-                      </code>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(activationInfo.activationUrl);
-                          toast.success("Link copiado!");
-                        }}
-                      >
-                        Copiar Link
-                      </Button>
-                    </div>
-                  </div>
+                  <p className="text-sm font-medium text-green-700">Profissional criado com sucesso!</p>
+                  {activationInfo.tempPassword ? (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Entregue a senha temporária abaixo pessoalmente. O profissional precisará trocá-la no primeiro acesso.
+                      </p>
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <code className="px-3 py-2 rounded bg-amber-50 border border-amber-200 text-amber-800 font-mono text-sm font-bold flex-1 text-center tracking-widest">
+                            {activationInfo.tempPassword}
+                          </code>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(activationInfo.tempPassword!);
+                              toast.success("Senha copiada!");
+                            }}
+                          >
+                            Copiar
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Envie o link abaixo para o profissional criar a senha e ativar a conta.
+                      </p>
+                      <div className="space-y-2 text-xs">
+                        <div>
+                          <span className="font-semibold">Email:</span> {activationInfo.email}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="px-2 py-1 rounded bg-muted text-xs flex-1 truncate">
+                            {activationInfo.activationUrl}
+                          </code>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(activationInfo.activationUrl!);
+                              toast.success("Link copiado!");
+                            }}
+                          >
+                            Copiar Link
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </DialogContent>

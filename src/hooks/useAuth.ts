@@ -26,6 +26,7 @@ interface User {
   integrations?: string[] | null;
   operationalPolicies?: Record<string, unknown> | null;
   isPlatformUser?: boolean;
+  mustChangePassword?: boolean;
   organizations?: OrganizationInfo[];
   activeShift?: 'DAY' | 'NIGHT' | null;
   activeDutyId?: string | null;
@@ -50,6 +51,7 @@ const mapAuthUser = (authUser: AuthResponse['user']): User => ({
   integrations: authUser.integrations ?? null,
   operationalPolicies: authUser.operationalPolicies ?? null,
   isPlatformUser: authUser.isPlatformUser ?? false,
+  mustChangePassword: authUser.mustChangePassword ?? false,
 });
 
 const mapProfileToUser = (profile: MeResponse): User => ({
@@ -172,7 +174,7 @@ export function useAuth() {
         organizationId,
       });
 
-      syncAuthResponse(response, rememberMe);
+      const normalized = syncAuthResponse(response, rememberMe);
       startProactiveRefresh();
       // Salva no picker do device pra próxima vez aparecer só pedindo senha
       knownUsers.upsert({
@@ -180,8 +182,11 @@ export function useAuth() {
         fullName: response.user.fullName,
         organizationName: response.user.organizationName,
       });
-      toast.success('Login realizado com sucesso!');
-      return { error: null, message: null };
+
+      if (!normalized.mustChangePassword) {
+        toast.success('Login realizado com sucesso!');
+      }
+      return { error: null, message: null, mustChangePassword: normalized.mustChangePassword ?? false };
     } catch (error: any) {
       // Mensagens específicas por tipo de erro
       let message = 'Erro ao fazer login. Tente novamente.';

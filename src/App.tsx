@@ -32,6 +32,7 @@ import NightShiftReview from "./pages/NightShiftReview";
 import SyncQueue from "./pages/SyncQueue";
 import NotFound from "./pages/NotFound";
 import { Unauthorized } from "./pages/Unauthorized";
+import ChangePassword from "./pages/ChangePassword";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -92,6 +93,11 @@ const App = () => (
               <ActivateAccount />
             </PublicRoute>
           } />
+          <Route path="/change-password" element={
+            <ProtectedRoute>
+              <ChangePassword />
+            </ProtectedRoute>
+          } />
           <Route path="/" element={
             <ProtectedRoute>
               <AppLayout />
@@ -119,7 +125,7 @@ const App = () => (
               </RequireRole>
             } />
             <Route path="patients" element={
-              <RequireRole allowedRoles={["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "DOCTOR", "PHARMACIST"]}>
+              <RequireRole allowedRoles={["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "DOCTOR", "PHARMACIST", "HOSPITAL_MANAGER"]}>
                 <Patients />
               </RequireRole>
             } />
@@ -169,7 +175,7 @@ const App = () => (
               </RequireRole>
             } />
             <Route path="staff" element={
-              <RequireRole allowedRoles={["ADMIN", "GESTAO"]}>
+              <RequireRole allowedRoles={["ADMIN", "GESTAO", "HOSPITAL_MANAGER"]}>
                 <Staff />
               </RequireRole>
             } />

@@ -31,7 +31,8 @@ export interface User {
 
 export interface CreateUserRequest {
   fullName: string;
-  email: string;
+  email?: string;
+  cpf?: string;
   role: RoleType;
   staffData?: StaffCreateRequest;
 }
@@ -49,8 +50,9 @@ export interface StaffCreateRequest {
 export interface CreateUserResponse {
   userId: string;
   email: string;
-  activationToken: string;
-  activationUrl: string;
+  activationToken?: string;
+  activationUrl?: string;
+  tempPassword?: string;
   message: string;
 }
 

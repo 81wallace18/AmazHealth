@@ -445,25 +445,25 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
   },
 
   HOSPITAL_MANAGER: {
-    // Gestão hospitalar com visão operacional e relatórios
+    // Gestão hospitalar: equipe, usuários, relatórios, internação, visão operacional
     canListPatients: true,
     canReadPatients: true,
     canCreatePatients: false,
     canUpdatePatients: false,
     canDeletePatients: false,
-    canListStaff: false,
-    canReadStaff: false,
-    canCreateStaff: false,
-    canUpdateStaff: false,
-    canDeleteStaff: false,
-    canManageRoles: false,
+    canListStaff: true,
+    canReadStaff: true,
+    canCreateStaff: true,
+    canUpdateStaff: true,
+    canDeleteStaff: true,
+    canManageRoles: true,
     canCreateAttendance: false,
     canReadAttendance: true,
     canUpdateAttendanceStatus: true,
     canStartAttendance: false,
     canRecordEvolution: false,
     canDefineOutcome: false,
-    canAdmitPatient: false,
+    canAdmitPatient: true,
     canCreateTriage: false,
     canUpdateTriage: false,
     canReadTriage: true,
@@ -486,7 +486,7 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canManageDuties: false,
     canReviewNightActions: false,
     canAccessOperational: true,
-    canAccessAdmin: false,
+    canAccessAdmin: true,
   },
 
   FINANCE: {

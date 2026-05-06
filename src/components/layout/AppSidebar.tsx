@@ -76,7 +76,7 @@ const navigationItems: NavigationItem[] = [
     url: "/patients",
     icon: Users,
     group: "Atendimento",
-    allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "DOCTOR"],
+    allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "DOCTOR", "HOSPITAL_MANAGER"],
     module: "URGENCIA",
   },
   {
@@ -180,7 +180,7 @@ const navigationItems: NavigationItem[] = [
     url: "/staff",
     icon: Users,
     group: "Gestão",
-    allowedRoles: ["ADMIN", "GESTAO"],
+    allowedRoles: ["ADMIN", "GESTAO", "HOSPITAL_MANAGER"],
   },
   {
     title: "Usuários",

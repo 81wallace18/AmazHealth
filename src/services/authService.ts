@@ -37,6 +37,7 @@ export interface AuthResponse {
     integrations?: string[] | null;
     operationalPolicies?: Record<string, unknown> | null;
     isPlatformUser?: boolean;
+    mustChangePassword?: boolean;
   };
 }
 
@@ -133,5 +134,12 @@ export const authService = {
   async activateAccount(data: ActivateAccountRequest): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>('/auth/activate', data);
     return response.data;
+  },
+
+  /**
+   * Troca a senha do usuário autenticado. Zera mustChangePassword no backend.
+   */
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await api.patch('/auth/me/password', { currentPassword, newPassword });
   },
 };

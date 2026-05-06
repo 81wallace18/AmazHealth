@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Edit, Trash2, MoreVertical } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, ShieldOff, ShieldCheck } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -29,13 +29,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { staffService, type Staff, type RoleType, type StaffStatus } from '@/services/staffService';
+import type { User } from '@/types/user';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface StaffListProps {
   staff: Staff[];
+  usersByStaffId?: Map<string, User>;
   onEdit: (staff: Staff) => void;
   onDelete: () => void;
+  onToggleAccess?: (staffId: string, userId: string, isActive: boolean) => void;
 }
 
 const roleLabels: Record<RoleType, string> = {
@@ -43,7 +46,7 @@ const roleLabels: Record<RoleType, string> = {
   gestao: 'Gestão',
   doctor: 'Médico',
   nurse: 'Enfermeiro',
-  nurse_manager: 'Enfermeiro Gestor',
+  nurse_manager: 'Coord. Enfermagem',
   receptionist: 'Recepcionista',
   pharmacist: 'Farmacêutico',
   hospital_manager: 'Gestor Hospitalar',
@@ -76,19 +79,25 @@ const statusColors: Record<StaffStatus, string> = {
   ON_LEAVE: 'bg-orange-100 text-orange-800',
 };
 
-export function StaffList({ staff, onEdit, onDelete }: StaffListProps) {
+function AccessBadge({ user }: { user?: User }) {
+  if (!user) return <Badge className="bg-gray-100 text-gray-500 font-medium">Sem acesso</Badge>;
+  if (!user.isActive) return <Badge className="bg-red-100 text-red-700 font-medium">Acesso inativo</Badge>;
+  if (user.mustChangePassword) return <Badge className="bg-yellow-100 text-yellow-700 font-medium">Aguardando ativação</Badge>;
+  return <Badge className="bg-green-100 text-green-700 font-medium">Acesso ativo</Badge>;
+}
+
+export function StaffList({ staff, usersByStaffId, onEdit, onDelete, onToggleAccess }: StaffListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDeleteClick = (staff: Staff) => {
-    setSelectedStaff(staff);
+  const handleDeleteClick = (member: Staff) => {
+    setSelectedStaff(member);
     setDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = async () => {
     if (!selectedStaff) return;
-
     setIsDeleting(true);
     try {
       await staffService.delete(selectedStaff.id);
@@ -97,7 +106,6 @@ export function StaffList({ staff, onEdit, onDelete }: StaffListProps) {
       setSelectedStaff(null);
       onDelete();
     } catch (error: any) {
-      console.error('Erro ao deletar profissional:', error);
       const message = error.response?.data?.message || 'Erro ao remover profissional';
       toast.error(message);
     } finally {
@@ -123,90 +131,93 @@ export function StaffList({ staff, onEdit, onDelete }: StaffListProps) {
               <TableHead>Nome</TableHead>
               <TableHead>Função</TableHead>
               <TableHead>Especialização</TableHead>
-              <TableHead>Contato</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Acesso</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {staff.map((member) => (
-              <TableRow key={member.id}>
-                <TableCell className="font-mono text-sm">
-                  {member.staffCode}
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">
-                      {member.firstName} {member.lastName}
+            {staff.map((member) => {
+              const linkedUser = usersByStaffId?.get(member.id);
+              return (
+                <TableRow key={member.id}>
+                  <TableCell className="font-mono text-sm">{member.staffCode}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{member.firstName} {member.lastName}</div>
+                      {member.email && (
+                        <div className="text-sm text-muted-foreground">{member.email}</div>
+                      )}
                     </div>
-                    {member.email && (
-                      <div className="text-sm text-muted-foreground">
-                        {member.email}
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge className={cn('font-medium', roleColors[member.role])}>
-                    {roleLabels[member.role]}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm text-muted-foreground">
-                    {member.specialization || '-'}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm">
-                    {member.phone || '-'}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge className={cn('font-medium', statusColors[member.status])}>
-                    {statusLabels[member.status]}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => onEdit(member)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteClick(member)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Remover
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={cn('font-medium', roleColors[member.role])}>
+                      {roleLabels[member.role]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {member.specialization || '-'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={cn('font-medium', statusColors[member.status])}>
+                      {statusLabels[member.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <AccessBadge user={linkedUser} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => onEdit(member)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar dados
+                        </DropdownMenuItem>
+                        {linkedUser && onToggleAccess && (
+                          <DropdownMenuItem
+                            onClick={() => onToggleAccess(member.id, linkedUser.id, linkedUser.isActive)}
+                          >
+                            {linkedUser.isActive
+                              ? <><ShieldOff className="h-4 w-4 mr-2" />Desativar acesso</>
+                              : <><ShieldCheck className="h-4 w-4 mr-2" />Reativar acesso</>
+                            }
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteClick(member)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remover
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
 
-      {/* Dialog de Confirmação de Exclusão */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Remoção</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja remover o profissional{' '}
-              <strong>
-                {selectedStaff?.firstName} {selectedStaff?.lastName}
-              </strong>
-              ? Esta ação não pode ser desfeita.
+              <strong>{selectedStaff?.firstName} {selectedStaff?.lastName}</strong>?
+              Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

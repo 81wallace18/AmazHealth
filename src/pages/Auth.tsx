@@ -58,14 +58,14 @@ export default function Auth() {
 
   const onLogin = async (values: LoginValues) => {
     loginForm.clearErrors('root');
-    const { error, message } = await signIn(
+    const { error, message, mustChangePassword } = await signIn(
       values.login,
       values.password,
       values.organizationId,
       values.rememberMe
     );
     if (!error) {
-      navigate('/');
+      navigate(mustChangePassword ? '/change-password' : '/', { replace: true });
     } else if (message) {
       loginForm.setError('root', { message });
     }
@@ -190,10 +190,10 @@ export default function Auth() {
                   name="login"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email ou Username</FormLabel>
+                      <FormLabel>Email, Username ou CPF</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="seu.email@exemplo.com ou username"
+                          placeholder="email, username ou CPF"
                           autoFocus
                           {...field}
                         />
