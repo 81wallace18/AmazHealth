@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Search, Users, Filter } from 'lucide-react';
+import { Search, Users, Filter } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,10 @@ import {
 } from '@/components/ui/select';
 import { StaffForm } from '@/components/staff/StaffForm';
 import { StaffList } from '@/components/staff/StaffList';
+import { AddMemberWizard } from '@/components/team/AddMemberWizard';
 import { staffService, type Staff, type RoleType, type StaffStatus } from '@/services/staffService';
+import { userService } from '@/services/userService';
+import type { User } from '@/types/user';
 import { toast } from 'sonner';
 
 const roleLabels: Record<RoleType | 'all', string> = {
@@ -21,7 +24,7 @@ const roleLabels: Record<RoleType | 'all', string> = {
   gestao: 'Gestão',
   doctor: 'Médico',
   nurse: 'Enfermeiro',
-  nurse_manager: 'Enfermeiro Gestor',
+  nurse_manager: 'Coord. Enfermagem',
   receptionist: 'Recepcionista',
   pharmacist: 'Farmacêutico',
   hospital_manager: 'Gestor Hospitalar',
@@ -38,157 +41,129 @@ const statusLabels: Record<StaffStatus | 'all', string> = {
 
 export default function Staff() {
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [usersByStaffId, setUsersByStaffId] = useState<Map<string, User>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
 
-  // Filtros
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleType | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<StaffStatus | 'all'>('all');
 
-  // Paginação
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const pageSize = 20;
 
   useEffect(() => {
-    loadStaff();
+    loadData();
   }, [currentPage, roleFilter, statusFilter]);
 
-  const loadStaff = async () => {
+  const loadData = async () => {
     setIsLoading(true);
     try {
-      const response = await staffService.findAll({
-        page: currentPage,
-        size: pageSize,
-        role: roleFilter !== 'all' ? roleFilter : undefined,
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        q: searchQuery || undefined,
-      });
+      const [staffRes, usersRes] = await Promise.all([
+        staffService.findAll({
+          page: currentPage,
+          size: pageSize,
+          role: roleFilter !== 'all' ? roleFilter.toUpperCase() as any : undefined,
+          status: statusFilter !== 'all' ? statusFilter.toUpperCase() as any : undefined,
+          q: searchQuery || undefined,
+        }),
+        userService.findAll(0, 100),
+      ]);
 
-      setStaff(response.content);
-      setTotalPages(response.totalPages);
-      setTotalElements(response.totalElements);
+      setStaff(staffRes.content);
+      setTotalPages(staffRes.totalPages);
+      setTotalElements(staffRes.totalElements);
+
+      const map = new Map<string, User>();
+      usersRes.content.forEach((u) => {
+        if (u.staffId) map.set(u.staffId, u);
+      });
+      setUsersByStaffId(map);
     } catch (error) {
-      console.error('Erro ao carregar profissionais:', error);
-      toast.error('Erro ao carregar lista de profissionais');
+      toast.error('Erro ao carregar equipe');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSearch = () => {
-    setCurrentPage(0); // Reset para primeira página
-    loadStaff();
-  };
-
-  const handleNewStaff = () => {
-    setSelectedStaff(null);
-    setShowForm(true);
-  };
-
-  const handleEditStaff = (staff: Staff) => {
-    setSelectedStaff(staff);
-    setShowForm(true);
-  };
-
-  const handleFormClose = () => {
-    setShowForm(false);
-    setSelectedStaff(null);
-  };
-
-  const handleFormSuccess = () => {
-    loadStaff();
-  };
-
-  const handleDeleteSuccess = () => {
-    loadStaff();
-  };
-
-  const handleRoleFilterChange = (value: string) => {
-    setRoleFilter(value as RoleType | 'all');
     setCurrentPage(0);
+    loadData();
   };
 
-  const handleStatusFilterChange = (value: string) => {
-    setStatusFilter(value as StaffStatus | 'all');
-    setCurrentPage(0);
+  const handleEditStaff = (member: Staff) => {
+    setSelectedStaff(member);
+    setShowEditForm(true);
+  };
+
+  const handleToggleAccess = async (staffId: string, userId: string, isActive: boolean) => {
+    try {
+      await userService.updateStatus(userId, { isActive: !isActive });
+      toast.success(isActive ? 'Acesso desativado.' : 'Acesso reativado.');
+      await loadData();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Não foi possível alterar o acesso.');
+    }
   };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Users className="h-8 w-8" />
-            Equipe Clínica
+            Equipe
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gerenciar profissionais de saúde da organização
+            Profissionais de saúde e seus acessos ao sistema
           </p>
         </div>
-        <Button onClick={handleNewStaff}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Novo Profissional
+        <Button onClick={() => setShowWizard(true)}>
+          Adicionar membro
         </Button>
       </div>
 
-      {/* Filtros e Busca */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
             Filtros
           </CardTitle>
-          <CardDescription>
-            Busque e filtre profissionais
-          </CardDescription>
+          <CardDescription>Busque e filtre profissionais</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Busca */}
-            <div className="md:col-span-2">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Buscar por nome, email ou código..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-                <Button onClick={handleSearch}>
-                  <Search className="h-4 w-4 mr-2" />
-                  Buscar
-                </Button>
-              </div>
+            <div className="md:col-span-2 flex gap-2">
+              <Input
+                placeholder="Buscar por nome, email ou código..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <Button onClick={handleSearch}>
+                <Search className="h-4 w-4 mr-2" />
+                Buscar
+              </Button>
             </div>
 
-            {/* Filtro por Função */}
-            <Select value={roleFilter} onValueChange={handleRoleFilterChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por função" />
-              </SelectTrigger>
+            <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v as RoleType | 'all'); setCurrentPage(0); }}>
+              <SelectTrigger><SelectValue placeholder="Filtrar por função" /></SelectTrigger>
               <SelectContent>
                 {Object.entries(roleLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            {/* Filtro por Status */}
-            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por status" />
-              </SelectTrigger>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as StaffStatus | 'all'); setCurrentPage(0); }}>
+              <SelectTrigger><SelectValue placeholder="Filtrar por status" /></SelectTrigger>
               <SelectContent>
                 {Object.entries(statusLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -196,52 +171,33 @@ export default function Staff() {
         </CardContent>
       </Card>
 
-      {/* Lista de Profissionais */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Profissionais Cadastrados</CardTitle>
-              <CardDescription>
-                {totalElements} profissional(is) encontrado(s)
-              </CardDescription>
-            </div>
-          </div>
+          <CardTitle>Profissionais Cadastrados</CardTitle>
+          <CardDescription>{totalElements} profissional(is) encontrado(s)</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Carregando profissionais...
-            </div>
+            <div className="text-center py-12 text-muted-foreground">Carregando equipe...</div>
           ) : (
             <>
               <StaffList
                 staff={staff}
+                usersByStaffId={usersByStaffId}
                 onEdit={handleEditStaff}
-                onDelete={handleDeleteSuccess}
+                onDelete={loadData}
+                onToggleAccess={handleToggleAccess}
               />
-
-              {/* Paginação */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
                   <div className="text-sm text-muted-foreground">
                     Página {currentPage + 1} de {totalPages}
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-                      disabled={currentPage === 0}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.max(0, p - 1))} disabled={currentPage === 0}>
                       Anterior
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
-                      disabled={currentPage >= totalPages - 1}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))} disabled={currentPage >= totalPages - 1}>
                       Próxima
                     </Button>
                   </div>
@@ -252,12 +208,17 @@ export default function Staff() {
         </CardContent>
       </Card>
 
-      {/* Formulário de Criação/Edição */}
+      <AddMemberWizard
+        open={showWizard}
+        onOpenChange={setShowWizard}
+        onSuccess={loadData}
+      />
+
       <StaffForm
-        open={showForm}
-        onOpenChange={handleFormClose}
+        open={showEditForm}
+        onOpenChange={(open) => { setShowEditForm(open); if (!open) setSelectedStaff(null); }}
         staff={selectedStaff}
-        onSuccess={handleFormSuccess}
+        onSuccess={loadData}
       />
     </div>
   );
