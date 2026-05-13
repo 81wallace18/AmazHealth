@@ -6,6 +6,7 @@ import type { OutboxEntry } from '@/services/sync';
 import { Button } from '@/components/ui/button';
 
 const REFRESH_MS = 4_000;
+const DESKTOP_SYNC_ENABLED = import.meta.env.VITE_ENABLE_DESKTOP_SYNC === 'true';
 
 export default function SyncQueue() {
   const desktop = desktopBridge.isAvailable();
@@ -14,7 +15,7 @@ export default function SyncQueue() {
   const [busy, setBusy] = useState(false);
 
   async function load() {
-    if (!desktop) return;
+    if (!desktop || !DESKTOP_SYNC_ENABLED) return;
     try {
       const list = await apiClient.outboxList();
       setEntries(list);
@@ -39,12 +40,12 @@ export default function SyncQueue() {
     }
   }
 
-  if (!desktop) {
+  if (!desktop || !DESKTOP_SYNC_ENABLED) {
     return (
       <div className="p-6">
         <h1 className="text-2xl font-bold">Fila de sincronização</h1>
         <p className="mt-2 text-muted-foreground">
-          Disponível apenas no aplicativo desktop. Em ambiente web puro todas as ações são aplicadas online imediatamente.
+          A sincronização offline ainda não está habilitada neste ambiente. Todas as ações disponíveis são aplicadas online imediatamente.
         </p>
       </div>
     );

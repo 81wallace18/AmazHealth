@@ -2,6 +2,8 @@ import api from './api';
 import { desktopBridge } from './desktopBridge';
 import type { OperationType, OutboxEntry, SyncEngineState, SyncReport, OutboxStatus } from '../services/sync';
 
+const DESKTOP_SYNC_ENABLED = import.meta.env.VITE_ENABLE_DESKTOP_SYNC === 'true';
+
 /**
  * Facade que decide entre POST direto (online) e enqueue na outbox local (offline ou desktop não-conectado).
  *
@@ -87,33 +89,36 @@ export const apiClient = {
     if (!desktop) {
       throw new Error('Operação offline solicitada em ambiente sem suporte (browser puro).');
     }
+    if (!DESKTOP_SYNC_ENABLED) {
+      throw new Error('Sincronização offline desabilitada neste ambiente.');
+    }
 
     const clientUuid = await enqueueOffline(operationType, payload, options);
     return { acked: false, id: clientUuid };
   },
 
   async outboxList(filter?: { status?: OutboxStatus; limit?: number }): Promise<OutboxEntry[]> {
-    if (!desktopBridge.isAvailable()) return [];
+    if (!desktopBridge.isAvailable() || !DESKTOP_SYNC_ENABLED) return [];
     return desktopBridge.invoke<OutboxEntry[]>('outbox_list', { filter });
   },
 
   async syncNow(): Promise<SyncReport | null> {
-    if (!desktopBridge.isAvailable()) return null;
+    if (!desktopBridge.isAvailable() || !DESKTOP_SYNC_ENABLED) return null;
     return desktopBridge.invoke<SyncReport>('sync_now');
   },
 
   async syncState(): Promise<SyncEngineState | null> {
-    if (!desktopBridge.isAvailable()) return null;
+    if (!desktopBridge.isAvailable() || !DESKTOP_SYNC_ENABLED) return null;
     return desktopBridge.invoke<SyncEngineState>('sync_engine_state');
   },
 
   async configureSync(baseUrl: string, accessToken: string): Promise<void> {
-    if (!desktopBridge.isAvailable()) return;
+    if (!desktopBridge.isAvailable() || !DESKTOP_SYNC_ENABLED) return;
     await desktopBridge.invoke('sync_configure', { baseUrl, accessToken });
   },
 
   async updateSyncToken(accessToken: string): Promise<void> {
-    if (!desktopBridge.isAvailable()) return;
+    if (!desktopBridge.isAvailable() || !DESKTOP_SYNC_ENABLED) return;
     await desktopBridge.invoke('sync_update_token', { accessToken });
   },
 };

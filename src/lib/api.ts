@@ -25,7 +25,7 @@ const api = axios.create({
 
 /**
  * Refresh proativo: renova o token antes de expirar.
- * Agenda renovação a cada 12 minutos (token expira em 15 min).
+ * Agenda renovação a cada 12 minutos (token expira em 15 min em hml/prod).
  */
 let refreshTimerId: ReturnType<typeof setInterval> | null = null;
 
@@ -47,7 +47,7 @@ function startProactiveRefresh() {
     } catch {
       // Refresh falhou silenciosamente — o interceptor de 401 cuida como fallback
     }
-  }, 6 * 60 * 60 * 1000); // 6 horas (token dura 12h)
+  }, 12 * 60 * 1000);
 }
 
 function stopProactiveRefresh() {

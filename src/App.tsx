@@ -6,8 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { queryClient, persistOptions } from "./lib/persistedQueryClient";
 import { AppLayout } from "./components/layout/AppLayout";
 import { useAuth } from "./hooks/useAuth";
-import { RequireCapability } from "./components/RequireCapability";
-import { RequireRole } from "./components/RequireRole";
+import { RequireAccess } from "./components/RequireAccess";
+import type { UserRole } from "./auth/capabilities";
 import Dashboard from "./pages/Dashboard";
 import GestoraDashboard from "./pages/GestoraDashboard";
 import Hospital from "./pages/Hospital";
@@ -33,6 +33,23 @@ import SyncQueue from "./pages/SyncQueue";
 import NotFound from "./pages/NotFound";
 import { Unauthorized } from "./pages/Unauthorized";
 import ChangePassword from "./pages/ChangePassword";
+
+const ALL_SYNC_QUEUE_ROLES: UserRole[] = [
+  "ADMIN",
+  "GESTAO",
+  "DOCTOR",
+  "NURSE",
+  "NURSE_MANAGER",
+  "NURSE_TECHNICIAN",
+  "PHARMACIST",
+  "RECEPTIONIST",
+  "HOSPITAL_MANAGER",
+  "FINANCE",
+  "PLATFORM_ADMIN",
+  "PLATFORM_SUPPORT",
+  "TENANT_ADMIN",
+  "TENANT_MANAGER",
+];
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -105,96 +122,100 @@ const App = () => (
           }>
             <Route index element={<Dashboard />} />
             <Route path="gestora-dashboard" element={
-              <RequireRole allowedRoles={["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER"]}>
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER"]} module="URGENCIA">
                 <GestoraDashboard />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="daily-attendances" element={
-              <RequireRole allowedRoles={["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "RECEPTIONIST", "HOSPITAL_MANAGER"]}>
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "RECEPTIONIST", "HOSPITAL_MANAGER"]} module="URGENCIA">
                 <DailyAttendances />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="hospital" element={
-              <RequireRole allowedRoles={["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER"]}>
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER"]} module="INTERNACAO">
                 <Hospital />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="consultations" element={
-              <RequireRole allowedRoles={["ADMIN", "DOCTOR"]}>
+              <RequireAccess allowedRoles={["ADMIN", "DOCTOR"]} module="URGENCIA">
                 <Consultations />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="patients" element={
-              <RequireRole allowedRoles={["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "DOCTOR", "PHARMACIST", "HOSPITAL_MANAGER"]}>
+              <RequireAccess allowedRoles={["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "DOCTOR", "PHARMACIST", "HOSPITAL_MANAGER"]} module="URGENCIA">
                 <Patients />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="appointments" element={
-              <RequireRole allowedRoles={["ADMIN"]}>
+              <RequireAccess allowedRoles={["ADMIN"]} module="AMBULATORIAL">
                 <Appointments />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="medical-records" element={
-              <RequireRole allowedRoles={["ADMIN", "DOCTOR", "NURSE", "NURSE_MANAGER"]}>
+              <RequireAccess allowedRoles={["ADMIN", "DOCTOR", "NURSE", "NURSE_MANAGER"]} module="URGENCIA">
                 <MedicalRecords />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="triage" element={
-              <RequireRole allowedRoles={["ADMIN", "NURSE", "NURSE_MANAGER"]}>
+              <RequireAccess allowedRoles={["ADMIN", "NURSE", "NURSE_MANAGER"]} module="URGENCIA">
                 <Triage />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="reception/triage" element={
-              <RequireRole allowedRoles={["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER"]}>
+              <RequireAccess allowedRoles={["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER"]} module="URGENCIA">
                 <ReceptionTriage />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="admissions" element={
-              <RequireRole allowedRoles={["ADMIN", "HOSPITAL_MANAGER"]}>
+              <RequireAccess allowedRoles={["ADMIN", "HOSPITAL_MANAGER"]} module="INTERNACAO">
                 <Admissions />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="laboratory" element={
-              <RequireRole allowedRoles={["ADMIN", "DOCTOR"]}>
+              <RequireAccess allowedRoles={["ADMIN", "DOCTOR"]} module="LABORATORIO">
                 <Laboratory />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="pharmacy" element={
-              <RequireRole allowedRoles={["ADMIN", "PHARMACIST"]}>
+              <RequireAccess allowedRoles={["ADMIN", "PHARMACIST"]} module="FARMACIA">
                 <Pharmacy />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="billing" element={
-              <RequireRole allowedRoles={["ADMIN", "FINANCE"]}>
+              <RequireAccess allowedRoles={["ADMIN", "FINANCE"]} module="FATURAMENTO">
                 <Billing />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="reports" element={
-              <RequireRole allowedRoles={["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER", "FINANCE"]}>
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER", "FINANCE"]} module="RELATORIOS">
                 <Reports />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="staff" element={
-              <RequireRole allowedRoles={["ADMIN", "GESTAO", "HOSPITAL_MANAGER"]}>
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "HOSPITAL_MANAGER"]}>
                 <Staff />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="users" element={
-              <RequireRole allowedRoles={["ADMIN"]}>
+              <RequireAccess allowedRoles={["ADMIN"]}>
                 <UserManagement />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="duties" element={
-              <RequireRole allowedRoles={["ADMIN", "NURSE_MANAGER"]}>
+              <RequireAccess allowedRoles={["ADMIN", "NURSE_MANAGER"]} module="URGENCIA" policy="night_shift_review">
                 <DutyManagement />
-              </RequireRole>
+              </RequireAccess>
             } />
             <Route path="night-shift-review" element={
-              <RequireRole allowedRoles={["ADMIN", "DOCTOR", "NURSE_MANAGER"]}>
+              <RequireAccess allowedRoles={["ADMIN", "DOCTOR", "NURSE_MANAGER"]} module="URGENCIA" policy="night_shift_review">
                 <NightShiftReview />
-              </RequireRole>
+              </RequireAccess>
             } />
-            <Route path="sync-queue" element={<SyncQueue />} />
+            <Route path="sync-queue" element={
+              <RequireAccess allowedRoles={ALL_SYNC_QUEUE_ROLES}>
+                <SyncQueue />
+              </RequireAccess>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           </Route>
           <Route path="/unauthorized" element={<Unauthorized />} />

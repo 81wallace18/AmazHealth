@@ -6,14 +6,18 @@ import { desktopBridge } from '@/lib/desktopBridge';
 import type { SyncEngineState } from '@/services/sync';
 
 const REFRESH_MS = 5_000;
+const DESKTOP_SYNC_ENABLED = import.meta.env.VITE_ENABLE_DESKTOP_SYNC === 'true';
 
 export function SyncBanner() {
+  if (!desktopBridge.isAvailable() || !DESKTOP_SYNC_ENABLED) return null;
+  return <DesktopSyncBanner />;
+}
+
+function DesktopSyncBanner() {
   const { online } = useOnlineStatus();
   const [engineState, setEngineState] = useState<SyncEngineState | null>(null);
-  const desktop = desktopBridge.isAvailable();
 
   useEffect(() => {
-    if (!desktop) return;
     let cancelled = false;
     async function tick() {
       try {
@@ -29,9 +33,8 @@ export function SyncBanner() {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [desktop]);
+  }, []);
 
-  if (!desktop && online) return null; // browser online → sem banner
   if (online && (engineState?.pending_count ?? 0) === 0) return null;
 
   const pending = engineState?.pending_count ?? 0;

@@ -16,7 +16,7 @@ export interface OnlineStatus {
 }
 
 /**
- * Pinga `${VITE_API_URL_root}/actuator/health` a cada 15s e reflete o estado online/offline.
+ * Pinga `${VITE_API_URL}/status` a cada 15s e reflete o estado online/offline.
  *
  * Combina com `navigator.onLine` (sinal do SO) — se navegador disser offline, marca offline
  * imediatamente sem esperar o próximo ping.
