@@ -10,6 +10,8 @@ import { getCapabilitiesForRoles, UserCapabilities, hasCapability, hasAnyCapabil
  *
  * Exemplo: NURSE_TECHNICIAN tem `canCreateTriage=false` por padrão, mas se a org dele tem
  * a policy `nursing_technician_can_triage=true`, o override aplica e ele consegue triagem.
+ * Evolução contextual do técnico usa policy separada:
+ * `nursing_technician_can_record_evolution=true`.
  *
  * Componentes devem usar SEMPRE este hook para checar permissões — não importar
  * `getCapabilitiesForRoles` direto.
@@ -34,6 +36,9 @@ export function useCapabilities(): UserCapabilities & {
     if (hasPolicy('nursing_technician_can_triage')) {
       overrides.canCreateTriage = true;
       overrides.canUpdateTriage = true;
+    }
+    if (hasPolicy('nursing_technician_can_record_evolution')) {
+      overrides.canRecordEvolution = true;
     }
     if (hasPolicy('nursing_technician_can_dispense')) {
       overrides.canDispenseMedication = true;

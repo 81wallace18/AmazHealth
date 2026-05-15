@@ -84,7 +84,7 @@ export interface UserCapabilities {
 
 const roleCapabilities: Record<UserRole, UserCapabilities> = {
   ADMIN: {
-    // Full system access
+    // Administrador operacional/gestor da unidade. Sem atos clínicos.
     canListPatients: true,
     canReadPatients: true,
     canCreatePatients: true,
@@ -99,25 +99,25 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canCreateAttendance: true,
     canReadAttendance: true,
     canUpdateAttendanceStatus: true,
-    canStartAttendance: true,
-    canRecordEvolution: true,
-    canDefineOutcome: true,
-    canAdmitPatient: true,
-    canCreateTriage: true,
-    canUpdateTriage: true,
+    canStartAttendance: false,
+    canRecordEvolution: false,
+    canDefineOutcome: false,
+    canAdmitPatient: false,
+    canCreateTriage: false,
+    canUpdateTriage: false,
     canReadTriage: true,
     canViewTriageBoard: true,
-    canCreatePrescription: true,
+    canCreatePrescription: false,
     canReadPrescription: true,
-    canUpdatePrescription: true,
-    canCancelPrescription: true,
-    canExportPrescription: true,
+    canUpdatePrescription: false,
+    canCancelPrescription: false,
+    canExportPrescription: false,
     canManageStock: true,
     canDispenseMedication: true,
     canReadPharmacyGlobal: true,
-    canRequestExams: true,
+    canRequestExams: false,
     canReadExamResults: true,
-    canInputExamResults: true,
+    canInputExamResults: false,
     canAccessFinancial: true,
     canManageBilling: true,
     canViewReports: true,
@@ -265,7 +265,8 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
 
   NURSE_TECHNICIAN: {
     // Técnico de enfermagem — base bem restritiva. Policies de organização podem
-    // ligar canCreateTriage / canDispenseMedication via useCapabilities() → useOrgConfig().
+    // ligar canCreateTriage / canRecordEvolution / canDispenseMedication
+    // via useCapabilities() → useOrgConfig().
     canListPatients: true,
     canReadPatients: true,
     canCreatePatients: false,
@@ -281,7 +282,7 @@ const roleCapabilities: Record<UserRole, UserCapabilities> = {
     canReadAttendance: true,
     canUpdateAttendanceStatus: false,
     canStartAttendance: false,
-    canRecordEvolution: false,
+    canRecordEvolution: false,      // policy override: nursing_technician_can_record_evolution
     canDefineOutcome: false,
     canAdmitPatient: false,
     canCreateTriage: false,        // policy override: nursing_technician_can_triage
@@ -609,6 +610,9 @@ export function getCapabilitiesForRoles(roles: string[]): UserCapabilities {
   }
 
   const normalized = roles.map(role => role.toUpperCase().trim()).filter(Boolean);
+  if (normalized.includes('PLATFORM_ADMIN')) {
+    return roleCapabilities.PLATFORM_ADMIN;
+  }
   if (normalized.includes('ADMIN')) {
     return roleCapabilities.ADMIN;
   }

@@ -98,9 +98,9 @@ export default function MedicalRecords() {
   });
   const [submitting, setSubmitting] = useState(false);
   const canOnlyRecordEvolution =
-    !user?.roles?.includes("DOCTOR") &&
-    !user?.roles?.includes("ADMIN") &&
-    (user?.roles?.includes("NURSE") || user?.roles?.includes("NURSE_MANAGER"));
+    capabilities.canRecordEvolution &&
+    !capabilities.canCreatePrescription &&
+    !capabilities.canDefineOutcome;
 
   useEffect(() => {
     document.title = "Prontuários Médicos | Gestão de Prontuários";
@@ -579,8 +579,8 @@ export default function MedicalRecords() {
       <Tabs defaultValue="list" className="space-y-4">
         <TabsList>
           <TabsTrigger value="list">{isWorkspace ? "Prontuário" : "Lista de Prontuários"}</TabsTrigger>
-          {isWorkspace && <TabsTrigger value="prescriptions">Prescrições</TabsTrigger>}
-          {isWorkspace && <TabsTrigger value="finalize">Finalizar</TabsTrigger>}
+          {isWorkspace && capabilities.canReadPrescription && <TabsTrigger value="prescriptions">Prescrições</TabsTrigger>}
+          {isWorkspace && capabilities.canDefineOutcome && <TabsTrigger value="finalize">Finalizar</TabsTrigger>}
           {!isWorkspace && <TabsTrigger value="analytics">Relatórios</TabsTrigger>}
         </TabsList>
 
@@ -710,7 +710,7 @@ export default function MedicalRecords() {
           </Card>
         </TabsContent>
 
-        {isWorkspace && (
+        {isWorkspace && capabilities.canReadPrescription && (
           <TabsContent value="prescriptions" className="space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -764,7 +764,7 @@ export default function MedicalRecords() {
           </TabsContent>
         )}
 
-        {isWorkspace && (
+        {isWorkspace && capabilities.canDefineOutcome && (
           <TabsContent value="finalize" className="space-y-4">
             <Card>
               <CardHeader>

@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { queryClient, persistOptions } from "./lib/persistedQueryClient";
 import { AppLayout } from "./components/layout/AppLayout";
 import { useAuth } from "./hooks/useAuth";
+import { RequireCapability } from "./components/RequireCapability";
+import { RequireRole } from "./components/RequireRole";
 import { RequireAccess } from "./components/RequireAccess";
 import type { UserRole } from "./auth/capabilities";
 import Dashboard from "./pages/Dashboard";
@@ -137,14 +139,14 @@ const App = () => (
               </RequireAccess>
             } />
             <Route path="consultations" element={
-              <RequireAccess allowedRoles={["ADMIN", "DOCTOR"]} module="URGENCIA">
+              <RequireCapability capability="canStartAttendance">
                 <Consultations />
-              </RequireAccess>
+              </RequireCapability>
             } />
             <Route path="patients" element={
-              <RequireAccess allowedRoles={["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "DOCTOR", "PHARMACIST", "HOSPITAL_MANAGER"]} module="URGENCIA">
+              <RequireCapability capability="canReadPatients">
                 <Patients />
-              </RequireAccess>
+              </RequireCapability>
             } />
             <Route path="appointments" element={
               <RequireAccess allowedRoles={["ADMIN"]} module="AMBULATORIAL">
@@ -152,14 +154,14 @@ const App = () => (
               </RequireAccess>
             } />
             <Route path="medical-records" element={
-              <RequireAccess allowedRoles={["ADMIN", "DOCTOR", "NURSE", "NURSE_MANAGER"]} module="URGENCIA">
+              <RequireCapability capabilities={["canRecordEvolution", "canCreatePrescription", "canDefineOutcome", "canReadPrescription"]}>
                 <MedicalRecords />
-              </RequireAccess>
+              </RequireCapability>
             } />
             <Route path="triage" element={
-              <RequireAccess allowedRoles={["ADMIN", "NURSE", "NURSE_MANAGER"]} module="URGENCIA">
+              <RequireCapability capabilities={["canCreateTriage", "canViewTriageBoard"]}>
                 <Triage />
-              </RequireAccess>
+              </RequireCapability>
             } />
             <Route path="reception/triage" element={
               <RequireAccess allowedRoles={["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER"]} module="URGENCIA">
@@ -172,9 +174,9 @@ const App = () => (
               </RequireAccess>
             } />
             <Route path="laboratory" element={
-              <RequireAccess allowedRoles={["ADMIN", "DOCTOR"]} module="LABORATORIO">
+              <RequireCapability capabilities={["canRequestExams", "canInputExamResults", "canReadExamResults"]}>
                 <Laboratory />
-              </RequireAccess>
+              </RequireCapability>
             } />
             <Route path="pharmacy" element={
               <RequireAccess allowedRoles={["ADMIN", "PHARMACIST"]} module="FARMACIA">
@@ -202,19 +204,19 @@ const App = () => (
               </RequireAccess>
             } />
             <Route path="duties" element={
-              <RequireAccess allowedRoles={["ADMIN", "NURSE_MANAGER"]} module="URGENCIA" policy="night_shift_review">
+              <RequireCapability capability="canManageDuties">
                 <DutyManagement />
-              </RequireAccess>
+              </RequireCapability>
             } />
             <Route path="night-shift-review" element={
-              <RequireAccess allowedRoles={["ADMIN", "DOCTOR", "NURSE_MANAGER"]} module="URGENCIA" policy="night_shift_review">
+              <RequireCapability capability="canReviewNightActions">
                 <NightShiftReview />
-              </RequireAccess>
+              </RequireCapability>
             } />
             <Route path="sync-queue" element={
-              <RequireAccess allowedRoles={ALL_SYNC_QUEUE_ROLES}>
+              <RequireRole allowedRoles={ALL_SYNC_QUEUE_ROLES}>
                 <SyncQueue />
-              </RequireAccess>
+              </RequireRole>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           </Route>

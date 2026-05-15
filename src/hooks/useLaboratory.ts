@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import labTestService from "@/services/labTestService";
-import type { LabTestOrder, LabTestOrderRequest } from "@/types/labTest";
+import type { LabTestOrder, LabTestOrderRequest, LabTestStatusUpdateRequest } from "@/types/labTest";
 
 export function useLaboratory() {
   const [orders, setOrders] = useState<LabTestOrder[]>([]);
@@ -30,11 +30,18 @@ export function useLaboratory() {
     return created;
   };
 
+  const updateTestOrderStatus = async (orderId: string, payload: LabTestStatusUpdateRequest) => {
+    const updated = await labTestService.updateStatus(orderId, payload);
+    setOrders((prev) => prev.map((order) => (order.id === orderId ? updated : order)));
+    return updated;
+  };
+
   return {
     orders,
     loading,
     error,
     reload: loadOrders,
     createTestOrder,
+    updateTestOrderStatus,
   };
 }

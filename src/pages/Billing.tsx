@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CreditCard, Plus, Search, DollarSign, FileText, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { CreditCard, Plus, Search, DollarSign, FileText, AlertCircle, CheckCircle, Clock, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -491,6 +491,21 @@ export default function Billing() {
                             disabled={bill.status === 'PAID' || !capabilities.canManageBilling}
                           >
                             <CreditCard className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Cancelar fatura"
+                            onClick={() => {
+                              updateBillStatus(bill.id, 'CANCELLED', undefined, undefined, 'Cancelada via tela de faturamento');
+                            }}
+                            disabled={
+                              bill.status === 'PAID' ||
+                              bill.status === 'CANCELLED' ||
+                              !capabilities.canManageBilling
+                            }
+                          >
+                            <XCircle className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>

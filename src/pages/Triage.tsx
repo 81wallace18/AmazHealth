@@ -20,6 +20,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { RefreshCw, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useCapabilities } from '@/auth/useCapabilities';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -29,6 +30,7 @@ export default function Triage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user, loading: authLoading } = useAuth();
+  const capabilities = useCapabilities();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -160,7 +162,7 @@ export default function Triage() {
       <TriageQueue
         patients={patients}
         onStartTriage={handleStartTriage}
-        canStartTriage={user?.roles?.includes('NURSE') || user?.roles?.includes('ADMIN')}
+        canStartTriage={capabilities.canCreateTriage}
       />
 
       {/* Triage Board - 5 Manchester columns */}
@@ -168,7 +170,7 @@ export default function Triage() {
         patients={patients}
         autoRefresh={autoRefreshEnabled}
         onRefresh={loadTriageBoard}
-        canStartAttendance={user?.roles?.includes('DOCTOR') || user?.roles?.includes('ADMIN')}
+        canStartAttendance={capabilities.canStartAttendance}
         onStartAttendance={(visitId, patientName) => {
           void (async () => {
             try {

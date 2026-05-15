@@ -94,6 +94,7 @@ export function AdmissionList() {
   const [search, setSearch] = useState('');
   const [detailsAdmission, setDetailsAdmission] = useState<Admission | null>(null);
   const [allocationAdmission, setAllocationAdmission] = useState<Admission | null>(null);
+  const [transferAdmission, setTransferAdmission] = useState<Admission | null>(null);
   const [dischargeAdmission, setDischargeAdmission] = useState<Admission | null>(null);
 
   const queryClient = useQueryClient();
@@ -291,14 +292,24 @@ export function AdmissionList() {
                         )}
                         {admission.admissionStatus === 'BED_ASSIGNED' ||
                         admission.admissionStatus === 'ACTIVE' ? (
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setDischargeAdmission(admission);
-                            }}
-                          >
-                            <UserCheck className="h-4 w-4 mr-2" />
-                            Registrar alta
-                          </DropdownMenuItem>
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setTransferAdmission(admission);
+                              }}
+                            >
+                              <BedDouble className="h-4 w-4 mr-2" />
+                              Transferir leito
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setDischargeAdmission(admission);
+                              }}
+                            >
+                              <UserCheck className="h-4 w-4 mr-2" />
+                              Registrar alta
+                            </DropdownMenuItem>
+                          </>
                         ) : null}
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -341,6 +352,15 @@ export function AdmissionList() {
         onOpenChange={(open) => !open && setAllocationAdmission(null)}
         onSuccess={() => {
           setAllocationAdmission(null);
+          invalidateAdmissions();
+        }}
+      />
+
+      <TransferBedDialog
+        admission={transferAdmission}
+        onOpenChange={(open) => !open && setTransferAdmission(null)}
+        onSuccess={() => {
+          setTransferAdmission(null);
           invalidateAdmissions();
         }}
       />
@@ -529,6 +549,98 @@ function AllocateBedDialog({ admission, onOpenChange, onSuccess }: AllocateBedDi
           <Button onClick={handleAllocate} disabled={!selectedBed} className="w-full">
             {bedsQuery.isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Confirmar alocação
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface TransferBedDialogProps {
+  admission: Admission | null;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+function TransferBedDialog({ admission, onOpenChange, onSuccess }: TransferBedDialogProps) {
+  const [selectedBed, setSelectedBed] = useState<string>('');
+  const [reason, setReason] = useState('Transferência de leito via painel de internações');
+
+  const bedsQuery = useQuery({
+    queryKey: ['bed-board', 'available', 'transfer', admission?.id],
+    enabled: !!admission,
+    queryFn: async () => {
+      const wards = await admissionService.getBedBoard();
+      return wards
+        .flatMap((ward) => ward.beds.filter((bed) => bed.available))
+        .filter((bed) => bed.id !== admission?.assignedBedId);
+    },
+  });
+
+  const handleTransfer = async () => {
+    if (!admission || !selectedBed) return;
+    try {
+      await admissionService.transferBed({
+        admissionId: admission.id,
+        toBedId: selectedBed,
+        reason: reason.trim() || 'Transferência de leito via painel de internações',
+      });
+      toast.success('Paciente transferido de leito com sucesso.');
+      setSelectedBed('');
+      setReason('Transferência de leito via painel de internações');
+      onSuccess();
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'Não foi possível transferir o paciente.');
+      toast.error(message);
+    }
+  };
+
+  return (
+    <Dialog open={!!admission} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Transferir leito</DialogTitle>
+          <DialogDescription>
+            Selecione o novo leito para {admission?.patientName}. O leito atual será liberado para limpeza.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <Label>Leito atual</Label>
+            <p className="text-sm text-muted-foreground">
+              {admission?.bedIdentifier ? `${admission.bedIdentifier} — ${admission.wardName}` : 'Sem leito informado'}
+            </p>
+          </div>
+
+          <div>
+            <Label>Novo leito disponível</Label>
+            <Select
+              value={selectedBed}
+              onValueChange={setSelectedBed}
+              disabled={bedsQuery.isLoading || (bedsQuery.data?.length ?? 0) === 0}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={bedsQuery.isLoading ? 'Carregando...' : 'Selecione o novo leito'} />
+              </SelectTrigger>
+              <SelectContent>
+                {bedsQuery.data?.map((bed: Bed) => (
+                  <SelectItem key={bed.id} value={bed.id}>
+                    {bed.fullBedIdentifier || bed.bedNumber}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Motivo</Label>
+            <Textarea rows={3} value={reason} onChange={(event) => setReason(event.target.value)} />
+          </div>
+
+          <Button onClick={handleTransfer} disabled={!selectedBed} className="w-full">
+            {bedsQuery.isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Confirmar transferência
           </Button>
         </div>
       </DialogContent>

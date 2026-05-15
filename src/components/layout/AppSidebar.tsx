@@ -37,8 +37,9 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrgConfig } from "@/hooks/useOrgConfig";
+import { useCapabilities } from "@/auth/useCapabilities";
 import { getPrimaryRole, normalizeRole } from "@/auth/rolePriority";
-import type { UserRole } from "@/auth/capabilities";
+import type { UserCapabilities, UserRole } from "@/auth/capabilities";
 import { NightModeIndicator } from "@/components/layout/NightModeIndicator";
 
 interface NavigationItem {
@@ -53,6 +54,8 @@ interface NavigationItem {
   integration?: string;
   /** Policy operacional necessaria (ex: night_shift_review). */
   policy?: string;
+  /** Capability efetiva necessaria quando role pura não representa policy/RBAC final. */
+  capability?: keyof UserCapabilities;
 }
 
 const navigationItems: NavigationItem[] = [
@@ -61,14 +64,14 @@ const navigationItems: NavigationItem[] = [
     url: "/",
     icon: BarChart3,
     group: "Principal",
-    allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "PHARMACIST", "HOSPITAL_MANAGER", "FINANCE"],
+    allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "PHARMACIST", "HOSPITAL_MANAGER", "FINANCE"],
   },
   {
     title: "Atendimentos",
     url: "/daily-attendances",
     icon: ClipboardList,
     group: "Principal",
-    allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "RECEPTIONIST", "HOSPITAL_MANAGER"],
+    allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "RECEPTIONIST", "HOSPITAL_MANAGER"],
     module: "URGENCIA",
   },
   {
@@ -76,7 +79,7 @@ const navigationItems: NavigationItem[] = [
     url: "/patients",
     icon: Users,
     group: "Atendimento",
-    allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "DOCTOR", "HOSPITAL_MANAGER"],
+    allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "DOCTOR", "HOSPITAL_MANAGER"],
     module: "URGENCIA",
   },
   {
@@ -92,31 +95,34 @@ const navigationItems: NavigationItem[] = [
     url: "/medical-records",
     icon: FileText,
     group: "Atendimento",
-    allowedRoles: ["ADMIN", "DOCTOR", "NURSE", "NURSE_MANAGER"],
+    allowedRoles: ["DOCTOR", "NURSE", "NURSE_TECHNICIAN", "PLATFORM_ADMIN"],
     module: "URGENCIA",
+    capability: "canRecordEvolution",
   },
   {
     title: "Consultas",
     url: "/consultations",
     icon: Stethoscope,
     group: "Atendimento",
-    allowedRoles: ["ADMIN", "DOCTOR"],
+    allowedRoles: ["DOCTOR", "PLATFORM_ADMIN"],
     module: "URGENCIA",
+    capability: "canStartAttendance",
   },
   {
     title: "Triagem",
     url: "/triage",
     icon: Leaf,
     group: "Atendimento",
-    allowedRoles: ["ADMIN", "NURSE", "NURSE_MANAGER"],
+    allowedRoles: ["NURSE", "NURSE_TECHNICIAN", "PLATFORM_ADMIN"],
     module: "URGENCIA",
+    capability: "canViewTriageBoard",
   },
   {
     title: "Recepção",
     url: "/reception/triage",
     icon: UserPlus,
     group: "Atendimento",
-    allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER"],
+    allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN"],
     module: "URGENCIA",
   },
   {
@@ -140,8 +146,9 @@ const navigationItems: NavigationItem[] = [
     url: "/laboratory",
     icon: TestTube,
     group: "Exames",
-    allowedRoles: ["ADMIN", "DOCTOR"],
+    allowedRoles: ["DOCTOR", "PLATFORM_ADMIN"],
     module: "LABORATORIO",
+    capability: "canReadExamResults",
   },
   {
     title: "Farmácia",
@@ -194,18 +201,20 @@ const navigationItems: NavigationItem[] = [
     url: "/duties",
     icon: Moon,
     group: "Gestão",
-    allowedRoles: ["ADMIN", "NURSE_MANAGER"],
+    allowedRoles: ["ADMIN", "NURSE_MANAGER", "PLATFORM_ADMIN"],
     module: "URGENCIA",
     policy: "night_shift_review",
+    capability: "canManageDuties",
   },
   {
     title: "Revisão Noturna",
     url: "/night-shift-review",
     icon: Eye,
     group: "Gestão",
-    allowedRoles: ["ADMIN", "DOCTOR", "NURSE_MANAGER"],
+    allowedRoles: ["DOCTOR", "NURSE_MANAGER", "PLATFORM_ADMIN"],
     module: "URGENCIA",
     policy: "night_shift_review",
+    capability: "canReviewNightActions",
   },
 ];
 
@@ -214,6 +223,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const { hasIntegration, hasPolicy } = useOrgConfig();
+  const capabilities = useCapabilities();
   const primaryRole = getPrimaryRole(user?.roles);
   const normalizedRoles = new Set(
     (user?.roles ?? [])
@@ -236,6 +246,9 @@ export function AppSidebar() {
       if (!item.allowedRoles.some((role) => normalizedRoles.has(role))) {
         return false;
       }
+    }
+    if (item.capability && !capabilities.can(item.capability)) {
+      return false;
     }
     // Filtro por modulo da organizacao (null = tudo habilitado)
     if (item.module && enabledModules && enabledModules.length > 0) {
@@ -294,9 +307,10 @@ export function AppSidebar() {
         };
       case "NURSE_MANAGER":
       case "NURSE":
+      case "NURSE_TECHNICIAN":
         return {
           title: "Fila de Triagem",
-          description: "Priorizar atendimentos e redistribuir o fluxo clínico.",
+          description: "Priorizar atendimentos e registrar o fluxo permitido para o plantão.",
           to: "/triage",
           label: "Abrir triagem",
         };

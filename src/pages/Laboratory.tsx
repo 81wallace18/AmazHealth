@@ -15,6 +15,7 @@ import { patientService } from "@/services/patientService";
 import staffService from "@/services/staffService";
 import type { Patient } from "@/types/patient";
 import type { Staff } from "@/services/staffService";
+import type { LabTestOrder } from "@/types/labTest";
 import { useToast } from "@/hooks/use-toast";
 
 const statusColors = {
@@ -32,7 +33,7 @@ const statusLabels = {
 };
 
 export default function Laboratory() {
-  const { orders, loading, error, reload, createTestOrder } = useLaboratory();
+  const { orders, loading, error, reload, createTestOrder, updateTestOrderStatus } = useLaboratory();
   const capabilities = useCapabilities();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,6 +49,10 @@ export default function Laboratory() {
   const [testName, setTestName] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [resultOrder, setResultOrder] = useState<LabTestOrder | null>(null);
+  const [resultText, setResultText] = useState("");
+  const [resultNotes, setResultNotes] = useState("");
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Laboratório | Gestão de Exames";
@@ -136,6 +141,51 @@ export default function Laboratory() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleUpdateStatus = async (
+    order: LabTestOrder,
+    status: "COLETADO" | "LAUDADO" | "CANCELADO",
+    result?: string,
+    statusNotes?: string
+  ) => {
+    setStatusUpdatingId(order.id);
+    try {
+      await updateTestOrderStatus(order.id, {
+        status,
+        result: result || undefined,
+        notes: statusNotes || undefined
+      });
+      toast({
+        title: "Status atualizado",
+        description: `Exame marcado como ${statusLabels[status].toLowerCase()}.`
+      });
+      await reload();
+    } catch (err: any) {
+      toast({
+        title: "Erro ao atualizar exame",
+        description: err?.message || "Não foi possível avançar o fluxo do exame.",
+        variant: "destructive"
+      });
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  };
+
+  const handleReportResult = async () => {
+    if (!resultOrder) return;
+    if (!resultText.trim()) {
+      toast({
+        title: "Resultado obrigatório",
+        description: "Informe o resultado/laudo antes de finalizar o exame.",
+        variant: "destructive"
+      });
+      return;
+    }
+    await handleUpdateStatus(resultOrder, "LAUDADO", resultText.trim(), resultNotes.trim());
+    setResultOrder(null);
+    setResultText("");
+    setResultNotes("");
   };
 
   const filteredOrders = orders.filter((order) => {
@@ -394,9 +444,41 @@ export default function Laboratory() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" title="Visualizar">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" title="Visualizar">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {order.status === "SOLICITADO" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={!capabilities.canRequestExams || statusUpdatingId === order.id}
+                              onClick={() => handleUpdateStatus(order, "COLETADO")}
+                            >
+                              Coletar
+                            </Button>
+                          )}
+                          {order.status === "COLETADO" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={!capabilities.canRequestExams || statusUpdatingId === order.id}
+                              onClick={() => setResultOrder(order)}
+                            >
+                              Laudar
+                            </Button>
+                          )}
+                          {(order.status === "SOLICITADO" || order.status === "COLETADO") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={!capabilities.canRequestExams || statusUpdatingId === order.id}
+                              onClick={() => handleUpdateStatus(order, "CANCELADO")}
+                            >
+                              Cancelar
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -406,6 +488,51 @@ export default function Laboratory() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!resultOrder} onOpenChange={(open) => {
+        if (!open) {
+          setResultOrder(null);
+          setResultText("");
+          setResultNotes("");
+        }
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Registrar laudo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              {resultOrder?.testName} · {resultOrder?.patientName}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Resultado *</label>
+              <Textarea
+                rows={5}
+                value={resultText}
+                onChange={(event) => setResultText(event.target.value)}
+                placeholder="Descreva o resultado/laudo do exame"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Observações</label>
+              <Textarea
+                rows={3}
+                value={resultNotes}
+                onChange={(event) => setResultNotes(event.target.value)}
+                placeholder="Observações complementares"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResultOrder(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleReportResult} disabled={statusUpdatingId === resultOrder?.id}>
+              Finalizar laudo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

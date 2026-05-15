@@ -36,7 +36,7 @@ import { DiagnosisPicker } from '@/components/medical-records/DiagnosisPicker';
 import type { IcdSystem } from '@/types/icd';
 import type { RecordType } from '@/types/medicalRecord';
 import { RECORD_TYPE_LABELS } from '@/types/medicalRecord';
-import { useAuth } from '@/hooks/useAuth';
+import { useCapabilities } from '@/auth/useCapabilities';
 import { Loader2, FileText } from 'lucide-react';
 
 const formSchema = z.object({
@@ -114,16 +114,16 @@ export function MedicalRecordForm({
   defaultValues,
   recordId,
 }: MedicalRecordFormProps) {
-  const { user } = useAuth();
+  const capabilities = useCapabilities();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('soap');
   const [secondaryCodeInput, setSecondaryCodeInput] = useState('');
 
   const isEditing = !!recordId;
   const canOnlyRecordEvolution =
-    !user?.roles?.includes('DOCTOR') &&
-    !user?.roles?.includes('ADMIN') &&
-    (user?.roles?.includes('NURSE') || user?.roles?.includes('NURSE_MANAGER'));
+    capabilities.canRecordEvolution &&
+    !capabilities.canCreatePrescription &&
+    !capabilities.canDefineOutcome;
   const allowedRecordTypes = (
     Object.entries(RECORD_TYPE_LABELS) as [RecordType, string][]
   ).filter(([value]) => !canOnlyRecordEvolution || value === 'EVOLUTION');

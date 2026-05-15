@@ -20,6 +20,9 @@ export const INTEGRATIONS = {
 
 export const POLICIES = {
   NIGHT_SHIFT_REVIEW: 'night_shift_review',
+  NURSING_TECHNICIAN_CAN_TRIAGE: 'nursing_technician_can_triage',
+  NURSING_TECHNICIAN_CAN_RECORD_EVOLUTION: 'nursing_technician_can_record_evolution',
+  NURSING_TECHNICIAN_CAN_DISPENSE: 'nursing_technician_can_dispense',
 } as const;
 
 export type IntegrationName = (typeof INTEGRATIONS)[keyof typeof INTEGRATIONS];
