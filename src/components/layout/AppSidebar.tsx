@@ -50,7 +50,7 @@ interface NavigationItem {
   allowedRoles?: UserRole[];
   /** Modulo da organizacao necessario. Sem module = sempre visivel. */
   module?: string;
-  /** Integracao da organizacao necessaria (HORUS_PHARMACY, ESUS_PEC). */
+  /** Integracao da organizacao necessaria (HORUS_PHARMACY, HORUS_LEGACY, ESUS_AF, ESUS_PEC). */
   integration?: string;
   /** Policy operacional necessaria (ex: night_shift_review). */
   policy?: string;

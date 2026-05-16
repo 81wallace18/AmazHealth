@@ -4,7 +4,7 @@ import { useAuth } from './useAuth';
  * Acesso aos 3 eixos de feature flags da organização ativa:
  *
  *   - `hasModule(name)`     — domínio funcional (URGENCIA, FARMACIA, ...)
- *   - `hasIntegration(name)` — conectores externos (HORUS_PHARMACY, ESUS_PEC, ...)
+ *   - `hasIntegration(name)` — conectores externos (HORUS_PHARMACY, HORUS_LEGACY, ESUS_AF, ESUS_PEC, ...)
  *   - `hasPolicy(key)`       — policy booleana (night_shift_review, ...)
  *   - `getPolicy(key)`       — valor cru da policy (qualquer tipo)
  *
@@ -15,6 +15,8 @@ import { useAuth } from './useAuth';
  */
 export const INTEGRATIONS = {
   HORUS_PHARMACY: 'HORUS_PHARMACY',
+  HORUS_LEGACY: 'HORUS_LEGACY',
+  ESUS_AF: 'ESUS_AF',
   ESUS_PEC: 'ESUS_PEC',
 } as const;
 
