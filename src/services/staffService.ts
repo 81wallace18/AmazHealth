@@ -6,6 +6,7 @@ export type RoleType =
   | 'doctor'
   | 'nurse'
   | 'nurse_manager'
+  | 'nurse_technician'
   | 'pharmacist'
   | 'receptionist'
   | 'hospital_manager'
@@ -25,6 +26,12 @@ export interface Staff {
   email?: string;
   hireDate?: string; // LocalDate ISO format
   status: StaffStatus;
+  cpf?: string;
+  cnsNumber?: string;
+  cboCode?: string;
+  excludeFromSusApsIntegration?: boolean;
+  susApsReady?: boolean;
+  susApsReadinessIssues?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -38,6 +45,10 @@ export interface StaffRequest {
   email?: string;
   hireDate?: string; // LocalDate ISO format
   status?: StaffStatus;
+  cpf?: string;
+  cnsNumber?: string;
+  cboCode?: string;
+  excludeFromSusApsIntegration?: boolean;
 }
 
 export interface StaffSearchParams {

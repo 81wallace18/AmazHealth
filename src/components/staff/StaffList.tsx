@@ -47,6 +47,7 @@ const roleLabels: Record<RoleType, string> = {
   doctor: 'Médico',
   nurse: 'Enfermeiro',
   nurse_manager: 'Coord. Enfermagem',
+  nurse_technician: 'Técnico Enf.',
   receptionist: 'Recepcionista',
   pharmacist: 'Farmacêutico',
   hospital_manager: 'Gestor Hospitalar',
@@ -66,6 +67,7 @@ const roleColors: Record<RoleType, string> = {
   doctor: 'bg-blue-100 text-blue-800',
   nurse: 'bg-green-100 text-green-800',
   nurse_manager: 'bg-emerald-100 text-emerald-800',
+  nurse_technician: 'bg-lime-100 text-lime-800',
   receptionist: 'bg-orange-100 text-orange-800',
   pharmacist: 'bg-pink-100 text-pink-800',
   hospital_manager: 'bg-cyan-100 text-cyan-800',
@@ -84,6 +86,21 @@ function AccessBadge({ user }: { user?: User }) {
   if (!user.isActive) return <Badge className="bg-red-100 text-red-700 font-medium">Acesso inativo</Badge>;
   if (user.mustChangePassword) return <Badge className="bg-yellow-100 text-yellow-700 font-medium">Aguardando ativação</Badge>;
   return <Badge className="bg-green-100 text-green-700 font-medium">Acesso ativo</Badge>;
+}
+
+function SusApsBadge({ member }: { member: Staff }) {
+  if (member.excludeFromSusApsIntegration) {
+    return <Badge className="bg-gray-100 text-gray-600 font-medium">Fora APS</Badge>;
+  }
+  if (member.susApsReady) {
+    return <Badge className="bg-blue-100 text-blue-700 font-medium">SUS pronto</Badge>;
+  }
+  const issues = member.susApsReadinessIssues?.length || 0;
+  return (
+    <Badge className="bg-amber-100 text-amber-700 font-medium">
+      {issues > 0 ? `${issues} pendência${issues > 1 ? 's' : ''}` : 'Pendente'}
+    </Badge>
+  );
 }
 
 export function StaffList({ staff, usersByStaffId, onEdit, onDelete, onToggleAccess }: StaffListProps) {
@@ -132,6 +149,7 @@ export function StaffList({ staff, usersByStaffId, onEdit, onDelete, onToggleAcc
               <TableHead>Função</TableHead>
               <TableHead>Especialização</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>SUS APS</TableHead>
               <TableHead>Acesso</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -164,6 +182,9 @@ export function StaffList({ staff, usersByStaffId, onEdit, onDelete, onToggleAcc
                     <Badge className={cn('font-medium', statusColors[member.status])}>
                       {statusLabels[member.status]}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <SusApsBadge member={member} />
                   </TableCell>
                   <TableCell>
                     <AccessBadge user={linkedUser} />

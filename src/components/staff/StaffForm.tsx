@@ -11,6 +11,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -36,7 +38,7 @@ const staffFormSchema = z.object({
   lastName: z.string()
     .min(1, 'Sobrenome é obrigatório')
     .max(100, 'Sobrenome deve ter no máximo 100 caracteres'),
-  role: z.enum(['admin', 'gestao', 'doctor', 'nurse', 'nurse_manager', 'pharmacist', 'receptionist', 'hospital_manager', 'finance', 'staff'], {
+  role: z.enum(['admin', 'gestao', 'doctor', 'nurse', 'nurse_manager', 'nurse_technician', 'pharmacist', 'receptionist', 'hospital_manager', 'finance', 'staff'], {
     required_error: 'Função é obrigatória',
   }),
   specialization: z.string().max(100).optional(),
@@ -44,6 +46,10 @@ const staffFormSchema = z.object({
   email: z.string().email('Email inválido').max(100).optional().or(z.literal('')),
   hireDate: z.string().optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'ON_LEAVE']).optional(),
+  cpf: z.string().max(20).optional(),
+  cnsNumber: z.string().max(20).optional(),
+  cboCode: z.string().max(10).optional(),
+  excludeFromSusApsIntegration: z.boolean().optional(),
 });
 
 type StaffFormData = z.infer<typeof staffFormSchema>;
@@ -61,6 +67,7 @@ const roleLabels: Record<RoleType, string> = {
   doctor: 'Médico',
   nurse: 'Enfermeiro',
   nurse_manager: 'Enfermeiro Gestor',
+  nurse_technician: 'Técnico de Enfermagem',
   receptionist: 'Recepcionista',
   pharmacist: 'Farmacêutico',
   hospital_manager: 'Gestor Hospitalar',
@@ -88,6 +95,10 @@ export function StaffForm({ open, onOpenChange, staff, onSuccess }: StaffFormPro
       email: '',
       hireDate: '',
       status: 'ACTIVE',
+      cpf: '',
+      cnsNumber: '',
+      cboCode: '',
+      excludeFromSusApsIntegration: false,
     },
   });
 
@@ -103,6 +114,10 @@ export function StaffForm({ open, onOpenChange, staff, onSuccess }: StaffFormPro
         email: staff.email || '',
         hireDate: staff.hireDate || '',
         status: staff.status,
+        cpf: staff.cpf || '',
+        cnsNumber: staff.cnsNumber || '',
+        cboCode: staff.cboCode || '',
+        excludeFromSusApsIntegration: staff.excludeFromSusApsIntegration || false,
       });
     } else if (!open) {
       // Limpar form ao fechar
@@ -115,6 +130,10 @@ export function StaffForm({ open, onOpenChange, staff, onSuccess }: StaffFormPro
         email: '',
         hireDate: '',
         status: 'ACTIVE',
+        cpf: '',
+        cnsNumber: '',
+        cboCode: '',
+        excludeFromSusApsIntegration: false,
       });
     }
   }, [staff, open, form]);
@@ -128,6 +147,10 @@ export function StaffForm({ open, onOpenChange, staff, onSuccess }: StaffFormPro
         specialization: data.specialization || undefined,
         phone: data.phone || undefined,
         hireDate: data.hireDate || undefined,
+        cpf: data.cpf || undefined,
+        cnsNumber: data.cnsNumber || undefined,
+        cboCode: data.cboCode || undefined,
+        excludeFromSusApsIntegration: data.excludeFromSusApsIntegration || false,
       };
 
       if (isEditing && staff) {
@@ -330,6 +353,80 @@ export function StaffForm({ open, onOpenChange, staff, onSuccess }: StaffFormPro
                 </FormItem>
               )}
             />
+
+            <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
+              <div>
+                <h3 className="text-sm font-medium">Dados SUS APS do Profissional</h3>
+                <p className="text-sm text-muted-foreground">
+                  Estes campos identificam o profissional para prontidão PEC/e-SUS APS. Não são dados de login.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="cpf"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CPF profissional</FormLabel>
+                      <FormControl>
+                        <Input placeholder="529.982.247-25" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cnsNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CNS profissional</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123456789012348" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cboCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CBO</FormLabel>
+                      <FormControl>
+                        <Input placeholder="2251-25" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="excludeFromSusApsIntegration"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-md border bg-background p-3">
+                    <div className="space-y-0.5">
+                      <FormLabel>Excluir da integração SUS APS</FormLabel>
+                      <FormDescription>
+                        Use para profissionais administrativos ou cadastros que não devem gerar produção exportável.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value || false}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="flex justify-end gap-2 pt-4">
               <Button
