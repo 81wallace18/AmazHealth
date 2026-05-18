@@ -1,6 +1,7 @@
 export interface Medicine {
   id: string;
   medicineCode: string;
+  catmatCode?: string;
   medicineName: string;
   genericName?: string;
   strength?: string;
@@ -16,6 +17,7 @@ export interface Medicine {
   maxDispenseQuantity?: number;
   minDispenseQuantity?: number;
   barcode?: string;
+  requiresSusSanitation?: boolean;
   totalStockQuantity?: number;
   needsReorder?: boolean;
   description?: string;
@@ -24,6 +26,7 @@ export interface Medicine {
 
 export interface MedicineRequest {
   medicineCode: string;
+  catmatCode?: string;
   medicineName: string;
   genericName?: string;
   strength?: string;
@@ -52,6 +55,7 @@ export interface MedicineStock {
   medicineId: string;
   medicineName: string;
   medicineCode: string;
+  catmatCode?: string;
   batchNumber: string;
   quantityInStock: number;
   expiryDate?: string;

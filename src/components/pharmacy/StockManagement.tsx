@@ -24,6 +24,10 @@ import { Loader2, PlusCircle, Pencil } from "lucide-react";
 
 type StockView = "AVAILABLE" | "NEAR" | "LOW" | "EXPIRED";
 
+function getOfficialCodeLabel(catmatCode?: string) {
+  return catmatCode?.trim() ? catmatCode : "Pendente de saneamento";
+}
+
 const DOSAGE_FORMS = [
   { value: "TABLET", label: "Comprimido" },
   { value: "CAPSULE", label: "Cápsula" },
@@ -153,6 +157,7 @@ export function StockManagement({ canManageStock = true }: StockManagementProps)
 
       const form: MedicineRequest = {
         medicineCode: medicine.medicineCode,
+        catmatCode: medicine.catmatCode,
         medicineName: medicine.medicineName,
         genericName: medicine.genericName,
         strength: medicine.strength,
@@ -194,6 +199,7 @@ export function StockManagement({ canManageStock = true }: StockManagementProps)
   const openCreateMedicine = () => {
     setCreateForm({
       medicineCode: "",
+      catmatCode: "",
       medicineName: "",
       dosageForm: "",
       category: "",
@@ -217,7 +223,7 @@ export function StockManagement({ canManageStock = true }: StockManagementProps)
     if (!createForm.medicineCode || !createForm.medicineName) {
       toast({
         title: "Campos obrigatórios",
-        description: "Informe código e nome do medicamento.",
+        description: "Informe código interno e nome do medicamento.",
         variant: "destructive"
       });
       return;
@@ -400,6 +406,7 @@ export function StockManagement({ canManageStock = true }: StockManagementProps)
                   <TableHeader>
                     <TableRow>
                       <TableHead>Medicamento</TableHead>
+                      <TableHead>Código CATMAT/SUS</TableHead>
                       <TableHead>Lote</TableHead>
                       <TableHead>Quantidade</TableHead>
                       <TableHead>Validade</TableHead>
@@ -412,7 +419,10 @@ export function StockManagement({ canManageStock = true }: StockManagementProps)
                       <TableRow key={`${stock.id}-${stock.batchNumber}`}>
                         <TableCell>
                           <div className="font-semibold">{stock.medicineName}</div>
-                          <div className="text-xs text-muted-foreground">{stock.medicineCode}</div>
+                          <div className="text-xs text-muted-foreground">Código interno: {stock.medicineCode}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">{getOfficialCodeLabel(stock.catmatCode)}</div>
                         </TableCell>
                         <TableCell>{stock.batchNumber}</TableCell>
                         <TableCell>{stock.quantityInStock}</TableCell>
@@ -459,7 +469,7 @@ export function StockManagement({ canManageStock = true }: StockManagementProps)
                 <SelectContent>
                   {medicines.map((medicine) => (
                     <SelectItem key={medicine.id} value={medicine.id}>
-                      {medicine.medicineName}
+                      {medicine.medicineName} · {medicine.medicineCode}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -505,12 +515,22 @@ export function StockManagement({ canManageStock = true }: StockManagementProps)
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
-                  <Label>Código *</Label>
+                  <Label>Código interno *</Label>
                   <Input
                     value={createForm.medicineCode}
                     onChange={(event) => handleCreateMedicineChange("medicineCode", event.target.value)}
                   />
                 </div>
+                <div className="space-y-1">
+                  <Label>Código CATMAT/SUS</Label>
+                  <Input
+                    value={createForm.catmatCode ?? ""}
+                    onChange={(event) => handleCreateMedicineChange("catmatCode", event.target.value)}
+                    placeholder="Opcional"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
                   <Label>Nome *</Label>
                   <Input
@@ -518,6 +538,9 @@ export function StockManagement({ canManageStock = true }: StockManagementProps)
                     onChange={(event) => handleCreateMedicineChange("medicineName", event.target.value)}
                   />
                 </div>
+              </div>
+              <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                Código interno identifica o catálogo local. Código CATMAT/SUS é opcional e só deve ser preenchido quando houver mapeamento oficial confirmado.
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
@@ -676,9 +699,19 @@ export function StockManagement({ canManageStock = true }: StockManagementProps)
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
-                  <Label>Código</Label>
+                  <Label>Código interno</Label>
                   <Input value={medicineForm.medicineCode} disabled />
                 </div>
+                <div className="space-y-1">
+                  <Label>Código CATMAT/SUS</Label>
+                  <Input
+                    value={medicineForm.catmatCode ?? ""}
+                    onChange={(event) => handleMedicineChange("catmatCode", event.target.value)}
+                    placeholder="Opcional"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
                   <Label>Nome</Label>
                   <Input
@@ -686,6 +719,9 @@ export function StockManagement({ canManageStock = true }: StockManagementProps)
                     onChange={(event) => handleMedicineChange("medicineName", event.target.value)}
                   />
                 </div>
+              </div>
+              <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                Código interno permanece imutável. Código CATMAT/SUS pode ser ajustado separadamente para saneamento exportável.
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">

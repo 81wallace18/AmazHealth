@@ -1,6 +1,20 @@
 export type PrescriptionStatus = 'DRAFT' | 'ACTIVE' | 'DISPENSED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED';
 
 export type MedicationType = 'COMMON' | 'ANTIBIOTIC' | 'CONTROLLED' | 'BLOOD_COMPONENT';
+export type AdministrationRouteCode =
+  | 'ORAL'
+  | 'INTRAVENOUS'
+  | 'INTRAMUSCULAR'
+  | 'SUBCUTANEOUS'
+  | 'INHALATION'
+  | 'TOPICAL'
+  | 'RECTAL'
+  | 'VAGINAL'
+  | 'NASAL'
+  | 'OPHTHALMIC'
+  | 'AURIC'
+  | 'OTHER';
+export type DoseType = 'COMMON' | 'SINGLE' | 'FRACTIONED';
 
 export interface PrescriptionItem {
   id?: string;
@@ -13,6 +27,8 @@ export interface PrescriptionItem {
   duration: string;
   quantity: number;
   route?: string;
+  administrationRouteCode?: AdministrationRouteCode;
+  doseType?: DoseType;
   instructions?: string;
   immediateUse?: boolean;
   requiresSpecialControl?: boolean;
@@ -24,6 +40,8 @@ export interface PrescriptionItem {
   dispensedBy?: string;
   dispensationStatus?: string;
   dispensationObservations?: string;
+  exportReady?: boolean;
+  exportReadinessIssues?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -68,6 +86,8 @@ export interface PrescriptionItemInput {
   duration: string;
   quantity: number;
   route?: string;
+  administrationRouteCode?: AdministrationRouteCode;
+  doseType?: DoseType;
   instructions?: string;
   immediateUse?: boolean;
   requiresSpecialControl?: boolean;

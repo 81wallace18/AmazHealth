@@ -25,7 +25,12 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import prescriptionService from '@/services/prescriptionService';
 import pharmacyService from '@/services/pharmacyService';
-import type { MedicationType, Prescription } from '@/types/prescription';
+import type {
+  AdministrationRouteCode,
+  DoseType,
+  MedicationType,
+  Prescription,
+} from '@/types/prescription';
 import type { Medicine } from '@/types/pharmacy';
 import type { Staff } from '@/services/staffService';
 import staffService from '@/services/staffService';
@@ -57,6 +62,25 @@ const medicationTypes: { value: MedicationType; label: string }[] = [
 ];
 
 const prescriptionStatuses = ['DRAFT', 'ACTIVE'] as const;
+const doseTypes: { value: DoseType; label: string }[] = [
+  { value: 'COMMON', label: 'Dose comum' },
+  { value: 'SINGLE', label: 'Dose única' },
+  { value: 'FRACTIONED', label: 'Dose fracionada' },
+];
+const administrationRouteCodes: { value: AdministrationRouteCode; label: string }[] = [
+  { value: 'ORAL', label: 'Oral' },
+  { value: 'INTRAVENOUS', label: 'Intravenosa' },
+  { value: 'INTRAMUSCULAR', label: 'Intramuscular' },
+  { value: 'SUBCUTANEOUS', label: 'Subcutânea' },
+  { value: 'INHALATION', label: 'Inalatória' },
+  { value: 'TOPICAL', label: 'Tópica' },
+  { value: 'RECTAL', label: 'Retal' },
+  { value: 'VAGINAL', label: 'Vaginal' },
+  { value: 'NASAL', label: 'Nasal' },
+  { value: 'OPHTHALMIC', label: 'Oftálmica' },
+  { value: 'AURIC', label: 'Otológica' },
+  { value: 'OTHER', label: 'Outra' },
+];
 
 const itemSchema = z.object({
   medicineId: z.string().optional().default(''),
@@ -68,6 +92,10 @@ const itemSchema = z.object({
   duration: z.string().min(1, 'Informe a duração'),
   quantity: z.coerce.number().min(1, 'Quantidade deve ser positiva'),
   route: z.string().optional(),
+  administrationRouteCode: z.enum(
+    administrationRouteCodes.map((route) => route.value) as [AdministrationRouteCode, ...AdministrationRouteCode[]]
+  ).optional(),
+  doseType: z.enum(doseTypes.map((dose) => dose.value) as [DoseType, ...DoseType[]]).optional(),
   instructions: z.string().optional(),
   immediateUse: z.boolean().optional(),
   specialControlJustification: z.string().optional(),
@@ -161,7 +189,8 @@ function MedicineCombobox({ value, selectedLabel, disabled, onSelect }: Medicine
                     <div className="flex flex-col">
                       <span className="text-sm font-medium">{label}</span>
                       <span className="text-xs text-muted-foreground">
-                        {medicine.medicineCode}
+                        Código interno: {medicine.medicineCode}
+                        {medicine.catmatCode ? ` · CATMAT/SUS: ${medicine.catmatCode}` : " · CATMAT/SUS pendente"}
                         {medicine.genericName ? ` · ${medicine.genericName}` : ''}
                       </span>
                     </div>
@@ -218,6 +247,8 @@ export function PrescriptionForm({
           frequency: '',
           duration: '',
           quantity: 1,
+          administrationRouteCode: undefined,
+          doseType: undefined,
           immediateUse: false,
         },
       ],
@@ -294,6 +325,8 @@ export function PrescriptionForm({
           frequency: '',
           duration: '',
           quantity: 1,
+          administrationRouteCode: undefined,
+          doseType: undefined,
           immediateUse: false,
         },
       ],
@@ -346,6 +379,8 @@ export function PrescriptionForm({
           duration: item.duration,
           quantity: item.quantity,
           route: item.route?.trim() || undefined,
+          administrationRouteCode: item.administrationRouteCode,
+          doseType: item.doseType,
           instructions: item.instructions?.trim() || undefined,
           immediateUse: !!item.immediateUse,
           requiresSpecialControl:
@@ -477,6 +512,8 @@ export function PrescriptionForm({
                         frequency: '',
                         duration: '',
                         quantity: 1,
+                        administrationRouteCode: undefined,
+                        doseType: undefined,
                         immediateUse: false,
                       })
                     }
@@ -647,10 +684,61 @@ export function PrescriptionForm({
                     <div className="grid gap-3 md:grid-cols-2">
                       <FormField
                         control={form.control}
+                        name={`items.${index}.administrationRouteCode`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Via estruturada para exportação</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione quando houver mapeamento" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {administrationRouteCodes.map((route) => (
+                                  <SelectItem key={route.value} value={route.value}>
+                                    {route.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.doseType`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tipo de dose para exportação</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione quando aplicável" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {doseTypes.map((doseType) => (
+                                  <SelectItem key={doseType.value} value={doseType.value}>
+                                    {doseType.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <FormField
+                        control={form.control}
                         name={`items.${index}.route`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Via de administração</FormLabel>
+                            <FormLabel>Via livre legada</FormLabel>
                             <FormControl>
                               <Input placeholder="Ex: VO, EV, IM..." {...field} />
                             </FormControl>
