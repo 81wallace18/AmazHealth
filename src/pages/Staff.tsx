@@ -12,9 +12,13 @@ import {
 } from '@/components/ui/select';
 import { StaffForm } from '@/components/staff/StaffForm';
 import { StaffList } from '@/components/staff/StaffList';
+import { SusApsReadinessPanel } from '@/components/staff/SusApsReadinessPanel';
 import { AddMemberWizard } from '@/components/team/AddMemberWizard';
+import { authService } from '@/services/authService';
 import { staffService, type Staff, type RoleType, type StaffStatus } from '@/services/staffService';
+import { susApsReadinessService } from '@/services/susApsReadinessService';
 import { userService } from '@/services/userService';
+import type { SusApsOrganizationInfo, SusApsReadinessIssue, SusApsReadinessResponse } from '@/types/susApsReadiness';
 import type { User } from '@/types/user';
 import { toast } from 'sonner';
 
@@ -43,9 +47,12 @@ export default function Staff() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [usersByStaffId, setUsersByStaffId] = useState<Map<string, User>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
+  const [isReadinessLoading, setIsReadinessLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+  const [organizationInfo, setOrganizationInfo] = useState<SusApsOrganizationInfo | null>(null);
+  const [readinessSummary, setReadinessSummary] = useState<SusApsReadinessResponse | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleType | 'all'>('all');
@@ -59,6 +66,10 @@ export default function Staff() {
   useEffect(() => {
     loadData();
   }, [currentPage, roleFilter, statusFilter]);
+
+  useEffect(() => {
+    loadReadinessPanel();
+  }, []);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -90,6 +101,38 @@ export default function Staff() {
     }
   };
 
+  const loadReadinessPanel = async () => {
+    setIsReadinessLoading(true);
+    try {
+      const [profile, summary] = await Promise.all([
+        authService.getProfile(),
+        susApsReadinessService.getSummary(),
+      ]);
+
+      const activeOrganization = profile.organizations.find(
+        (organization) => organization.organizationId === profile.activeOrganizationId,
+      );
+
+      setOrganizationInfo({
+        organizationId: profile.activeOrganizationId,
+        organizationName: profile.activeOrganizationName,
+        cnesCode: activeOrganization?.cnesCode ?? null,
+        municipalityCode: activeOrganization?.municipalityCode ?? null,
+        municipalityName: activeOrganization?.municipalityName ?? null,
+        stateCode: activeOrganization?.stateCode ?? null,
+      });
+      setReadinessSummary(summary);
+    } catch (error) {
+      toast.error('Não foi possível carregar o painel de saneamento SUS APS.');
+    } finally {
+      setIsReadinessLoading(false);
+    }
+  };
+
+  const refreshAll = async () => {
+    await Promise.all([loadData(), loadReadinessPanel()]);
+  };
+
   const handleSearch = () => {
     setCurrentPage(0);
     loadData();
@@ -110,6 +153,21 @@ export default function Staff() {
     }
   };
 
+  const resolveIssueLabel = (issue: SusApsReadinessIssue) => {
+    if (issue.scope === 'Organization') {
+      return organizationInfo?.organizationName ?? null;
+    }
+
+    if (issue.scope === 'Staff') {
+      const member = staff.find((entry) => entry.id === issue.entityId);
+      if (member) {
+        return `${member.firstName} ${member.lastName}`;
+      }
+    }
+
+    return issue.entityId || null;
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -126,6 +184,14 @@ export default function Staff() {
           Adicionar membro
         </Button>
       </div>
+
+      <SusApsReadinessPanel
+        summary={readinessSummary}
+        organization={organizationInfo}
+        isLoading={isReadinessLoading}
+        onRetry={loadReadinessPanel}
+        resolveEntityLabel={resolveIssueLabel}
+      />
 
       <Card>
         <CardHeader>
@@ -185,7 +251,7 @@ export default function Staff() {
                 staff={staff}
                 usersByStaffId={usersByStaffId}
                 onEdit={handleEditStaff}
-                onDelete={loadData}
+                onDelete={refreshAll}
                 onToggleAccess={handleToggleAccess}
               />
               {totalPages > 1 && (
@@ -211,14 +277,15 @@ export default function Staff() {
       <AddMemberWizard
         open={showWizard}
         onOpenChange={setShowWizard}
-        onSuccess={loadData}
+        onSuccess={refreshAll}
       />
 
       <StaffForm
         open={showEditForm}
         onOpenChange={(open) => { setShowEditForm(open); if (!open) setSelectedStaff(null); }}
         staff={selectedStaff}
-        onSuccess={loadData}
+        onSuccess={refreshAll}
+        defaultCnesCode={organizationInfo?.cnesCode}
       />
     </div>
   );

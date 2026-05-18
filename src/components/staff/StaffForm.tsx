@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ProfessionalSusAssignmentSection } from '@/components/staff/ProfessionalSusAssignmentSection';
 import { toast } from 'sonner';
 import { staffService, type Staff, type RoleType, type StaffStatus } from '@/services/staffService';
 import { useEffect } from 'react';
@@ -59,6 +60,7 @@ interface StaffFormProps {
   onOpenChange: (open: boolean) => void;
   staff?: Staff | null;
   onSuccess?: () => void;
+  defaultCnesCode?: string | null;
 }
 
 const roleLabels: Record<RoleType, string> = {
@@ -81,7 +83,7 @@ const statusLabels: Record<StaffStatus, string> = {
   ON_LEAVE: 'Em Licença',
 };
 
-export function StaffForm({ open, onOpenChange, staff, onSuccess }: StaffFormProps) {
+export function StaffForm({ open, onOpenChange, staff, onSuccess, defaultCnesCode }: StaffFormProps) {
   const isEditing = !!staff;
 
   const form = useForm<StaffFormData>({
@@ -446,6 +448,16 @@ export function StaffForm({ open, onOpenChange, staff, onSuccess }: StaffFormPro
             </div>
           </form>
         </Form>
+
+        {isEditing && staff && (
+          <div className="mt-6">
+            <ProfessionalSusAssignmentSection
+              staff={staff}
+              defaultCnesCode={defaultCnesCode}
+              onChange={onSuccess}
+            />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

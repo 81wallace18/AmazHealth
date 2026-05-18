@@ -35,6 +35,10 @@ export interface AuthResponse {
     roles: string[];
     enabledModules?: string[] | null;
     integrations?: string[] | null;
+    cnesCode?: string | null;
+    municipalityCode?: string | null;
+    municipalityName?: string | null;
+    stateCode?: string | null;
     operationalPolicies?: Record<string, unknown> | null;
     isPlatformUser?: boolean;
     mustChangePassword?: boolean;
@@ -44,6 +48,10 @@ export interface AuthResponse {
 export interface OrganizationInfo {
   organizationId: string;
   organizationName: string;
+  cnesCode?: string | null;
+  municipalityCode?: string | null;
+  municipalityName?: string | null;
+  stateCode?: string | null;
   roles: string[];
 }
 
