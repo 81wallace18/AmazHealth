@@ -11,7 +11,7 @@ import { HorusAuditLog } from "@/components/pharmacy/HorusAuditLog";
 export default function Pharmacy() {
   const capabilities = useCapabilities();
   const { hasIntegration } = useOrgConfig();
-  const horusEnabled = hasIntegration(INTEGRATIONS.HORUS_PHARMACY);
+  const horusEnabled = hasIntegration(INTEGRATIONS.HORUS_LEGACY);
 
   return (
     <div className="p-6 space-y-6">
@@ -36,7 +36,7 @@ export default function Pharmacy() {
           <TabsTrigger value="queue">Fila</TabsTrigger>
           <TabsTrigger value="stock">Estoque</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
-          {horusEnabled && <TabsTrigger value="audit">Auditoria HÓRUS</TabsTrigger>}
+          {horusEnabled && <TabsTrigger value="audit">Auditoria legada</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-4">

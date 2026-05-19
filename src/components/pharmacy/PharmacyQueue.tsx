@@ -36,8 +36,8 @@ interface PharmacyQueueProps {
 export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
   const capabilities = useCapabilities();
   const { hasIntegration } = useOrgConfig();
-  const horusEnabled = hasIntegration(INTEGRATIONS.HORUS_PHARMACY);
-  const [queueMode, setQueueMode] = useState<"LOCAL" | "HORUS">("LOCAL");
+  const horusEnabled = hasIntegration(INTEGRATIONS.HORUS_LEGACY);
+  const [queueMode, setQueueMode] = useState<"LOCAL" | "LEGACY">("LOCAL");
   const [statusFilter, setStatusFilter] = useState<PrescriptionStatus | "ALL">("ACTIVE");
   const [pending, setPending] = useState<Prescription[]>([]);
   const [horusStatusFilter, setHorusStatusFilter] = useState<HorusQueueStatus | "ALL">("ALL");
@@ -172,7 +172,7 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
         notes: refuseReason || undefined
       });
       toast({
-        title: "Fila HÓRUS atualizada",
+        title: "Fila da integração legada atualizada",
         description: "A revisão humana foi registrada com sucesso."
       });
       setSelectedHorus(null);
@@ -180,7 +180,7 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
       await loadQueue();
     } catch (err: any) {
       toast({
-        title: "Falha ao revisar item HÓRUS",
+        title: "Falha ao revisar item da integração legada",
         description: err.message || "Não foi possível registrar a revisão.",
         variant: "destructive"
       });
@@ -203,10 +203,10 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
         </div>
         <div className="flex items-center gap-2">
           {horusEnabled && (
-            <Tabs value={queueMode} onValueChange={(value) => setQueueMode(value as "LOCAL" | "HORUS")}>
+            <Tabs value={queueMode} onValueChange={(value) => setQueueMode(value as "LOCAL" | "LEGACY")}>
               <TabsList>
                 <TabsTrigger value="LOCAL">Prescrições locais</TabsTrigger>
-                <TabsTrigger value="HORUS">Operação HÓRUS</TabsTrigger>
+                <TabsTrigger value="LEGACY">Integração legada</TabsTrigger>
               </TabsList>
             </Tabs>
           )}
@@ -225,7 +225,7 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
           ) : (
             <Select value={horusStatusFilter} onValueChange={(value) => setHorusStatusFilter(value as HorusQueueStatus | "ALL")}>
               <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="Status HÓRUS" />
+                <SelectValue placeholder="Status da integração legada" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">Todos</SelectItem>
@@ -256,8 +256,8 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
           </div>
         ) : queueMode === "LOCAL" && prescriptionsToShow.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">Nenhuma prescrição encontrada.</div>
-        ) : queueMode === "HORUS" && horusPending.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">Nenhum item operacional HÓRUS encontrado.</div>
+        ) : queueMode === "LEGACY" && horusPending.length === 0 ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">Nenhum item da integração legada encontrado.</div>
         ) : (
           <ScrollArea className="h-[420px]">
             <Table>
@@ -425,7 +425,7 @@ export function PharmacyQueue({ onDispensed }: PharmacyQueueProps) {
       <Dialog open={!!selectedHorus} onOpenChange={(open) => !open && setSelectedHorus(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Operação HÓRUS</DialogTitle>
+            <DialogTitle>Revisão da integração legada</DialogTitle>
           </DialogHeader>
           {selectedHorus && (
             <div className="space-y-4">

@@ -108,7 +108,7 @@ export function InventoryAlerts() {
         {horusSummary && (
           <div className="grid gap-3 border-b p-4 md:grid-cols-3">
             <div className="rounded-md border p-3">
-              <p className="text-xs uppercase text-muted-foreground">Fila HÓRUS em revisão</p>
+              <p className="text-xs uppercase text-muted-foreground">Fila legada em revisão</p>
               <p className="text-2xl font-semibold">{horusSummary.alertsByType.REVIEW_QUEUE ?? 0}</p>
             </div>
             <div className="rounded-md border p-3">
@@ -116,7 +116,7 @@ export function InventoryAlerts() {
               <p className="text-2xl font-semibold">{horusSummary.alertsByType.PENDING_MAPPING ?? 0}</p>
             </div>
             <div className="rounded-md border p-3">
-              <p className="text-xs uppercase text-muted-foreground">Itens bloqueados no HÓRUS</p>
+              <p className="text-xs uppercase text-muted-foreground">Itens bloqueados na integração legada</p>
               <p className="text-2xl font-semibold">{horusSummary.alertsByType.BLOCKED_QUEUE ?? 0}</p>
             </div>
           </div>

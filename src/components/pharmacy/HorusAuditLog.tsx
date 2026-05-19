@@ -14,13 +14,13 @@ export function HorusAuditLog() {
 
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
-      try {
+        setLoading(true);
+        try {
         setError(null);
         const response = await pharmacyService.getHorusAudit({ page: 0, size: 50 });
         setEvents(response.content);
       } catch (err: any) {
-        setError(err.message || "Não foi possível carregar a auditoria HÓRUS.");
+        setError(err.message || "Não foi possível carregar a auditoria da integração legada.");
       } finally {
         setLoading(false);
       }
@@ -34,7 +34,7 @@ export function HorusAuditLog() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <History className="h-5 w-5" />
-          Auditoria HÓRUS
+          Auditoria da integração legada
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -47,7 +47,7 @@ export function HorusAuditLog() {
         {loading ? (
           <div className="p-6 text-sm text-muted-foreground">Carregando trilha de auditoria...</div>
         ) : events.length === 0 ? (
-          <div className="p-6 text-sm text-muted-foreground">Nenhum evento auditável do HÓRUS encontrado.</div>
+          <div className="p-6 text-sm text-muted-foreground">Nenhum evento auditável da integração legada encontrado.</div>
         ) : (
           <ScrollArea className="h-[420px]">
             <div className="space-y-3 p-4">

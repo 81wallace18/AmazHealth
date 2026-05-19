@@ -4,7 +4,7 @@ import { useAuth } from './useAuth';
  * Acesso aos 3 eixos de feature flags da organização ativa:
  *
  *   - `hasModule(name)`     — domínio funcional (URGENCIA, FARMACIA, ...)
- *   - `hasIntegration(name)` — conectores externos (HORUS_PHARMACY, HORUS_LEGACY, ESUS_AF, ESUS_PEC, ...)
+ *   - `hasIntegration(name)` — conectores externos (HORUS_LEGACY como canônico; HORUS_PHARMACY só compatibilidade histórica; ESUS_AF, ESUS_PEC, ...)
  *   - `hasPolicy(key)`       — policy booleana (night_shift_review, ...)
  *   - `getPolicy(key)`       — valor cru da policy (qualquer tipo)
  *
@@ -36,8 +36,22 @@ export function useOrgConfig() {
   const hasModule = (name: string): boolean =>
     Array.isArray(user?.enabledModules) && (user!.enabledModules as string[]).includes(name);
 
-  const hasIntegration = (name: string): boolean =>
-    Array.isArray(user?.integrations) && (user!.integrations as string[]).includes(name);
+  const canonicalizeIntegration = (name: string): string => {
+    if (!name) return name;
+
+    const normalized = name.trim().toUpperCase();
+    if (normalized === INTEGRATIONS.HORUS_PHARMACY) {
+      return INTEGRATIONS.HORUS_LEGACY;
+    }
+    return normalized;
+  };
+
+  const hasIntegration = (name: string): boolean => {
+    if (!Array.isArray(user?.integrations)) return false;
+    const requested = canonicalizeIntegration(name);
+    return (user!.integrations as string[]).map((value) => (value ?? '').toString().trim().toUpperCase())
+      .includes(requested);
+  };
 
   const getPolicy = <T = unknown>(key: string, defaultValue?: T): T | undefined => {
     const policies = user?.operationalPolicies;
