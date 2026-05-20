@@ -32,10 +32,10 @@ export function ReceptionQueueList({ title, items, emptyMessage }: ReceptionQueu
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item) => {
+                {items.map((item, index) => {
                   const colorInfo = item.triageColor ? MANCHESTER_COLORS[item.triageColor] : null;
                   return (
-                    <TableRow key={`${item.patientCode}-${item.patientName}`}>
+                    <TableRow key={`${item.patientCode}-${index}`}>
                       <TableCell className="font-mono text-sm">{item.patientCode}</TableCell>
                       <TableCell className="font-medium">{item.patientName}</TableCell>
                       <TableCell>
