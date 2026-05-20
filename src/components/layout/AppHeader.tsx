@@ -1,4 +1,5 @@
-import { Bell, Search, User, Settings, LogOut } from "lucide-react";
+import { Bell, KeyRound, Search, User, Settings, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -16,6 +17,7 @@ import { toast } from "sonner";
 
 export function AppHeader() {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignOut = () => {
     signOut();
@@ -87,6 +89,10 @@ export function AppHeader() {
             <DropdownMenuItem onClick={() => handleUnavailableFeature("Meu Perfil")}>
               <User className="mr-2 h-4 w-4" />
               Meu Perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/minha-conexao-pec')}>
+              <KeyRound className="mr-2 h-4 w-4" />
+              Minha conexão PEC
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleUnavailableFeature("Configurações")}>
               <Settings className="mr-2 h-4 w-4" />

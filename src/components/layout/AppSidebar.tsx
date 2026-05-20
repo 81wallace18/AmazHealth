@@ -17,6 +17,7 @@ import {
   Moon,
   Eye,
   TrendingUp,
+  Send,
 } from "lucide-react";
 import {
   Sidebar,
@@ -124,6 +125,15 @@ const navigationItems: NavigationItem[] = [
     group: "Atendimento",
     allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN"],
     module: "URGENCIA",
+  },
+  {
+    title: "Fechamento PEC",
+    url: "/pec-shift-closing",
+    icon: Send,
+    group: "Atendimento",
+    allowedRoles: ["ADMIN", "GESTAO", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN"],
+    module: "URGENCIA",
+    integration: "ESUS_PEC",
   },
   {
     title: "Gestão Hospitalar",

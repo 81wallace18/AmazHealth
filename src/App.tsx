@@ -32,6 +32,8 @@ import ActivateAccount from "./pages/ActivateAccount";
 import DutyManagement from "./pages/DutyManagement";
 import NightShiftReview from "./pages/NightShiftReview";
 import SyncQueue from "./pages/SyncQueue";
+import PecShiftClosing from "./pages/PecShiftClosing";
+import MyPecConnection from "./pages/MyPecConnection";
 import NotFound from "./pages/NotFound";
 import { Unauthorized } from "./pages/Unauthorized";
 import ChangePassword from "./pages/ChangePassword";
@@ -217,6 +219,16 @@ const App = () => (
               <RequireRole allowedRoles={ALL_SYNC_QUEUE_ROLES}>
                 <SyncQueue />
               </RequireRole>
+            } />
+            <Route path="pec-shift-closing" element={
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN"]} module="URGENCIA">
+                <PecShiftClosing />
+              </RequireAccess>
+            } />
+            <Route path="minha-conexao-pec" element={
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN"]} module="URGENCIA">
+                <MyPecConnection />
+              </RequireAccess>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           </Route>
