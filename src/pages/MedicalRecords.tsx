@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { PrescriptionForm } from "@/components/prescriptions/PrescriptionForm";
 import { PrescriptionList } from "@/components/prescriptions/PrescriptionList";
 import { AttendanceOutcomeForm } from "@/components/medical-records/AttendanceOutcomeForm";
+import { NursingProcedurePanel } from "@/components/nursing-procedures/NursingProcedurePanel";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import type { MedicalRecordRequest, RecordType } from "@/types/medicalRecord";
@@ -579,6 +580,7 @@ export default function MedicalRecords() {
       <Tabs defaultValue="list" className="space-y-4">
         <TabsList>
           <TabsTrigger value="list">{isWorkspace ? "Prontuário" : "Lista de Prontuários"}</TabsTrigger>
+          {isWorkspace && capabilities.canRecordEvolution && <TabsTrigger value="nursing-procedures">Procedimentos</TabsTrigger>}
           {isWorkspace && capabilities.canReadPrescription && <TabsTrigger value="prescriptions">Prescrições</TabsTrigger>}
           {isWorkspace && capabilities.canDefineOutcome && <TabsTrigger value="finalize">Finalizar</TabsTrigger>}
           {!isWorkspace && <TabsTrigger value="analytics">Relatórios</TabsTrigger>}
@@ -709,6 +711,12 @@ export default function MedicalRecords() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isWorkspace && capabilities.canRecordEvolution && visitId && (
+          <TabsContent value="nursing-procedures" className="space-y-4">
+            <NursingProcedurePanel visitId={visitId} />
+          </TabsContent>
+        )}
 
         {isWorkspace && capabilities.canReadPrescription && (
           <TabsContent value="prescriptions" className="space-y-4">

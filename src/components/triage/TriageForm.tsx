@@ -68,6 +68,9 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
   const [respiratoryRate, setRespiratoryRate] = useState('');
   const [temperature, setTemperature] = useState('');
   const [oxygenSaturation, setOxygenSaturation] = useState('');
+  const [bloodGlucose, setBloodGlucose] = useState('');
+  const [weight, setWeight] = useState('');
+  const [height, setHeight] = useState('');
   const [glasgow, setGlasgow] = useState('');
 
   // Queixa e discriminadores
@@ -125,6 +128,9 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
       respiratoryRate: respiratoryRate ? parseInt(respiratoryRate) : undefined,
       temperature: temperature ? parseFloat(temperature) : undefined,
       oxygenSaturation: oxygenSaturation ? parseInt(oxygenSaturation) : undefined,
+      bloodGlucose: bloodGlucose ? parseInt(bloodGlucose) : undefined,
+      weight: weight ? parseFloat(weight) : undefined,
+      height: height ? parseFloat(height) : undefined,
     };
 
     // Frontend validation
@@ -272,6 +278,9 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
     respiratoryRate,
     temperature,
     oxygenSaturation,
+    bloodGlucose,
+    weight,
+    height,
     glasgow,
     complaintCategory,
     complaintText,
@@ -452,6 +461,71 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
                 className={fieldErrors.spo2 ? 'border-destructive' : ''}
               />
               {fieldErrors.spo2 && <p className="text-xs text-destructive">{fieldErrors.spo2}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bloodGlucose" className="flex items-center gap-2">
+                  <Droplet className="h-4 w-4" />
+                  Glicemia capilar (mg/dL)
+                </Label>
+                <Input
+                  id="bloodGlucose"
+                  type="number"
+                  value={bloodGlucose}
+                  onChange={(e) => {
+                    setBloodGlucose(e.target.value);
+                    setFieldError('bloodGlucose', validateRange(e.target.value, 20, 600, 'Glicemia'));
+                  }}
+                  placeholder="100"
+                  min="20"
+                  max="600"
+                  className={fieldErrors.bloodGlucose ? 'border-destructive' : ''}
+                />
+                {fieldErrors.bloodGlucose && <p className="text-xs text-destructive">{fieldErrors.bloodGlucose}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="weight" className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Peso (kg)
+                </Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  step="0.1"
+                  value={weight}
+                  onChange={(e) => {
+                    setWeight(e.target.value);
+                    setFieldError('weight', validateRange(e.target.value, 1, 300, 'Peso'));
+                  }}
+                  placeholder="70"
+                  min="1"
+                  max="300"
+                  className={fieldErrors.weight ? 'border-destructive' : ''}
+                />
+                {fieldErrors.weight && <p className="text-xs text-destructive">{fieldErrors.weight}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="height" className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Altura (cm)
+                </Label>
+                <Input
+                  id="height"
+                  type="number"
+                  step="0.1"
+                  value={height}
+                  onChange={(e) => {
+                    setHeight(e.target.value);
+                    setFieldError('height', validateRange(e.target.value, 30, 250, 'Altura'));
+                  }}
+                  placeholder="170"
+                  min="30"
+                  max="250"
+                  className={fieldErrors.height ? 'border-destructive' : ''}
+                />
+                {fieldErrors.height && <p className="text-xs text-destructive">{fieldErrors.height}</p>}
+              </div>
             </div>
           </div>
 
