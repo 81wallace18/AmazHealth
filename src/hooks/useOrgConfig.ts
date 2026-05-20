@@ -49,8 +49,11 @@ export function useOrgConfig() {
   const hasIntegration = (name: string): boolean => {
     if (!Array.isArray(user?.integrations)) return false;
     const requested = canonicalizeIntegration(name);
-    return (user!.integrations as string[]).map((value) => (value ?? '').toString().trim().toUpperCase())
-      .includes(requested);
+    const normalizedConfigured = new Set((user!.integrations as string[])
+      .map((value) => canonicalizeIntegration((value ?? '').toString().trim()))
+      .filter((value) => !!value));
+
+    return normalizedConfigured.has(requested);
   };
 
   const getPolicy = <T = unknown>(key: string, defaultValue?: T): T | undefined => {
