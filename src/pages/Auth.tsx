@@ -269,10 +269,18 @@ function UserTile({
   onForget: (ev: React.MouseEvent) => void;
 }) {
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      type="button"
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      }}
       className="group relative flex flex-col items-center gap-2 rounded-lg border bg-card p-4 transition-all hover:border-primary hover:shadow-md"
+      aria-label={`Selecionar usuário ${user.fullName ?? user.login}`}
     >
       <button
         type="button"
@@ -289,7 +297,7 @@ function UserTile({
           <div className="line-clamp-1 text-xs text-muted-foreground">{user.organizationName}</div>
         )}
       </div>
-    </button>
+    </div>
   );
 }
 
