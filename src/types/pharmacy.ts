@@ -220,3 +220,219 @@ export interface HorusQueueReviewRequest {
   decision: HorusReviewDecision;
   notes?: string;
 }
+
+export type PharmacyReplenishmentRequestStatus =
+  | 'DRAFT'
+  | 'SUBMITTED_LOCAL'
+  | 'EXTERNAL_PENDING'
+  | 'EXTERNAL_SUBMITTED'
+  | 'PARTIALLY_FULFILLED'
+  | 'FULFILLED'
+  | 'CANCELLED'
+  | 'FAILED_EXTERNAL';
+
+export interface PharmacyReplenishmentItemRequest {
+  medicineId: string;
+  requestedQuantity: number;
+}
+
+export interface PharmacyReplenishmentCreateRequest {
+  authorStaffId: string;
+  operatorStaffId?: string | null;
+  status?: PharmacyReplenishmentRequestStatus;
+  destination: string;
+  note?: string | null;
+  items: PharmacyReplenishmentItemRequest[];
+}
+
+export interface PharmacyReplenishmentResponse {
+  id: string;
+  organizationId: string;
+  authorStaffId: string;
+  operatorStaffId?: string | null;
+  status: PharmacyReplenishmentRequestStatus;
+  note?: string | null;
+  cancellationReason?: string | null;
+  destination?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  items: Array<Record<string, unknown>>;
+}
+
+export type PharmacyExternalTaskStatus =
+  | 'PENDING'
+  | 'SUBMITTED'
+  | 'CONFIRMED'
+  | 'FAILED'
+  | 'MANUAL_REVIEW'
+  | 'TECHNICAL_ERROR'
+  | 'DISCARDED';
+
+export interface PharmacyExternalTaskResponse {
+  id: string;
+  organizationId: string;
+  localReferenceType: string;
+  localReferenceId: string;
+  provider: string;
+  status: PharmacyExternalTaskStatus;
+  statusReason?: string | null;
+  externalReference?: string | null;
+  externalStatus?: string | null;
+  errorMessage?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface PharmacyExternalTaskActionRequest {
+  provider: string;
+  operatorStaffId: string;
+  confirmedAt?: string | null;
+  evidenceType?: string | null;
+  externalReference?: string | null;
+  note?: string | null;
+  reason?: string | null;
+}
+
+export type PharmacyReceivingStatus =
+  | 'PENDING_CONFERENCE'
+  | 'PARTIALLY_CONFIRMED'
+  | 'CONFIRMED'
+  | 'DIVERGENT'
+  | 'CANCELLED';
+
+export interface PharmacyReceivingItemRequest {
+  requestItemId: string;
+  medicineId: string;
+  approvedQuantity?: number | null;
+  receivedQuantity?: number | null;
+  batchNumber?: string | null;
+  expiryDate?: string | null;
+  supplier?: string | null;
+  divergenceReason?: string | null;
+}
+
+export interface PharmacyReceivingCreateRequest {
+  requestId: string;
+  items: PharmacyReceivingItemRequest[];
+}
+
+export interface PharmacyReceivingConfirmationRequest {
+  operatorStaffId: string;
+  callerRole?: string | null;
+  callerCapability?: string | null;
+  authorized?: boolean | null;
+}
+
+export interface PharmacyReceivingResponse {
+  id: string;
+  organizationId: string;
+  requestId: string;
+  requestItemId?: string | null;
+  status: PharmacyReceivingStatus;
+  confirmedBy?: string | null;
+  confirmedAt?: string | null;
+  items: Array<Record<string, unknown>>;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export type PharmacyExternalDispenseStatus =
+  | 'LOCAL_RECORDED'
+  | 'EXTERNAL_PENDING'
+  | 'EXTERNAL_CONFIRMED'
+  | 'EXTERNAL_FAILED'
+  | 'EXTERNAL_MANUAL';
+
+export interface ExternalDispenseSyncResponse {
+  id: string;
+  organizationId: string;
+  localReferenceType: string;
+  localReferenceId: string;
+  provider: string;
+  status: PharmacyExternalDispenseStatus;
+  statusContract?: string;
+  externalReference?: string | null;
+  attemptCount?: number | null;
+  lastAttemptAt?: string | null;
+  confirmedAt?: string | null;
+  errorMessage?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface PharmacyExternalDispenseQueueResult {
+  items: ExternalDispenseSyncResponse[];
+  statusCounts: Record<string, number>;
+}
+
+export interface PharmacyExternalDispenseQueueActionRequest {
+  operatorStaffId: string;
+  succeeded?: boolean | null;
+  externalReference?: string | null;
+  reason?: string | null;
+}
+
+export type PharmacyCorrectionType =
+  | 'LOSS'
+  | 'EXPIRY'
+  | 'STOCK_COUNT_ADJUSTMENT'
+  | 'ENTRY_ERROR'
+  | 'DISPENSE_ERROR'
+  | 'BATCH_CORRECTION'
+  | 'TRANSFER_CORRECTION';
+
+export type PharmacyCorrectionStatus = 'DRAFT' | 'PENDING_REVIEW' | 'APPLIED' | 'REJECTED' | 'CANCELLED';
+
+export interface PharmacyStockCorrectionRequest {
+  stockId: string;
+  type: PharmacyCorrectionType;
+  correctedQuantity: number;
+  reason: string;
+  evidenceId?: string | null;
+  sensitive?: boolean | null;
+}
+
+export interface PharmacyStockCorrectionResponse {
+  correctionId: string;
+  organizationId: string;
+  stockId: string;
+  type: PharmacyCorrectionType;
+  status: PharmacyCorrectionStatus;
+  previousQuantity: number;
+  correctedQuantity: number;
+  quantityDelta: number;
+  reason: string;
+  sensitive: boolean;
+  evidenceId?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface PharmacyCorrectionResponse {
+  id: string;
+  organizationId: string;
+  localReferenceType: string;
+  localReferenceId: string;
+  type: PharmacyCorrectionType;
+  status: PharmacyCorrectionStatus;
+  authorId: string;
+  reason: string;
+  evidenceId?: string | null;
+  sensitive: boolean;
+  createsExternalCorrectionTask: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface PharmacyParityReportResponse {
+  reportId: string;
+  dataOrigin: 'LOCAL' | 'HORUS_IMPORTED' | 'MIXED';
+  reconciliationStatus: 'LOCAL_ONLY' | 'PENDING' | 'PARTIAL' | 'RECONCILED' | 'DIVERGENT';
+  fidelity: 'INFORMATIONAL' | 'VISUAL_REFERENCE_ONLY';
+  displayName: string;
+  localSources: string[];
+  filters: Array<{ key: string; label: string; required: boolean }>;
+  knownGap: string;
+  summary: Record<string, unknown>;
+  rows: Array<Record<string, unknown>>;
+}

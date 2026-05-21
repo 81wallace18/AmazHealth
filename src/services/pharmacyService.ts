@@ -13,7 +13,26 @@ import type {
   HorusQueueItem,
   HorusQueueReviewRequest,
   HorusQueueStatus,
-  HorusSnapshotSummary
+  HorusSnapshotSummary,
+  PharmacyCorrectionResponse,
+  PharmacyCorrectionStatus,
+  PharmacyCorrectionType,
+  PharmacyExternalDispenseQueueActionRequest,
+  PharmacyExternalDispenseQueueResult,
+  PharmacyExternalDispenseStatus,
+  PharmacyExternalTaskActionRequest,
+  PharmacyExternalTaskResponse,
+  PharmacyExternalTaskStatus,
+  PharmacyParityReportResponse,
+  PharmacyReceivingConfirmationRequest,
+  PharmacyReceivingCreateRequest,
+  PharmacyReceivingResponse,
+  PharmacyReceivingStatus,
+  PharmacyReplenishmentCreateRequest,
+  PharmacyReplenishmentRequestStatus,
+  PharmacyReplenishmentResponse,
+  PharmacyStockCorrectionRequest,
+  PharmacyStockCorrectionResponse
 } from '@/types/pharmacy';
 import type { Prescription, PrescriptionStatus } from '@/types/prescription';
 
@@ -172,6 +191,96 @@ export const pharmacyService = {
         size: params?.size ?? 20
       }
     });
+    return response.data;
+  },
+
+  // ===== Operação canônica =====
+  async getReplenishmentRequests(params?: { status?: PharmacyReplenishmentRequestStatus }): Promise<PharmacyReplenishmentResponse[]> {
+    const response = await api.get<PharmacyReplenishmentResponse[]>('/pharmacy/replenishment-requests', {
+      params: { status: params?.status }
+    });
+    return response.data;
+  },
+
+  async createReplenishmentRequest(body: PharmacyReplenishmentCreateRequest): Promise<PharmacyReplenishmentResponse> {
+    const response = await api.post<PharmacyReplenishmentResponse>('/pharmacy/replenishment-requests', body);
+    return response.data;
+  },
+
+  async getExternalTasks(params?: { provider?: string; status?: PharmacyExternalTaskStatus }): Promise<PharmacyExternalTaskResponse[]> {
+    const response = await api.get<PharmacyExternalTaskResponse[]>('/pharmacy/external-tasks', {
+      params
+    });
+    return response.data;
+  },
+
+  async confirmExternalTask(id: string, body: PharmacyExternalTaskActionRequest): Promise<PharmacyExternalTaskResponse> {
+    const response = await api.patch<PharmacyExternalTaskResponse>(`/pharmacy/external-tasks/${id}/confirm`, body);
+    return response.data;
+  },
+
+  async discardExternalTask(id: string, body: PharmacyExternalTaskActionRequest): Promise<PharmacyExternalTaskResponse> {
+    const response = await api.patch<PharmacyExternalTaskResponse>(`/pharmacy/external-tasks/${id}/discard`, body);
+    return response.data;
+  },
+
+  async getReceivings(params?: { status?: PharmacyReceivingStatus }): Promise<PharmacyReceivingResponse[]> {
+    const response = await api.get<PharmacyReceivingResponse[]>('/pharmacy/receivings', { params });
+    return response.data;
+  },
+
+  async createReceiving(body: PharmacyReceivingCreateRequest): Promise<PharmacyReceivingResponse> {
+    const response = await api.post<PharmacyReceivingResponse>('/pharmacy/receivings', body);
+    return response.data;
+  },
+
+  async confirmReceiving(id: string, body: PharmacyReceivingConfirmationRequest): Promise<PharmacyReceivingResponse> {
+    const response = await api.patch<PharmacyReceivingResponse>(`/pharmacy/receivings/${id}/confirm`, body);
+    return response.data;
+  },
+
+  async getExternalDispenseQueue(params?: { provider?: string; status?: PharmacyExternalDispenseStatus }): Promise<PharmacyExternalDispenseQueueResult> {
+    const response = await api.get<PharmacyExternalDispenseQueueResult>('/pharmacy/external-dispense-queue', { params });
+    return response.data;
+  },
+
+  async markExternalDispenseManualExecution(id: string, body: PharmacyExternalDispenseQueueActionRequest) {
+    const response = await api.patch(`/pharmacy/external-dispense-queue/${id}/manual-execution`, body);
+    return response.data;
+  },
+
+  async markExternalDispenseManualReview(id: string, body: PharmacyExternalDispenseQueueActionRequest) {
+    const response = await api.patch(`/pharmacy/external-dispense-queue/${id}/manual-review`, body);
+    return response.data;
+  },
+
+  async getCorrections(params?: { type?: PharmacyCorrectionType; status?: PharmacyCorrectionStatus }): Promise<PharmacyCorrectionResponse[]> {
+    const response = await api.get<PharmacyCorrectionResponse[]>('/pharmacy/corrections', { params });
+    return response.data;
+  },
+
+  async createStockCorrection(body: PharmacyStockCorrectionRequest): Promise<PharmacyStockCorrectionResponse> {
+    const response = await api.post<PharmacyStockCorrectionResponse>('/pharmacy/corrections/stock', body);
+    return response.data;
+  },
+
+  async approveCorrection(id: string, approverId: string): Promise<PharmacyStockCorrectionResponse> {
+    const response = await api.patch<PharmacyStockCorrectionResponse>(`/pharmacy/corrections/${id}/approve`, { approverId });
+    return response.data;
+  },
+
+  async rejectCorrection(id: string, approverId: string): Promise<PharmacyStockCorrectionResponse> {
+    const response = await api.patch<PharmacyStockCorrectionResponse>(`/pharmacy/corrections/${id}/reject`, { approverId });
+    return response.data;
+  },
+
+  async getParityReports(): Promise<PharmacyParityReportResponse[]> {
+    const response = await api.get<PharmacyParityReportResponse[]>('/pharmacy/reports');
+    return response.data;
+  },
+
+  async getParityReport(reportId: string): Promise<PharmacyParityReportResponse> {
+    const response = await api.get<PharmacyParityReportResponse>(`/pharmacy/reports/${reportId}`);
     return response.data;
   }
 };

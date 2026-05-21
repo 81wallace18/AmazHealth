@@ -7,6 +7,7 @@ import { PharmacyQueue } from "@/components/pharmacy/PharmacyQueue";
 import { StockManagement } from "@/components/pharmacy/StockManagement";
 import { InventoryAlerts } from "@/components/pharmacy/InventoryAlerts";
 import { HorusAuditLog } from "@/components/pharmacy/HorusAuditLog";
+import { CanonicalPharmacyOperations } from "@/components/pharmacy/CanonicalPharmacyOperations";
 
 export default function Pharmacy() {
   const capabilities = useCapabilities();
@@ -34,6 +35,7 @@ export default function Pharmacy() {
         <TabsList className="flex flex-wrap">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="queue">Fila</TabsTrigger>
+          <TabsTrigger value="canonical">Operação canônica</TabsTrigger>
           <TabsTrigger value="stock">Estoque</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
           {horusEnabled && <TabsTrigger value="audit">Auditoria legada</TabsTrigger>}
@@ -45,6 +47,10 @@ export default function Pharmacy() {
 
         <TabsContent value="queue" className="space-y-4">
           <PharmacyQueue />
+        </TabsContent>
+
+        <TabsContent value="canonical" className="space-y-4">
+          <CanonicalPharmacyOperations />
         </TabsContent>
 
         <TabsContent value="stock" className="space-y-4">
