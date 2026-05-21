@@ -1,4 +1,9 @@
 import api from '@/lib/api';
+import {
+  ExternalAuthenticationStatus,
+  ExternalIdentityLinkStatus,
+  ExternalIdentityProvider,
+} from '@/types/externalIdentity';
 
 /**
  * Tipos para autenticação.
@@ -16,14 +21,23 @@ export interface LoginData {
   login: string;
   password: string;
   organizationId?: string; // Opcional - backend usa primeira org se não fornecido
+  provider?: ExternalIdentityProvider;
+  externalProvider?: ExternalIdentityProvider;
+  staffId?: string;
 }
 
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string | null;
-  tokenType: string;
-  expiresIn: number;
-  user: {
+  accessToken?: string;
+  refreshToken?: string | null;
+  tokenType?: string;
+  expiresIn?: number;
+  authenticationStatus?: ExternalAuthenticationStatus;
+  externalIdentityStatus?: ExternalIdentityLinkStatus;
+  externalProvider?: ExternalIdentityProvider;
+  externalIdentityLinkId?: string | null;
+  requiresExternalPasswordChange?: boolean;
+  message?: string | null;
+  user?: {
     id: string;
     username: string;
     email: string;

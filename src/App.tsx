@@ -225,8 +225,13 @@ const App = () => (
                 <PecShiftClosing />
               </RequireAccess>
             } />
+            <Route path="minha-conexao-externa" element={
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "PHARMACIST", "DOCTOR", "HOSPITAL_MANAGER"]}>
+                <MyPecConnection />
+              </RequireAccess>
+            } />
             <Route path="minha-conexao-pec" element={
-              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN"]} module="URGENCIA">
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "PHARMACIST", "DOCTOR", "HOSPITAL_MANAGER"]}>
                 <MyPecConnection />
               </RequireAccess>
             } />

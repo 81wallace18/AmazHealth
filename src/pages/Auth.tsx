@@ -7,22 +7,36 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { ArrowLeft, UserPlus, X } from 'lucide-react';
+import { ExternalIdentityProvider } from '@/types/externalIdentity';
 
 const loginSchema = z.object({
   login: z.string().min(1, 'Email ou username é obrigatório'),
   password: z.string().min(1, 'Senha é obrigatória'),
   organizationId: z.string().optional(),
   rememberMe: z.boolean().optional(),
+  provider: z.enum(['LOCAL', 'HORUS_LEGACY', 'ESUS_PEC', 'ESUS_AF']).optional(),
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
 
 type Mode = 'picker' | 'login';
+type LoginState =
+  | { kind: 'pending-approval'; message: string; provider?: ExternalIdentityProvider }
+  | { kind: 'password-expired'; message: string; provider?: ExternalIdentityProvider }
+  | null;
+
+const providerOptions: Array<{ value: 'LOCAL' | ExternalIdentityProvider; label: string }> = [
+  { value: 'LOCAL', label: 'Acesso local' },
+  { value: 'HORUS_LEGACY', label: 'Hórus legado' },
+  { value: 'ESUS_PEC', label: 'e-SUS PEC' },
+  { value: 'ESUS_AF', label: 'e-SUS AF' },
+];
 
 export default function Auth() {
   const { signIn, loading } = useAuth();
@@ -31,6 +45,7 @@ export default function Auth() {
   const [users, setUsers] = useState<KnownUser[]>(() => knownUsers.list());
   const [mode, setMode] = useState<Mode>(() => (knownUsers.list().length > 0 ? 'picker' : 'login'));
   const [selectedUser, setSelectedUser] = useState<KnownUser | null>(null);
+  const [loginState, setLoginState] = useState<LoginState>(null);
 
   const loginForm = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -39,6 +54,7 @@ export default function Auth() {
       password: '',
       organizationId: '',
       rememberMe: false,
+      provider: 'LOCAL',
     },
   });
 
@@ -48,7 +64,9 @@ export default function Auth() {
       loginForm.setValue('login', selectedUser.login);
       loginForm.setValue('password', '');
       loginForm.setValue('rememberMe', true);
+      loginForm.setValue('provider', 'LOCAL');
       loginForm.clearErrors();
+      setLoginState(null);
       const t = setTimeout(() => {
         document.querySelector<HTMLInputElement>('input[name="password"]')?.focus();
       }, 50);
@@ -58,13 +76,37 @@ export default function Auth() {
 
   const onLogin = async (values: LoginValues) => {
     loginForm.clearErrors('root');
-    const { error, message, mustChangePassword } = await signIn(
+    setLoginState(null);
+    const provider = values.provider && values.provider !== 'LOCAL'
+      ? values.provider as ExternalIdentityProvider
+      : undefined;
+    const result = await signIn(
       values.login,
       values.password,
       values.organizationId,
-      values.rememberMe
+      values.rememberMe,
+      provider
     );
+    const { error, message, mustChangePassword } = result;
     if (!error) {
+      if (result.pendingApproval) {
+        setLoginState({
+          kind: 'pending-approval',
+          message: message || 'Seu vínculo externo ainda aguarda aprovação administrativa.',
+          provider: result.externalProvider,
+        });
+        loginForm.reset({ ...values, password: '' });
+        return;
+      }
+      if (result.requiresExternalPasswordChange) {
+        setLoginState({
+          kind: 'password-expired',
+          message: message || 'A senha do provedor externo expirou.',
+          provider: result.externalProvider,
+        });
+        loginForm.reset({ ...values, password: '' });
+        return;
+      }
       navigate(mustChangePassword ? '/change-password' : '/', { replace: true });
     } else if (message) {
       loginForm.setError('root', { message });
@@ -78,7 +120,8 @@ export default function Auth() {
 
   const handleAddNew = () => {
     setSelectedUser(null);
-    loginForm.reset({ login: '', password: '', organizationId: '', rememberMe: false });
+    setLoginState(null);
+    loginForm.reset({ login: '', password: '', organizationId: '', rememberMe: false, provider: 'LOCAL' });
     setMode('login');
   };
 
@@ -94,7 +137,8 @@ export default function Auth() {
 
   const handleBackToPicker = () => {
     setSelectedUser(null);
-    loginForm.reset({ login: '', password: '', organizationId: '', rememberMe: false });
+    setLoginState(null);
+    loginForm.reset({ login: '', password: '', organizationId: '', rememberMe: false, provider: 'LOCAL' });
     setMode('picker');
   };
 
@@ -223,6 +267,30 @@ export default function Auth() {
               />
               <FormField
                 control={loginForm.control}
+                name="provider"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Origem do acesso</FormLabel>
+                    <Select value={field.value || 'LOCAL'} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a origem" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {providerOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={loginForm.control}
                 name="rememberMe"
                 render={({ field }) => (
                   <FormItem className="flex items-center gap-2 space-y-0">
@@ -241,6 +309,20 @@ export default function Auth() {
               {loginForm.formState.errors.root?.message && (
                 <Alert variant="destructive">
                   <AlertDescription>{loginForm.formState.errors.root.message}</AlertDescription>
+                </Alert>
+              )}
+              {loginState?.kind === 'pending-approval' && (
+                <Alert>
+                  <AlertDescription>
+                    {loginState.message} Procure a gestão da unidade para aprovar o vínculo antes de tentar novamente.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {loginState?.kind === 'password-expired' && (
+                <Alert>
+                  <AlertDescription>
+                    {loginState.message} Renove a senha diretamente no provedor externo e depois faça uma nova tentativa por esta tela.
+                  </AlertDescription>
                 </Alert>
               )}
               {!selectedUser && (
