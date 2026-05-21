@@ -11,6 +11,7 @@ import { authStorage } from '@/lib/authStorage';
 import { knownUsers } from '@/lib/knownUsers';
 import { startProactiveRefresh, stopProactiveRefresh } from '@/lib/api';
 import dutyService from '@/services/dutyService';
+import { ExternalIdentityProvider } from '@/types/externalIdentity';
 
 interface User {
   id: string;
@@ -37,7 +38,7 @@ interface User {
 const normalizeRoles = (roles?: string[]) =>
   (roles ?? []).filter(Boolean).map((role) => role.toUpperCase());
 
-const mapAuthUser = (authUser: AuthResponse['user']): User => ({
+const mapAuthUser = (authUser: NonNullable<AuthResponse['user']>): User => ({
   id: authUser.id,
   username: authUser.username,
   email: authUser.email,
@@ -88,6 +89,9 @@ export function useAuth() {
   };
 
   const syncAuthResponse = (response: AuthResponse, rememberMe?: boolean) => {
+    if (!response.accessToken || !response.user) {
+      throw new Error('Resposta de autenticação sem sessão persistível.');
+    }
     const normalized = mapAuthUser(response.user);
     authStorage.setSession({
       accessToken: response.accessToken,
@@ -164,7 +168,8 @@ export function useAuth() {
     login: string,
     password: string,
     organizationId?: string,
-    rememberMe?: boolean
+    rememberMe?: boolean,
+    provider?: ExternalIdentityProvider
   ) => {
     try {
       setLoading(true);
@@ -172,7 +177,38 @@ export function useAuth() {
         login,
         password,
         organizationId,
+        provider,
       });
+
+      const authenticationStatus = response.authenticationStatus ?? 'AUTHENTICATED';
+      if (authenticationStatus === 'PENDING_APPROVAL') {
+        clearSession();
+        return {
+          error: null,
+          message: response.message || 'Seu vínculo externo ainda aguarda aprovação administrativa.',
+          authenticationStatus,
+          externalProvider: response.externalProvider ?? provider,
+          externalIdentityStatus: response.externalIdentityStatus,
+          pendingApproval: true,
+          mustChangePassword: false,
+        };
+      }
+
+      if (
+        authenticationStatus === 'PASSWORD_EXPIRED' ||
+        response.requiresExternalPasswordChange
+      ) {
+        clearSession();
+        return {
+          error: null,
+          message: response.message || 'A senha do provedor externo expirou. Renove no sistema de origem e tente novamente.',
+          authenticationStatus: 'PASSWORD_EXPIRED',
+          externalProvider: response.externalProvider ?? provider,
+          externalIdentityStatus: response.externalIdentityStatus,
+          requiresExternalPasswordChange: true,
+          mustChangePassword: false,
+        };
+      }
 
       const normalized = syncAuthResponse(response, rememberMe);
       startProactiveRefresh();
@@ -184,9 +220,20 @@ export function useAuth() {
       });
 
       if (!normalized.mustChangePassword) {
-        toast.success('Login realizado com sucesso!');
+        if (authenticationStatus === 'CONTINGENCY_AUTHENTICATED') {
+          toast.warning(response.message || 'Login em contingência. O provedor externo está indisponível no momento.');
+        } else {
+          toast.success('Login realizado com sucesso!');
+        }
       }
-      return { error: null, message: null, mustChangePassword: normalized.mustChangePassword ?? false };
+      return {
+        error: null,
+        message: response.message ?? null,
+        mustChangePassword: normalized.mustChangePassword ?? false,
+        authenticationStatus,
+        externalProvider: response.externalProvider ?? provider,
+        externalIdentityStatus: response.externalIdentityStatus,
+      };
     } catch (error: any) {
       // Mensagens específicas por tipo de erro
       let message = 'Erro ao fazer login. Tente novamente.';

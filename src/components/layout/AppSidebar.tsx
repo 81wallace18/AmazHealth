@@ -18,6 +18,7 @@ import {
   Eye,
   TrendingUp,
   Send,
+  KeyRound,
 } from "lucide-react";
 import {
   Sidebar,
@@ -134,6 +135,13 @@ const navigationItems: NavigationItem[] = [
     allowedRoles: ["ADMIN", "GESTAO", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN"],
     module: "URGENCIA",
     integration: "ESUS_PEC",
+  },
+  {
+    title: "Conexão Externa",
+    url: "/minha-conexao-externa",
+    icon: KeyRound,
+    group: "Atendimento",
+    allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "PHARMACIST", "HOSPITAL_MANAGER"],
   },
   {
     title: "Gestão Hospitalar",

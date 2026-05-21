@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, UserCog, Shield, Power, Trash2, Loader2, Link as LinkIcon } from "lucide-react";
+import { CheckCircle2, Loader2, PauseCircle, Plus, Power, RefreshCw, Shield, Trash2, UserCog, XCircle, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -27,7 +27,13 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { userService } from "@/services/userService";
+import externalIdentityService from "@/services/externalIdentityService";
 import { PageResponse, RoleType, User } from "@/types/user";
+import {
+  ExternalIdentityLink,
+  ExternalIdentityLinkStatus,
+  ExternalIdentityProvider,
+} from "@/types/externalIdentity";
 import { useAuth } from "@/hooks/useAuth";
 
 const createUserSchema = z.object({
@@ -63,6 +69,20 @@ const ROLE_LABELS: Record<RoleType, string> = {
   staff: "Funcionário",
 };
 
+const PROVIDER_LABELS: Record<ExternalIdentityProvider, string> = {
+  HORUS_LEGACY: "Hórus legado",
+  ESUS_PEC: "e-SUS PEC",
+  ESUS_AF: "e-SUS AF",
+};
+
+const LINK_STATUS_LABELS: Record<ExternalIdentityLinkStatus, string> = {
+  PRE_REGISTERED: "Pré-cadastrado",
+  PENDING_APPROVAL: "Aguardando aprovação",
+  APPROVED: "Aprovado",
+  SUSPENDED: "Suspenso",
+  REJECTED: "Rejeitado",
+};
+
 function roleToBadgeVariant(role: RoleType): "default" | "secondary" | "outline" | "destructive" {
   switch (role) {
     case "admin":
@@ -89,6 +109,12 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [externalLinks, setExternalLinks] = useState<ExternalIdentityLink[]>([]);
+  const [externalProviderFilter, setExternalProviderFilter] = useState<ExternalIdentityProvider | "ALL">("ALL");
+  const [externalStatusFilter, setExternalStatusFilter] = useState<ExternalIdentityLinkStatus | "ALL">("PENDING_APPROVAL");
+  const [externalLoading, setExternalLoading] = useState(false);
+  const [syncingExternal, setSyncingExternal] = useState(false);
+  const [approvalDrafts, setApprovalDrafts] = useState<Record<string, { userId?: string; staffId?: string }>>({});
   const [activationInfo, setActivationInfo] = useState<{
     email: string;
     activationUrl?: string;
@@ -121,11 +147,28 @@ export default function UserManagement() {
     }
   };
 
+  const loadExternalLinks = async () => {
+    try {
+      setExternalLoading(true);
+      const links = await externalIdentityService.list({
+        provider: externalProviderFilter === "ALL" ? undefined : externalProviderFilter,
+        status: externalStatusFilter === "ALL" ? undefined : externalStatusFilter,
+      });
+      setExternalLinks(links);
+    } catch (error: any) {
+      const message = error?.response?.data?.message || "Erro ao carregar vínculos externos.";
+      toast.error(message);
+    } finally {
+      setExternalLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isAdmin) {
       loadUsers();
+      loadExternalLinks();
     }
-  }, [isAdmin]);
+  }, [isAdmin, externalProviderFilter, externalStatusFilter]);
 
   const onCreateUser = async (values: CreateUserFormValues) => {
     try {
@@ -171,6 +214,64 @@ export default function UserManagement() {
     } catch (error: any) {
       const message = error?.response?.data?.message || "Não foi possível remover o usuário.";
       toast.error(message);
+    }
+  };
+
+  const handleApproveExternalLink = async (link: ExternalIdentityLink) => {
+    const draft = approvalDrafts[link.id] ?? {};
+    const userId = draft.userId?.trim() || link.userId || undefined;
+    const staffId = draft.staffId?.trim() || link.staffId || undefined;
+    if (!userId || !staffId) {
+      toast.error("Selecione o usuário/profissional interno antes de aprovar este vínculo.");
+      return;
+    }
+    try {
+      await externalIdentityService.approve(link.id, {
+        userId,
+        staffId,
+        statusReason: "Aprovado pela gestão na tela de usuários.",
+      });
+      toast.success("Vínculo externo aprovado.");
+      await loadExternalLinks();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Não foi possível aprovar o vínculo.");
+    }
+  };
+
+  const handleReviewExternalLink = async (
+    link: ExternalIdentityLink,
+    action: "reject" | "suspend"
+  ) => {
+    try {
+      if (action === "reject") {
+        await externalIdentityService.reject(link.id, {
+          statusReason: "Revisado pela gestão na tela de usuários.",
+        });
+        toast.success("Vínculo externo rejeitado.");
+      } else {
+        await externalIdentityService.suspend(link.id, {
+          statusReason: "Suspenso pela gestão na tela de usuários.",
+        });
+        toast.success("Vínculo externo suspenso.");
+      }
+      await loadExternalLinks();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Não foi possível revisar o vínculo.");
+    }
+  };
+
+  const handleSyncNow = async () => {
+    try {
+      setSyncingExternal(true);
+      const summary = await externalIdentityService.syncNow({
+        provider: externalProviderFilter === "ALL" ? undefined : externalProviderFilter,
+        limit: 25,
+      });
+      toast.success(`Sincronização processada: ${summary.succeeded ?? 0} sucesso(s), ${summary.failed ?? 0} falha(s).`);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Não foi possível sincronizar agora.");
+    } finally {
+      setSyncingExternal(false);
     }
   };
 
@@ -445,6 +546,157 @@ export default function UserManagement() {
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       Nenhum usuário encontrado.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <LinkIcon className="h-5 w-5" />
+              Identidades externas
+            </CardTitle>
+            <CardDescription>
+              Revise vínculos criados por login Hórus/PEC/AF e acione sincronização manual quando necessário.
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Select value={externalProviderFilter} onValueChange={(value) => setExternalProviderFilter(value as ExternalIdentityProvider | "ALL")}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos</SelectItem>
+                {Object.entries(PROVIDER_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={externalStatusFilter} onValueChange={(value) => setExternalStatusFilter(value as ExternalIdentityLinkStatus | "ALL")}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos os status</SelectItem>
+                {Object.entries(LINK_STATUS_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={loadExternalLinks} disabled={externalLoading}>
+              {externalLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Atualizar
+            </Button>
+            <Button variant="secondary" onClick={handleSyncNow} disabled={syncingExternal}>
+              {syncingExternal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Sincronizar agora
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {externalLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+              <span>Carregando vínculos externos...</span>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Provider</TableHead>
+                  <TableHead>Login externo</TableHead>
+                  <TableHead>Documentos</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Vínculo interno</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {externalLinks.map((link) => (
+                  <TableRow key={link.id}>
+                    <TableCell>{PROVIDER_LABELS[link.provider] ?? link.provider}</TableCell>
+                    <TableCell className="font-medium">{link.externalLogin || "-"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {[link.externalCpf && `CPF ${link.externalCpf}`, link.externalCns && `CNS ${link.externalCns}`].filter(Boolean).join(" / ") || "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={link.status === "APPROVED" ? "default" : link.status === "REJECTED" ? "destructive" : "secondary"}>
+                        {LINK_STATUS_LABELS[link.status] ?? link.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="min-w-64 space-y-2 text-xs text-muted-foreground">
+                      <Input
+                        value={approvalDrafts[link.id]?.userId ?? link.userId ?? ""}
+                        onChange={(event) =>
+                          setApprovalDrafts((current) => ({
+                            ...current,
+                            [link.id]: {
+                              ...current[link.id],
+                              userId: event.target.value,
+                            },
+                          }))
+                        }
+                        placeholder="userId interno"
+                        disabled={link.status === "APPROVED"}
+                        className="h-8 text-xs"
+                      />
+                      <Input
+                        value={approvalDrafts[link.id]?.staffId ?? link.staffId ?? ""}
+                        onChange={(event) =>
+                          setApprovalDrafts((current) => ({
+                            ...current,
+                            [link.id]: {
+                              ...current[link.id],
+                              staffId: event.target.value,
+                            },
+                          }))
+                        }
+                        placeholder="staffId interno"
+                        disabled={link.status === "APPROVED"}
+                        className="h-8 text-xs"
+                      />
+                    </TableCell>
+                    <TableCell className="space-x-2 text-right">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => handleApproveExternalLink(link)}
+                        disabled={link.status === "APPROVED"}
+                        title="Aprovar vínculo"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => handleReviewExternalLink(link, "suspend")}
+                        disabled={link.status === "SUSPENDED" || link.status === "REJECTED"}
+                        title="Suspender vínculo"
+                      >
+                        <PauseCircle className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleReviewExternalLink(link, "reject")}
+                        disabled={link.status === "REJECTED"}
+                        title="Rejeitar vínculo"
+                      >
+                        <XCircle className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {!externalLinks.length && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                      Nenhum vínculo externo encontrado para os filtros atuais.
                     </TableCell>
                   </TableRow>
                 )}

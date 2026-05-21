@@ -1,97 +1,177 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { CheckCircle2, Clock3, KeyRound, Loader2, LockKeyhole, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Clock3, KeyRound, Loader2, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuth } from '@/hooks/useAuth';
+import externalIdentityService from '@/services/externalIdentityService';
 import pecShiftClosingService, { PecCredentialStatus } from '@/services/pecShiftClosingService';
+import {
+  ExternalCredentialStatusResponse,
+  ExternalIdentityProvider,
+} from '@/types/externalIdentity';
+
+const providerOptions: Array<{ value: ExternalIdentityProvider; label: string; shortLabel: string }> = [
+  { value: 'ESUS_PEC', label: 'e-SUS PEC', shortLabel: 'PEC' },
+  { value: 'HORUS_LEGACY', label: 'Hórus legado', shortLabel: 'Hórus' },
+  { value: 'ESUS_AF', label: 'e-SUS AF', shortLabel: 'AF' },
+];
+
+function providerLabel(provider: ExternalIdentityProvider) {
+  return providerOptions.find((option) => option.value === provider)?.label ?? provider;
+}
 
 function statusCopy(status?: string) {
   switch (status) {
+    case 'HEALTHY':
     case 'VALID':
       return {
-        title: 'Conexão pronta',
-        badge: 'Conectado ao PEC',
-        description: 'Conseguimos entrar no PEC com sua credencial.',
+        title: 'Credencial validada',
+        badge: 'Válida',
+        description: 'A senha registrada foi validada no provedor externo.',
         tone: 'success',
         icon: ShieldCheck,
       };
-    case 'TESTING':
+    case 'EXPIRING_SOON':
       return {
-        title: 'Testando no PEC',
-        badge: 'Teste em andamento',
-        description: 'Estamos tentando entrar no PEC. Isso pode levar alguns instantes.',
-        tone: 'info',
+        title: 'Credencial próxima do vencimento',
+        badge: 'Atenção',
+        description: 'Rotacione a senha antes do vencimento operacional.',
+        tone: 'warning',
         icon: Clock3,
       };
-    case 'INVALID_PASSWORD':
+    case 'EXPIRED':
       return {
-        title: 'Senha recusada',
-        badge: 'Atualizar senha',
-        description: 'O PEC recusou sua senha. Digite a senha atual e teste de novo.',
+        title: 'Credencial expirada',
+        badge: 'Expirada',
+        description: 'Renove a senha no provedor externo e rotacione aqui.',
         tone: 'danger',
         icon: ShieldAlert,
       };
+    case 'INVALID':
+    case 'INVALID_PASSWORD':
+      return {
+        title: 'Senha recusada',
+        badge: 'Atualizar',
+        description: 'O provedor externo recusou a senha registrada.',
+        tone: 'danger',
+        icon: ShieldAlert,
+      };
+    case 'PROVIDER_UNAVAILABLE':
     case 'PEC_UNAVAILABLE':
       return {
-        title: 'PEC indisponível',
-        badge: 'Tente novamente',
-        description: 'O PEC não respondeu agora. A senha pode estar correta, mas o sistema externo não confirmou.',
+        title: 'Provedor indisponível',
+        badge: 'Contingência',
+        description: 'O provedor externo não respondeu agora.',
         tone: 'warning',
         icon: ShieldAlert,
       };
-    case 'SESSION_CONFLICT':
+    case 'TECHNICAL_FAILURE':
+    case 'UNKNOWN_ERROR':
       return {
-        title: 'Sessão em conflito',
-        badge: 'Fechar outra sessão',
-        description: 'O PEC indicou sessão aberta em outro lugar. Feche a sessão anterior e tente novamente.',
+        title: 'Falha técnica',
+        badge: 'Revisar',
+        description: 'Não foi possível confirmar a credencial.',
         tone: 'warning',
         icon: ShieldAlert,
       };
     case 'MISSING_CONFIGURATION':
+    case 'NOT_CONFIGURED':
       return {
-        title: 'Configuração pendente',
-        badge: 'Chamar gestão',
-        description: 'A URL do PEC ainda não está configurada para esta unidade.',
-        tone: 'warning',
-        icon: ShieldAlert,
+        title: 'Credencial não configurada',
+        badge: 'Configurar',
+        description: 'Ainda não existe credencial externa ativa para este profissional.',
+        tone: 'neutral',
+        icon: KeyRound,
+      };
+    case 'NOT_TESTED':
+    case 'TESTING':
+      return {
+        title: 'Validação pendente',
+        badge: 'Pendente',
+        description: 'A credencial existe, mas ainda não foi validada com sucesso.',
+        tone: 'info',
+        icon: Clock3,
       };
     default:
       return {
-        title: 'Conexão não testada',
-        badge: 'Não testado',
-        description: 'Informe sua credencial do PEC e faça o teste antes do fechamento do turno.',
+        title: 'Sem status carregado',
+        badge: 'Consultar',
+        description: 'Selecione o provedor e consulte sua credencial externa.',
         tone: 'neutral',
         icon: KeyRound,
       };
   }
 }
 
-function formatDate(value?: string) {
-  if (!value) return 'Ainda sem teste';
+function formatDate(value?: string | null) {
+  if (!value) return 'Sem registro';
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
 }
 
+function selectDefaultProvider(integrations?: string[] | null, roles?: string[]): ExternalIdentityProvider {
+  const normalizedIntegrations = new Set((integrations ?? []).map((item) => item.toUpperCase()));
+  const normalizedRoles = new Set((roles ?? []).map((item) => item.toUpperCase()));
+  if (normalizedRoles.has('PHARMACIST') && (normalizedIntegrations.has('HORUS_LEGACY') || normalizedIntegrations.has('HORUS_PHARMACY'))) {
+    return 'HORUS_LEGACY';
+  }
+  if (normalizedIntegrations.has('ESUS_PEC')) return 'ESUS_PEC';
+  if (normalizedIntegrations.has('ESUS_AF')) return 'ESUS_AF';
+  if (normalizedIntegrations.has('HORUS_LEGACY') || normalizedIntegrations.has('HORUS_PHARMACY')) return 'HORUS_LEGACY';
+  return 'ESUS_PEC';
+}
+
 export default function MyPecConnection() {
-  const [credential, setCredential] = useState<PecCredentialStatus | null>(null);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const { user } = useAuth();
+  const [provider, setProvider] = useState<ExternalIdentityProvider>(() =>
+    selectDefaultProvider(user?.integrations, user?.roles)
+  );
+  const [credential, setCredential] = useState<ExternalCredentialStatusResponse | null>(null);
+  const [legacyPecCredential, setLegacyPecCredential] = useState<PecCredentialStatus | null>(null);
+  const [externalUsername, setExternalUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const copy = useMemo(() => statusCopy(credential?.status), [credential?.status]);
+  const statusValue = credential?.healthStatus ?? credential?.validityStatus ?? legacyPecCredential?.status;
+  const copy = useMemo(() => statusCopy(statusValue), [statusValue]);
   const Icon = copy.icon;
-  const isTesting = credential?.status === 'TESTING';
-  const canSubmit = username.trim().length > 0 && password.trim().length > 0 && !busy;
+  const canUseLegacyPec = provider === 'ESUS_PEC';
+  const canRotate = newPassword.trim().length > 0 && !busy;
+  const isAdministrative = Boolean(user?.roles?.some((role) =>
+    ['ADMIN', 'TENANT_ADMIN', 'PLATFORM_ADMIN', 'HOSPITAL_MANAGER'].includes(role.toUpperCase())
+  ));
 
   async function loadStatus(silent = false) {
     if (!silent) setBusy(true);
     try {
-      const status = await pecShiftClosingService.credentialStatus();
-      setCredential(status);
-      if (status.username) setUsername(status.username);
+      if (!isAdministrative || user?.staffId || externalUsername.trim()) {
+        const status = await externalIdentityService.credentialStatus({
+          provider,
+          staffId: user?.staffId,
+          externalUsername: externalUsername.trim() || undefined,
+        });
+        setCredential(status);
+        if (status.externalUsername) setExternalUsername(status.externalUsername);
+      }
+
+      if (provider === 'ESUS_PEC') {
+        try {
+          const legacyStatus = await pecShiftClosingService.credentialStatus();
+          setLegacyPecCredential(legacyStatus);
+          if (!externalUsername && legacyStatus.username) setExternalUsername(legacyStatus.username);
+        } catch {
+          setLegacyPecCredential(null);
+        }
+      } else {
+        setLegacyPecCredential(null);
+      }
     } finally {
       if (!silent) setBusy(false);
     }
@@ -99,37 +179,42 @@ export default function MyPecConnection() {
 
   useEffect(() => {
     loadStatus();
-  }, []);
+  }, [provider]);
 
-  useEffect(() => {
-    if (!isTesting) return;
-    const timer = window.setInterval(() => loadStatus(true), 3000);
-    return () => window.clearInterval(timer);
-  }, [isTesting]);
-
-  async function saveAndTest() {
-    if (!canSubmit) {
-      toast.error('Informe CPF/login e senha do PEC.');
+  async function rotateCredential() {
+    if (!canRotate) {
+      toast.error('Informe a nova senha do provedor externo.');
       return;
     }
     setBusy(true);
     try {
-      await pecShiftClosingService.saveCredential(username, password);
-      setPassword('');
-      const status = await pecShiftClosingService.testCredential();
-      setCredential(status);
-      toast.success('Teste enviado para o PEC.');
+      const result = await externalIdentityService.rotateCredential({
+        provider,
+        staffId: user?.staffId,
+        externalUsername: externalUsername.trim() || undefined,
+        newPassword,
+        credentialExpiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
+      });
+      setNewPassword('');
+      setCredential(result);
+      toast[result.rotated ? 'success' : 'warning'](result.message || (result.rotated ? 'Credencial rotacionada.' : 'Senha não validada no provedor externo.'));
     } finally {
       setBusy(false);
     }
   }
 
-  async function retest() {
+  async function saveLegacyPecCredential() {
+    if (!externalUsername.trim() || !newPassword.trim()) {
+      toast.error('Informe CPF/login e senha do PEC.');
+      return;
+    }
     setBusy(true);
     try {
+      await pecShiftClosingService.saveCredential(externalUsername, newPassword);
+      setNewPassword('');
       const status = await pecShiftClosingService.testCredential();
-      setCredential(status);
-      toast.success('Novo teste enviado para o PEC.');
+      setLegacyPecCredential(status);
+      toast.success('Teste enviado para o PEC.');
     } finally {
       setBusy(false);
     }
@@ -146,88 +231,159 @@ export default function MyPecConnection() {
   })();
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-[radial-gradient(circle_at_top_left,hsl(var(--secondary))_0,transparent_34%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--muted)))] p-4 sm:p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
-          <div className="space-y-3">
-            <Badge variant="secondary" className="w-fit">Minha conexão PEC</Badge>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-primary sm:text-4xl">Sua chave segura para o PEC</h1>
-              <p className="mt-2 max-w-2xl text-muted-foreground">
-                Cadastre uma vez. No fim do turno, o sistema usa essa conexão para preencher CDS &gt; Procedimentos sem expor sua senha.
-              </p>
-            </div>
-          </div>
-          <Card className={`border ${toneClasses}`}>
-            <CardContent className="flex items-start gap-3 p-4">
-              <div className="rounded-full bg-white/70 p-2 shadow-soft">
-                <Icon className="h-5 w-5" />
-              </div>
-              <div className="space-y-1">
-                <div className="font-semibold">{copy.title}</div>
-                <p className="text-sm opacity-85">{credential?.message || copy.description}</p>
-                <p className="text-xs opacity-70">Último teste: {formatDate(credential?.lastTestedAt)}</p>
-              </div>
-            </CardContent>
-          </Card>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <Badge variant="secondary" className="mb-2">Identidade externa</Badge>
+          <h1 className="text-2xl font-semibold tracking-tight">Minha conexão externa</h1>
+          <p className="text-sm text-muted-foreground">
+            Consulte status e rotacione sua credencial transicional sem expor senha em telas ou relatórios.
+          </p>
         </div>
+        <Button variant="outline" onClick={() => loadStatus()} disabled={busy}>
+          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+          Atualizar
+        </Button>
+      </div>
 
-        <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-          <Card className="shadow-medium">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><LockKeyhole className="h-5 w-5" /> Credencial do PEC</CardTitle>
-              <CardDescription>Use o mesmo CPF/login e senha que você usa para entrar no PEC.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="pec-username">CPF/login PEC</Label>
-                <Input id="pec-username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="CPF ou usuário do PEC" autoComplete="username" />
+      <div className="grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
+        <Card className={`border ${toneClasses}`}>
+          <CardContent className="flex items-start gap-3 p-4">
+            <div className="rounded-full bg-white/70 p-2 shadow-sm">
+              <Icon className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold">{copy.title}</span>
+                <Badge variant="outline">{copy.badge}</Badge>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="pec-password">Senha PEC</Label>
-                <Input id="pec-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={credential?.configured ? 'Digite para trocar a senha salva' : 'Digite sua senha do PEC'} autoComplete="current-password" />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={saveAndTest} disabled={!canSubmit}>
-                  {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-                  Salvar e testar no PEC
-                </Button>
-                <Button variant="outline" onClick={retest} disabled={busy || !credential?.configured || isTesting}>
-                  <RefreshCw className="mr-2 h-4 w-4" /> Testar novamente
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              <p className="text-sm opacity-85">{credential?.message || legacyPecCredential?.message || copy.description}</p>
+              <p className="text-xs opacity-70">Última validação: {formatDate(credential?.lastValidatedAt ?? legacyPecCredential?.lastTestedAt)}</p>
+              {credential?.credentialExpiresAt && (
+                <p className="text-xs opacity-70">Vencimento informado: {formatDate(credential.credentialExpiresAt)}</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>O que acontece depois?</CardTitle>
-              <CardDescription>Fluxo desenhado para quem está no plantão, sem linguagem de TI.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                ['1', 'Você salva a senha', 'A senha fica protegida no sistema. Ela não aparece em relatórios, logs ou tela de fechamento.'],
-                ['2', 'Nós testamos no PEC', 'O worker abre o PEC real e confirma se a entrada funcionou.'],
-                ['3', 'No fim do turno, você confere', 'A tela de fechamento mostra pacientes prontos, pendências e o botão de envio.'],
-              ].map(([step, title, text]) => (
-                <div key={step} className="flex gap-3 rounded-xl border bg-card p-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">{step}</div>
-                  <div>
-                    <div className="font-medium">{title}</div>
-                    <p className="text-sm text-muted-foreground">{text}</p>
-                  </div>
-                </div>
-              ))}
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950">
-                <div className="mb-1 flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> Fechamento fica mais simples</div>
-                Quando a conexão estiver pronta, vá direto para o fechamento e confira o lote do turno.
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              Provedor e identificação
+            </CardTitle>
+            <CardDescription>
+              Use o mesmo usuário que identifica sua conta no sistema externo selecionado.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="provider">Provedor</Label>
+              <Select value={provider} onValueChange={(value) => setProvider(value as ExternalIdentityProvider)}>
+                <SelectTrigger id="provider">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {providerOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="external-username">Login externo</Label>
+              <Input
+                id="external-username"
+                value={externalUsername}
+                onChange={(event) => setExternalUsername(event.target.value)}
+                onBlur={() => loadStatus(true)}
+                placeholder={`Usuário no ${providerLabel(provider)}`}
+                autoComplete="username"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5" />
+              Rotacionar senha externa
+            </CardTitle>
+            <CardDescription>
+              A senha fica apenas no campo durante o envio. A troca de senha real continua acontecendo no provedor externo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="external-password">Nova senha do provedor</Label>
+                <Input
+                  id="external-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  placeholder="Digite somente para validar/rotacionar"
+                  autoComplete="current-password"
+                />
               </div>
-              <Button asChild variant="secondary" className="w-full">
+              <div className="space-y-2">
+                <Label htmlFor="expires-at">Vencimento da credencial</Label>
+                <Input
+                  id="expires-at"
+                  type="datetime-local"
+                  value={expiresAt}
+                  onChange={(event) => setExpiresAt(event.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={rotateCredential} disabled={!canRotate}>
+                {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                Rotacionar em {providerOptions.find((option) => option.value === provider)?.shortLabel}
+              </Button>
+              {canUseLegacyPec && (
+                <Button variant="outline" onClick={saveLegacyPecCredential} disabled={!canRotate || !externalUsername.trim()}>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Salvar/testar PEC legado
+                </Button>
+              )}
+            </div>
+            {credential?.healthStatus === 'NOT_CONFIGURED' && (
+              <Alert>
+                <AlertDescription>
+                  A rotação exige uma credencial externa já vinculada. Se ainda não houver vínculo aprovado, peça ao administrador para revisar sua identidade externa.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Operação relacionada</CardTitle>
+            <CardDescription>Atalhos mantidos para os fluxos que já dependem da credencial.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {provider === 'ESUS_PEC' && (
+              <Button asChild variant="secondary" className="w-full justify-start">
                 <Link to="/pec-shift-closing">Ir para fechamento PEC</Link>
               </Button>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+            {provider === 'HORUS_LEGACY' && (
+              <Button asChild variant="secondary" className="w-full justify-start">
+                <Link to="/pharmacy">Ir para farmácia</Link>
+              </Button>
+            )}
+            <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+              Senhas externas não são salvas no navegador. Depois de enviar, o campo é limpo e o status exibido vem do backend.
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
