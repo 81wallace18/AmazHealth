@@ -177,6 +177,13 @@ const navigationItems: NavigationItem[] = [
     module: "FARMACIA",
   },
   {
+    title: "LME/CEAF",
+    url: "/lme-ceaf",
+    icon: FileText,
+    group: "Medicamentos",
+    allowedRoles: ["ADMIN", "GESTAO", "HOSPITAL_MANAGER", "DOCTOR", "PHARMACIST", "PLATFORM_ADMIN"],
+  },
+  {
     title: "Faturamento",
     url: "/billing",
     icon: CreditCard,

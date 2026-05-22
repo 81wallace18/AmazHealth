@@ -20,6 +20,7 @@ import MedicalRecords from "./pages/MedicalRecords";
 import Admissions from "./pages/Admissions";
 import Laboratory from "./pages/Laboratory";
 import Pharmacy from "./pages/Pharmacy";
+import LmeCeaf from "./pages/LmeCeaf";
 import Billing from "./pages/Billing";
 import Reports from "./pages/Reports";
 import Staff from "./pages/Staff";
@@ -183,6 +184,11 @@ const App = () => (
             <Route path="pharmacy" element={
               <RequireAccess allowedRoles={["ADMIN", "PHARMACIST"]} module="FARMACIA">
                 <Pharmacy />
+              </RequireAccess>
+            } />
+            <Route path="lme-ceaf" element={
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "HOSPITAL_MANAGER", "DOCTOR", "PHARMACIST", "PLATFORM_ADMIN"]}>
+                <LmeCeaf />
               </RequireAccess>
             } />
             <Route path="billing" element={
