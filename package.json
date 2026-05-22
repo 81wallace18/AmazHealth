@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
-    "build:desktop": "vite build --mode desktop",
+    "build": "BROWSERSLIST_IGNORE_OLD_DATA=1 vite build",
+    "build:dev": "BROWSERSLIST_IGNORE_OLD_DATA=1 vite build --mode development",
+    "build:desktop": "BROWSERSLIST_IGNORE_OLD_DATA=1 vite build --mode desktop",
     "lint": "eslint .",
     "preview": "vite preview",
     "test:e2e": "playwright test",

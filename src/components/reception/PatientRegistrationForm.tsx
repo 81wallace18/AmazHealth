@@ -33,6 +33,7 @@ import {
   BrazilianStates,
   BloodTypes
 } from '@/types/patient';
+import { patientService } from '@/services/patientService';
 
 const patientSchema = z.object({
   // Obrigatorios (topo)
@@ -112,7 +113,6 @@ export function PatientRegistrationForm({
     const digits = value.replace(/\D/g, '');
     if ((type === 'cpf' && digits.length === 11) || (type === 'cns' && digits.length >= 15)) {
       try {
-        const { patientService } = await import('@/services/patientService');
         const result = await patientService.search({ query: digits, size: 1 });
         if (result.content.length > 0) {
           const p = result.content[0];
