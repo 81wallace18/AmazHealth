@@ -4,6 +4,8 @@ import type {
   MedicineRequest,
   MedicineStock,
   MedicineStockRequest,
+  OfficialMedicineImportResult,
+  OfficialMedicineReference,
   InventoryAlert,
   PharmacyStatistics,
   PharmacyDashboardData,
@@ -61,9 +63,9 @@ export const pharmacyService = {
     return response.data;
   },
 
-  async searchMedicines(q: string, page = 0, size = 20): Promise<PaginatedResponse<Medicine>> {
+  async searchMedicines(q: string, page = 0, size = 20, filters?: { lmeEligible?: boolean; officialLinked?: boolean }): Promise<PaginatedResponse<Medicine>> {
     const response = await api.get<PaginatedResponse<Medicine>>(`${BASE_URL}/medicines/search`, {
-      params: { q, page, size }
+      params: { q, page, size, ...filters }
     });
     return response.data;
   },
@@ -75,6 +77,36 @@ export const pharmacyService = {
 
   async updateMedicine(id: string, body: MedicineRequest): Promise<Medicine> {
     const response = await api.put<Medicine>(`${BASE_URL}/medicines/${id}`, body);
+    return response.data;
+  },
+
+  async searchOfficialMedicineReferences(params?: { q?: string; active?: boolean; page?: number; size?: number }): Promise<PaginatedResponse<OfficialMedicineReference>> {
+    const response = await api.get<PaginatedResponse<OfficialMedicineReference>>('/official-medicine-references', {
+      params
+    });
+    return response.data;
+  },
+
+  async importOfficialMedicineReferences(body: { file: File; sourceName: string; sourceUrl?: string }): Promise<OfficialMedicineImportResult> {
+    const formData = new FormData();
+    formData.append('file', body.file);
+    formData.append('sourceName', body.sourceName);
+    if (body.sourceUrl) {
+      formData.append('sourceUrl', body.sourceUrl);
+    }
+    const response = await api.post<OfficialMedicineImportResult>('/official-medicine-references/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  async linkMedicineToCatmat(id: string, body: { officialMedicineReferenceId: string; lmeEligible?: boolean }): Promise<Medicine> {
+    const response = await api.post<Medicine>(`${BASE_URL}/medicines/${id}/catmat-link`, body);
+    return response.data;
+  },
+
+  async unlinkMedicineFromCatmat(id: string): Promise<Medicine> {
+    const response = await api.delete<Medicine>(`${BASE_URL}/medicines/${id}/catmat-link`);
     return response.data;
   },
 

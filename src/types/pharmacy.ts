@@ -2,6 +2,8 @@ export interface Medicine {
   id: string;
   medicineCode: string;
   catmatCode?: string;
+  officialMedicineReferenceId?: string;
+  officialMedicineReferenceName?: string;
   medicineName: string;
   genericName?: string;
   strength?: string;
@@ -12,6 +14,7 @@ export interface Medicine {
   reorderLevel?: number;
   isActive?: boolean;
   status?: string;
+  lmeEligible?: boolean;
   requiresPrescription?: boolean;
   isControlled?: boolean;
   maxDispenseQuantity?: number;
@@ -27,6 +30,7 @@ export interface Medicine {
 export interface MedicineRequest {
   medicineCode: string;
   catmatCode?: string;
+  officialMedicineReferenceId?: string;
   medicineName: string;
   genericName?: string;
   strength?: string;
@@ -37,6 +41,7 @@ export interface MedicineRequest {
   reorderLevel?: number;
   isActive?: boolean;
   status?: string;
+  lmeEligible?: boolean;
   description?: string;
   sideEffects?: string;
   contraindications?: string;
@@ -98,6 +103,35 @@ export interface InventoryAlert {
   currentQuantity?: number;
   expiryDate?: string;
   daysToExpiry?: number;
+}
+
+export interface OfficialMedicineReference {
+  id: string;
+  catmatCode: string;
+  officialName: string;
+  presentation?: string;
+  dosageForm?: string;
+  concentration?: string;
+  sourceName: string;
+  sourceUrl?: string;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface OfficialMedicineImportResult {
+  batchId: string;
+  status: string;
+  totalRows: number;
+  createdCount: number;
+  updatedCount: number;
+  rejectedCount: number;
+  rejectionSummary?: string;
+  sourceName: string;
+  sourceUrl?: string;
+  fileName: string;
+  fileHash: string;
+  importedAt?: string;
 }
 
 export interface PharmacyStatistics {

@@ -8,6 +8,7 @@ import { StockManagement } from "@/components/pharmacy/StockManagement";
 import { InventoryAlerts } from "@/components/pharmacy/InventoryAlerts";
 import { HorusAuditLog } from "@/components/pharmacy/HorusAuditLog";
 import { CanonicalPharmacyOperations } from "@/components/pharmacy/CanonicalPharmacyOperations";
+import { CatmatSanitation } from "@/components/pharmacy/CatmatSanitation";
 
 export default function Pharmacy() {
   const capabilities = useCapabilities();
@@ -37,6 +38,7 @@ export default function Pharmacy() {
           <TabsTrigger value="queue">Fila</TabsTrigger>
           <TabsTrigger value="canonical">Operação canônica</TabsTrigger>
           <TabsTrigger value="stock">Estoque</TabsTrigger>
+          <TabsTrigger value="catmat">CATMAT/LME</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
           {horusEnabled && <TabsTrigger value="audit">Auditoria legada</TabsTrigger>}
         </TabsList>
@@ -55,6 +57,10 @@ export default function Pharmacy() {
 
         <TabsContent value="stock" className="space-y-4">
           <StockManagement canManageStock={capabilities.canManageStock} />
+        </TabsContent>
+
+        <TabsContent value="catmat" className="space-y-4">
+          <CatmatSanitation />
         </TabsContent>
 
         <TabsContent value="alerts" className="space-y-4">
