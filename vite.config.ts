@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 5173,
+    allowedHosts: ["web"],
     proxy: {
       "/api/v1": {
         target: process.env.VITE_PROXY_TARGET || "http://localhost:8080",
