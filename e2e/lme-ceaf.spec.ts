@@ -92,6 +92,26 @@ async function prepareLmeData(api: APIRequestContext, adminToken: string, pharma
   return { patient, medicine };
 }
 
+async function createFinalizedLme(api: APIRequestContext, doctorToken: string, patientId: string, medicineId: string) {
+  const lme = await apiFetch<{ id: string }>(api, doctorToken, 'POST', '/lme-requests', {
+    patientId,
+    requestDate: '2026-05-23',
+    weightKg: 70,
+    heightCm: 170,
+    anthropometrySource: 'manual',
+    cid10Code: 'M05.9',
+    diagnosis: 'Artrite reumatoide Playwright V2',
+    anamnesis: 'Paciente em seguimento especializado para validacao LME V2.',
+    previousTreatment: true,
+    previousTreatmentDescription: 'Uso previo de metotrexato.',
+    incapable: false,
+    fillerType: 'PATIENT',
+    pcdtChecklist: 'Hemograma e laudo medico conferidos em papel.',
+    medications: [{ medicineId, month1Quantity: 1, month2Quantity: 1, month3Quantity: 1, month4Quantity: 1, month5Quantity: 1, month6Quantity: 1 }],
+  });
+  return apiFetch<{ id: string; status: string }>(api, doctorToken, 'POST', `/lme-requests/${lme.id}/finalize`);
+}
+
 test.describe('LME/CEAF V1', () => {
   test('médico cria, finaliza e baixa PDF de LME com medicamento apto', async ({ page }) => {
     const api = await request.newContext({ baseURL: apiBaseURL });
@@ -159,6 +179,43 @@ test.describe('LME/CEAF V1', () => {
     await page.goto('/pharmacy');
     await page.getByRole('tab', { name: /CATMAT\/LME/i }).click();
     await expect(page.getByText(/modo consulta/i)).toBeVisible();
+
+    await api.dispose();
+  });
+
+  test('gestão autoriza APAC manual e farmácia acompanha sem permissão de autorização', async ({ page }) => {
+    const api = await request.newContext({ baseURL: apiBaseURL });
+    const admin = await login(api, 'admin@hospital.com', 'admin');
+    const doctor = await login(api, process.env.E2E_DOCTOR_LOGIN || 'lme.medico.uat', process.env.E2E_DOCTOR_PASSWORD || 'Medico123!');
+    const pharmacist = await login(api, process.env.E2E_PHARMACIST_LOGIN || 'lme.farmacia.uat', process.env.E2E_PHARMACIST_PASSWORD || 'Farmacia123!');
+    const { patient, medicine } = await prepareLmeData(api, admin.accessToken, pharmacist.accessToken);
+    const finalized = await createFinalizedLme(api, doctor.accessToken, patient.id, medicine.id);
+    const apacNumber = `APAC-PW-${Date.now()}`;
+    await apiFetch(api, pharmacist.accessToken, 'POST', `/lme-requests/${finalized.id}/review/start`, { notes: 'Documentos conferidos pela farmácia' });
+    await apiFetch(api, admin.accessToken, 'POST', `/lme-requests/${finalized.id}/review/authorize`, {
+      apacNumber,
+      apacValidFrom: '2026-06-01',
+      apacValidTo: '2026-11-30',
+      notes: 'Autorização administrativa Playwright',
+    });
+
+    await authenticatePage(page, admin);
+    await page.goto('/lme-ceaf');
+    await page.getByRole('tab', { name: 'Autorização/APAC' }).click();
+    await expect(page.getByText(/V2 registra avaliação interna, decisão e número\/vigência/i)).toBeVisible();
+    const authorizedRow = page.getByRole('row').filter({ hasText: apacNumber });
+    await expect(authorizedRow).toBeVisible();
+    await expect(authorizedRow.getByText('2026-06-01 a 2026-11-30')).toBeVisible();
+    await authorizedRow.getByRole('button', { name: /Histórico/i }).click();
+    await expect(page.getByText('Histórico de autorização')).toBeVisible();
+    await expect(page.getByText(`APAC ${apacNumber} · 2026-06-01 a 2026-11-30`)).toBeVisible();
+
+    await authenticatePage(page, pharmacist);
+    await page.goto('/lme-ceaf');
+    await page.getByRole('tab', { name: 'Autorização/APAC' }).click();
+    await expect(page.getByText(/autorização final e APAC ficam com gestão/i)).toBeVisible();
+    await expect(page.getByPlaceholder('Informado pelo fluxo oficial')).toBeDisabled();
+    await expect(page.getByRole('button', { name: /^Autorizar$/ })).toHaveCount(0);
 
     await api.dispose();
   });

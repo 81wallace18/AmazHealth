@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import type { LmeRequestResponse, LmeRequestSaveRequest, LmeSearchParams } from '@/types/lme';
+import type { LmeAuthorizationEventResponse, LmeRequestResponse, LmeRequestSaveRequest, LmeSearchParams } from '@/types/lme';
 
 interface PaginatedResponse<T> {
   content: T[];
@@ -51,6 +51,36 @@ export const lmeService = {
 
   async replace(id: string, reason: string): Promise<LmeRequestResponse> {
     const response = await api.post<LmeRequestResponse>(`${BASE_URL}/${id}/replace`, { reason });
+    return response.data;
+  },
+
+  async startReview(id: string, notes?: string): Promise<LmeRequestResponse> {
+    const response = await api.post<LmeRequestResponse>(`${BASE_URL}/${id}/review/start`, { notes });
+    return response.data;
+  },
+
+  async markPendingDocuments(id: string, notes: string): Promise<LmeRequestResponse> {
+    const response = await api.post<LmeRequestResponse>(`${BASE_URL}/${id}/review/pending`, { notes });
+    return response.data;
+  },
+
+  async authorize(id: string, body: { apacNumber: string; apacValidFrom: string; apacValidTo: string; notes?: string }): Promise<LmeRequestResponse> {
+    const response = await api.post<LmeRequestResponse>(`${BASE_URL}/${id}/review/authorize`, body);
+    return response.data;
+  },
+
+  async deny(id: string, notes: string): Promise<LmeRequestResponse> {
+    const response = await api.post<LmeRequestResponse>(`${BASE_URL}/${id}/review/deny`, { notes });
+    return response.data;
+  },
+
+  async updateApac(id: string, body: { apacNumber: string; apacValidFrom: string; apacValidTo: string; notes?: string }): Promise<LmeRequestResponse> {
+    const response = await api.post<LmeRequestResponse>(`${BASE_URL}/${id}/review/apac`, body);
+    return response.data;
+  },
+
+  async reviewEvents(id: string): Promise<LmeAuthorizationEventResponse[]> {
+    const response = await api.get<LmeAuthorizationEventResponse[]>(`${BASE_URL}/${id}/review-events`);
     return response.data;
   },
 

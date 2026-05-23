@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { lmeService } from '@/services/lmeService';
 import { patientService } from '@/services/patientService';
 import { pharmacyService } from '@/services/pharmacyService';
-import type { LmeFillerType, LmeMedicationRequestItem, LmeRequestResponse, LmeRequestSaveRequest, LmeRequestStatus } from '@/types/lme';
+import type { LmeAuthorizationEventResponse, LmeFillerType, LmeMedicationRequestItem, LmeRequestResponse, LmeRequestSaveRequest, LmeRequestStatus } from '@/types/lme';
 import type { Patient } from '@/types/patient';
 import type { Medicine } from '@/types/pharmacy';
 import { Download, Loader2, Plus, Printer, Save, Search, Send, XCircle } from 'lucide-react';
@@ -25,8 +25,22 @@ const statusLabels: Record<LmeRequestStatus, string> = {
   DRAFT: 'Rascunho',
   FINALIZED: 'Finalizada',
   PRINTED: 'Impressa',
+  UNDER_REVIEW: 'Em avaliação',
+  PENDING_DOCUMENTS: 'Pendente',
+  AUTHORIZED: 'Autorizada',
+  DENIED: 'Indeferida',
   CANCELLED: 'Cancelada',
   REPLACED: 'Substituída'
+};
+
+const authorizationStatuses: LmeRequestStatus[] = ['FINALIZED', 'PRINTED', 'UNDER_REVIEW', 'PENDING_DOCUMENTS', 'AUTHORIZED', 'DENIED'];
+
+const authorizationEventLabels: Record<LmeAuthorizationEventResponse['eventType'], string> = {
+  REVIEW_STARTED: 'Avaliação iniciada',
+  PENDING_DOCUMENTS: 'Pendência registrada',
+  AUTHORIZED: 'Autorizada',
+  DENIED: 'Indeferida',
+  APAC_UPDATED: 'APAC corrigida'
 };
 
 const fillerLabels: Record<LmeFillerType, string> = {
@@ -60,6 +74,8 @@ export default function LmeCeaf() {
   const canWriteLme = capabilities.hasRole('DOCTOR') || capabilities.hasRole('PLATFORM_ADMIN');
   const canPrintLme = canWriteLme || capabilities.hasRole('ADMIN') || capabilities.hasRole('PHARMACIST');
   const canCancelLme = canWriteLme || capabilities.hasRole('ADMIN');
+  const canReviewLme = capabilities.hasRole('PHARMACIST') || capabilities.hasRole('ADMIN') || capabilities.hasRole('GESTAO') || capabilities.hasRole('HOSPITAL_MANAGER') || capabilities.hasRole('PLATFORM_ADMIN');
+  const canAuthorizeLme = capabilities.hasRole('ADMIN') || capabilities.hasRole('GESTAO') || capabilities.hasRole('HOSPITAL_MANAGER') || capabilities.hasRole('PLATFORM_ADMIN');
   const [requests, setRequests] = useState<LmeRequestResponse[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -71,6 +87,13 @@ export default function LmeCeaf() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [reason, setReason] = useState('');
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [apacNumber, setApacNumber] = useState('');
+  const [apacValidFrom, setApacValidFrom] = useState('');
+  const [apacValidTo, setApacValidTo] = useState('');
+  const [reviewEvents, setReviewEvents] = useState<LmeAuthorizationEventResponse[]>([]);
+  const [reviewEventsFor, setReviewEventsFor] = useState<LmeRequestResponse | null>(null);
+  const [loadingEvents, setLoadingEvents] = useState(false);
 
   const selectedPatient = useMemo(
     () => patients.find((patient) => patient.id === form.patientId),
@@ -268,6 +291,66 @@ export default function LmeCeaf() {
     await editRequest(replacement);
   };
 
+  const startReview = async (request: LmeRequestResponse) => {
+    await lmeService.startReview(request.id, reviewNotes);
+    setReviewNotes('');
+    toast({ title: 'Avaliação iniciada', description: 'A solicitação entrou na fila de revisão APAC.' });
+    await loadRequests();
+  };
+
+  const markPending = async (request: LmeRequestResponse) => {
+    if (!reviewNotes.trim()) {
+      toast({ title: 'Motivo obrigatório', description: 'Explique a pendência para a equipe resolver sem dúvida.', variant: 'destructive' });
+      return;
+    }
+    await lmeService.markPendingDocuments(request.id, reviewNotes);
+    setReviewNotes('');
+    toast({ title: 'Pendência registrada', description: 'A solicitação ficou aguardando documentos ou correção.' });
+    await loadRequests();
+  };
+
+  const denyRequest = async (request: LmeRequestResponse) => {
+    if (!reviewNotes.trim()) {
+      toast({ title: 'Motivo obrigatório', description: 'Informe o motivo do indeferimento.', variant: 'destructive' });
+      return;
+    }
+    await lmeService.deny(request.id, reviewNotes);
+    setReviewNotes('');
+    toast({ title: 'Solicitação indeferida', description: 'A decisão foi registrada com histórico.' });
+    await loadRequests();
+  };
+
+  const authorizeRequest = async (request: LmeRequestResponse) => {
+    if (!apacNumber.trim() || !apacValidFrom || !apacValidTo) {
+      toast({ title: 'APAC incompleta', description: 'Informe número, início e fim da vigência da APAC.', variant: 'destructive' });
+      return;
+    }
+    const action = request.status === 'AUTHORIZED' ? lmeService.updateApac : lmeService.authorize;
+    await action(request.id, {
+      apacNumber,
+      apacValidFrom,
+      apacValidTo,
+      notes: reviewNotes
+    });
+    setApacNumber('');
+    setApacValidFrom('');
+    setApacValidTo('');
+    setReviewNotes('');
+    toast({ title: 'APAC registrada', description: 'A autorização ficou disponível no histórico da solicitação.' });
+    await loadRequests();
+  };
+
+  const loadReviewEvents = async (request: LmeRequestResponse) => {
+    setLoadingEvents(true);
+    try {
+      const events = await lmeService.reviewEvents(request.id);
+      setReviewEvents(events);
+      setReviewEventsFor(request);
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
   const resetForm = () => {
     setEditingId(null);
     setForm(initialForm);
@@ -287,7 +370,7 @@ export default function LmeCeaf() {
 
       <Alert>
         <AlertDescription>
-          A V1 cobre a Solicitação LME. Avaliação, autorização, número/vigência de APAC e integração produtiva ficam para a próxima etapa.
+          A V2 registra avaliação interna, pendências e APAC manual. Integração produtiva oficial fica para etapa futura.
         </AlertDescription>
       </Alert>
 
@@ -295,6 +378,7 @@ export default function LmeCeaf() {
         <TabsList className="flex flex-wrap">
           <TabsTrigger value="new">Nova solicitação</TabsTrigger>
           <TabsTrigger value="list">Solicitações</TabsTrigger>
+          <TabsTrigger value="authorization">Autorização/APAC</TabsTrigger>
           <TabsTrigger value="pending">Pendências</TabsTrigger>
         </TabsList>
 
@@ -554,6 +638,140 @@ export default function LmeCeaf() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="authorization" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Fila de autorização/APAC</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                V2 registra avaliação interna, decisão e número/vigência de APAC informados manualmente. Não há envio produtivo externo nesta etapa.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!canReviewLme && (
+                <Alert>
+                  <AlertDescription>
+                    Seu perfil pode acompanhar o andamento, mas avaliação e autorização ficam com farmácia e gestão.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {canReviewLme && !canAuthorizeLme && (
+                <Alert>
+                  <AlertDescription>
+                    Farmácia pode iniciar avaliação e registrar pendências. A autorização final e APAC ficam com gestão.
+                  </AlertDescription>
+                </Alert>
+              )}
+              <div className="grid gap-3 md:grid-cols-4">
+                <div className="space-y-1 md:col-span-2">
+                  <Label>Mensagem para histórico</Label>
+                  <Input value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} placeholder="Ex: documentos conferidos, falta laudo, motivo do indeferimento" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Número APAC</Label>
+                  <Input value={apacNumber} onChange={(event) => setApacNumber(event.target.value)} placeholder="Informado pelo fluxo oficial" disabled={!canAuthorizeLme} />
+                </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label>Início</Label>
+                    <Input type="date" value={apacValidFrom} onChange={(event) => setApacValidFrom(event.target.value)} disabled={!canAuthorizeLme} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Fim</Label>
+                    <Input type="date" value={apacValidTo} onChange={(event) => setApacValidTo(event.target.value)} disabled={!canAuthorizeLme} />
+                  </div>
+                </div>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Paciente</TableHead>
+                    <TableHead>Solicitação</TableHead>
+                    <TableHead>APAC</TableHead>
+                    <TableHead>Pendência/decisão</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {requests.filter((request) => authorizationStatuses.includes(request.status)).map((request) => (
+                    <TableRow key={request.id}>
+                      <TableCell>
+                        <div className="font-medium">{request.patientName}</div>
+                        <div className="text-xs text-muted-foreground">CID {request.cid10Code || 'pendente'} · {request.medications.length} medicamento(s)</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={request.status === 'DENIED' ? 'destructive' : request.status === 'AUTHORIZED' ? 'default' : 'outline'}>
+                          {statusLabels[request.status]}
+                        </Badge>
+                        <div className="mt-1 text-xs text-muted-foreground">{request.requestDate || request.createdAt?.slice(0, 10)}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{request.apacNumber || 'Sem APAC'}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {request.apacValidFrom && request.apacValidTo ? `${request.apacValidFrom} a ${request.apacValidTo}` : 'Vigência não registrada'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[260px]">
+                        <div className="truncate text-sm">{request.pendingReason || request.denialReason || request.decisionNotes || request.technicalReviewNotes || 'Sem observação'}</div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-wrap justify-end gap-1">
+                          {(request.status === 'FINALIZED' || request.status === 'PRINTED' || request.status === 'PENDING_DOCUMENTS') && canReviewLme && (
+                            <Button size="sm" variant="outline" onClick={() => startReview(request)}>Iniciar avaliação</Button>
+                          )}
+                          {(request.status === 'UNDER_REVIEW' || request.status === 'PENDING_DOCUMENTS') && canReviewLme && (
+                            <Button size="sm" variant="outline" onClick={() => markPending(request)}>Pendência</Button>
+                          )}
+                          {(request.status === 'UNDER_REVIEW' || request.status === 'PENDING_DOCUMENTS') && canAuthorizeLme && (
+                            <>
+                              <Button size="sm" onClick={() => authorizeRequest(request)}>Autorizar</Button>
+                              <Button size="sm" variant="destructive" onClick={() => denyRequest(request)}>Indeferir</Button>
+                            </>
+                          )}
+                          {request.status === 'AUTHORIZED' && canAuthorizeLme && (
+                            <Button size="sm" variant="outline" onClick={() => authorizeRequest(request)}>Corrigir APAC</Button>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => loadReviewEvents(request)}>
+                            {loadingEvents && reviewEventsFor?.id === request.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+                            Histórico
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {reviewEventsFor && (
+                <div className="rounded-md border p-4">
+                  <div className="mb-3">
+                    <p className="font-medium">Histórico de autorização</p>
+                    <p className="text-sm text-muted-foreground">{reviewEventsFor.patientName || 'Solicitação LME'} · {statusLabels[reviewEventsFor.status]}</p>
+                  </div>
+                  {reviewEvents.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhum evento de avaliação registrado para esta solicitação.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {reviewEvents.map((event) => (
+                        <div key={event.id} className="rounded border bg-muted/30 p-3 text-sm">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-medium">{authorizationEventLabels[event.eventType]}</span>
+                            <span className="text-xs text-muted-foreground">{event.createdAt?.slice(0, 16).replace('T', ' ') || 'sem data'}</span>
+                          </div>
+                          {event.notes && <p className="mt-1 text-muted-foreground">{event.notes}</p>}
+                          {event.apacNumber && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              APAC {event.apacNumber} · {event.apacValidFrom || 'sem início'} a {event.apacValidTo || 'sem fim'}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="pending">
           <Card>
             <CardHeader>
@@ -563,7 +781,7 @@ export default function LmeCeaf() {
               <p>Medicamento em texto livre não finaliza LME. Use somente itens cadastrados, ativos, com CATMAT oficial e aptidão LME marcada pela farmácia.</p>
               <p>Paciente precisa ter CPF ou CNS válido; médico precisa ter CNS válido; unidade precisa ter CNES válido.</p>
               <p>Paciente indígena exige etnia; paciente incapaz exige responsável legal; preenchedor “Outro” exige nome e CPF válido.</p>
-              <p>O PDF atual é funcional para impressão interna. O layout fiel ao formulário oficial LME 2026 será uma fatia separada.</p>
+              <p>Integração produtiva oficial, julgamento automático PCDT e anexos digitais continuam fora da V2.</p>
             </CardContent>
           </Card>
         </TabsContent>

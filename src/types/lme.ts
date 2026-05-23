@@ -1,4 +1,13 @@
-export type LmeRequestStatus = 'DRAFT' | 'FINALIZED' | 'PRINTED' | 'CANCELLED' | 'REPLACED';
+export type LmeRequestStatus =
+  | 'DRAFT'
+  | 'FINALIZED'
+  | 'PRINTED'
+  | 'UNDER_REVIEW'
+  | 'PENDING_DOCUMENTS'
+  | 'AUTHORIZED'
+  | 'DENIED'
+  | 'CANCELLED'
+  | 'REPLACED';
 
 export type LmeFillerType = 'PATIENT' | 'MOTHER' | 'LEGAL_RESPONSIBLE' | 'DOCTOR' | 'OTHER';
 
@@ -92,8 +101,30 @@ export interface LmeRequestResponse {
   finalizedAt?: string;
   printedAt?: string;
   cancelledAt?: string;
+  reviewStartedAt?: string;
+  technicalReviewNotes?: string;
+  pendingReason?: string;
+  decisionNotes?: string;
+  authorizedAt?: string;
+  deniedAt?: string;
+  denialReason?: string;
+  apacNumber?: string;
+  apacValidFrom?: string;
+  apacValidTo?: string;
   createdAt?: string;
   medications: LmeMedicationResponse[];
+}
+
+export interface LmeAuthorizationEventResponse {
+  id: string;
+  lmeRequestId: string;
+  eventType: 'REVIEW_STARTED' | 'PENDING_DOCUMENTS' | 'AUTHORIZED' | 'DENIED' | 'APAC_UPDATED';
+  notes?: string;
+  apacNumber?: string;
+  apacValidFrom?: string;
+  apacValidTo?: string;
+  createdBy?: string;
+  createdAt?: string;
 }
 
 export interface LmeSearchParams {
