@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { pharmacyService } from "@/services/pharmacyService";
-import type { HorusDashboardSummary, HorusSnapshotSummary, PharmacyDashboardData, PharmacyStatistics } from "@/types/pharmacy";
+import type {
+  HorusDashboardSummary,
+  HorusExternalMedicineMapping,
+  HorusSnapshotSummary,
+  HorusStockDivergence,
+  PharmacyDashboardData,
+  PharmacyStatistics
+} from "@/types/pharmacy";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Activity, Boxes, ClipboardCheck, DatabaseZap, RefreshCcw, TriangleAlert } from "lucide-react";
 
@@ -49,6 +56,8 @@ export function PharmacyDashboard() {
   const [stats, setStats] = useState<PharmacyStatistics | null>(null);
   const [horusSummary, setHorusSummary] = useState<HorusDashboardSummary | null>(null);
   const [horusSnapshot, setHorusSnapshot] = useState<HorusSnapshotSummary | null>(null);
+  const [horusMappings, setHorusMappings] = useState<HorusExternalMedicineMapping[]>([]);
+  const [horusDivergences, setHorusDivergences] = useState<HorusStockDivergence[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,15 +72,23 @@ export function PharmacyDashboard() {
         ]);
         setSummary(dashboardData);
         setStats(statistics);
-        const [horusData, snapshot] = await Promise.allSettled([
+        const [horusData, snapshot, mappings, divergences] = await Promise.allSettled([
           pharmacyService.getHorusDashboard(),
-          pharmacyService.getHorusLatestSnapshot()
+          pharmacyService.getHorusLatestSnapshot(),
+          pharmacyService.getHorusMappings({ status: "PENDING" }),
+          pharmacyService.getHorusDivergences()
         ]);
         if (horusData.status === "fulfilled") {
           setHorusSummary(horusData.value);
         }
         if (snapshot.status === "fulfilled") {
           setHorusSnapshot(snapshot.value);
+        }
+        if (mappings.status === "fulfilled") {
+          setHorusMappings(mappings.value);
+        }
+        if (divergences.status === "fulfilled") {
+          setHorusDivergences(divergences.value);
         }
       } catch (err: any) {
         setError(err.message || "Não foi possível carregar o dashboard da farmácia.");
@@ -219,6 +236,87 @@ export function PharmacyDashboard() {
               />
               <StatusRow label="Alertas de fila" value={horusSummary.alertsByType.REVIEW_QUEUE ?? 0} />
               <StatusRow label="Alertas de mapeamento" value={horusSummary.alertsByType.PENDING_MAPPING ?? 0} />
+              <StatusRow label="Divergências do snapshot" value={horusDivergences.length} />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {horusSummary && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Mapeamentos HÓRUS pendentes</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {horusMappings.length === 0 ? (
+                <p className="px-6 py-4 text-sm text-muted-foreground">Sem mapeamentos pendentes no momento.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produto externo</TableHead>
+                        <TableHead>Programa</TableHead>
+                        <TableHead>Unidade</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {horusMappings.slice(0, 6).map((mapping) => (
+                        <TableRow key={mapping.id}>
+                          <TableCell className="font-medium">{mapping.externalProductName}</TableCell>
+                          <TableCell>{mapping.externalProgramName || "—"}</TableCell>
+                          <TableCell>{mapping.externalUnitName || "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{mapping.mappingStatus}</Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Divergências HÓRUS</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {horusDivergences.length === 0 ? (
+                <p className="px-6 py-4 text-sm text-muted-foreground">Sem divergências no último snapshot.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produto</TableHead>
+                        <TableHead>Lote</TableHead>
+                        <TableHead>Quantidade</TableHead>
+                        <TableHead>Motivo</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {horusDivergences.slice(0, 6).map((divergence) => (
+                        <TableRow key={divergence.rowId}>
+                          <TableCell className="font-medium">{divergence.productName || "—"}</TableCell>
+                          <TableCell>{divergence.batchNumber || "—"}</TableCell>
+                          <TableCell>{divergence.quantity ?? "—"}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {divergence.divergenceTypes.map((type) => (
+                                <Badge key={type} variant="secondary">{type}</Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

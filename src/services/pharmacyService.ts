@@ -12,10 +12,14 @@ import type {
   DispenseRequestItem,
   HorusAuditEvent,
   HorusDashboardSummary,
+  HorusExternalMedicineMapping,
+  HorusExternalMedicineMappingStatus,
   HorusQueueItem,
   HorusQueueReviewRequest,
   HorusQueueStatus,
   HorusSnapshotSummary,
+  HorusStockDivergence,
+  HorusSyncArtifact,
   PharmacyCorrectionResponse,
   PharmacyCorrectionStatus,
   PharmacyCorrectionType,
@@ -197,6 +201,23 @@ export const pharmacyService = {
 
   async getHorusLatestSnapshot(): Promise<HorusSnapshotSummary | null> {
     const response = await api.get<HorusSnapshotSummary | null>('/horus/snapshots/latest');
+    return response.data;
+  },
+
+  async getHorusArtifacts(runId: string): Promise<HorusSyncArtifact[]> {
+    const response = await api.get<HorusSyncArtifact[]>(`/horus/runs/${runId}/artifacts`);
+    return response.data;
+  },
+
+  async getHorusMappings(params?: { status?: HorusExternalMedicineMappingStatus }): Promise<HorusExternalMedicineMapping[]> {
+    const response = await api.get<HorusExternalMedicineMapping[]>('/horus/mappings', {
+      params: { status: params?.status }
+    });
+    return response.data;
+  },
+
+  async getHorusDivergences(): Promise<HorusStockDivergence[]> {
+    const response = await api.get<HorusStockDivergence[]>('/horus/divergences');
     return response.data;
   },
 

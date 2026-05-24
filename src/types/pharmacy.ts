@@ -199,6 +199,51 @@ export interface HorusSnapshotSummary {
   createdAt: string;
 }
 
+export type HorusExternalMedicineMappingStatus = 'PENDING' | 'MATCHED' | 'REVIEW' | 'IGNORED';
+
+export interface HorusExternalMedicineMapping {
+  id: string;
+  externalProductName: string;
+  externalProgramName: string;
+  externalUnitName: string;
+  medicineId?: string | null;
+  medicineName?: string | null;
+  mappingStatus: HorusExternalMedicineMappingStatus;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HorusStockDivergence {
+  rowId: string;
+  runId: string;
+  snapshotId: string;
+  rowNumber: number;
+  productName?: string | null;
+  programName?: string | null;
+  unitName?: string | null;
+  batchNumber?: string | null;
+  expiryDate?: string | null;
+  quantity?: number | null;
+  blocked?: boolean | null;
+  mappingStatus: HorusExternalMedicineMappingStatus;
+  mappedMedicineId?: string | null;
+  mappedMedicineName?: string | null;
+  divergenceTypes: string[];
+  reasons: string[];
+}
+
+export interface HorusSyncArtifact {
+  id: string;
+  runId: string;
+  artifactType: string;
+  originalFilename?: string | null;
+  mimeType?: string | null;
+  sha256?: string | null;
+  sizeBytes?: number | null;
+  createdAt: string;
+}
+
 export interface HorusDashboardSummary {
   lastSyncAt?: string | null;
   lastSyncStatus: string;
