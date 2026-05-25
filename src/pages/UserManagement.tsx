@@ -133,6 +133,8 @@ export default function UserManagement() {
   });
 
   const isAdmin = user?.roles?.includes("ADMIN") || user?.roles?.includes("admin") || user?.roles?.includes("HOSPITAL_MANAGER");
+  const users = data?.content ?? [];
+  const approvableUsers = users.filter((item) => item.staffId);
 
   const loadUsers = async () => {
     try {
@@ -631,36 +633,39 @@ export default function UserManagement() {
                       </Badge>
                     </TableCell>
                     <TableCell className="min-w-64 space-y-2 text-xs text-muted-foreground">
-                      <Input
-                        value={approvalDrafts[link.id]?.userId ?? link.userId ?? ""}
-                        onChange={(event) =>
-                          setApprovalDrafts((current) => ({
-                            ...current,
-                            [link.id]: {
-                              ...current[link.id],
-                              userId: event.target.value,
-                            },
-                          }))
-                        }
-                        placeholder="userId interno"
-                        disabled={link.status === "APPROVED"}
-                        className="h-8 text-xs"
-                      />
-                      <Input
+                      <Select
                         value={approvalDrafts[link.id]?.staffId ?? link.staffId ?? ""}
-                        onChange={(event) =>
+                        onValueChange={(staffId) => {
+                          const selected = approvableUsers.find((item) => item.staffId === staffId);
                           setApprovalDrafts((current) => ({
                             ...current,
                             [link.id]: {
-                              ...current[link.id],
-                              staffId: event.target.value,
+                              userId: selected?.id,
+                              staffId,
                             },
-                          }))
-                        }
-                        placeholder="staffId interno"
+                          }));
+                        }}
                         disabled={link.status === "APPROVED"}
-                        className="h-8 text-xs"
-                      />
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Selecionar profissional interno" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {approvableUsers.map((item) => {
+                            const role = item.organizations?.[0]?.role ?? "staff";
+                            return (
+                              <SelectItem key={item.staffId} value={item.staffId!}>
+                                {item.fullName || item.username} · {ROLE_LABELS[role] ?? role}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      <div>
+                        {approvalDrafts[link.id]?.staffId || link.staffId
+                          ? "Profissional selecionado para vínculo local"
+                          : "Selecione o profissional local correspondente"}
+                      </div>
                     </TableCell>
                     <TableCell className="space-x-2 text-right">
                       <Button

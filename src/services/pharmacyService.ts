@@ -12,8 +12,14 @@ import type {
   DispenseRequestItem,
   HorusAuditEvent,
   HorusDashboardSummary,
+  HorusExternalMedicineMappingDecision,
   HorusExternalMedicineMapping,
   HorusExternalMedicineMappingStatus,
+  HorusMappingApproveRequest,
+  HorusMappingReasonRequest,
+  HorusOperationalDivergence,
+  HorusOperationalDivergenceDecisionRequest,
+  HorusOperationalDivergenceStatus,
   HorusQueueItem,
   HorusQueueReviewRequest,
   HorusQueueStatus,
@@ -35,6 +41,7 @@ import type {
   PharmacyReceivingResponse,
   PharmacyReceivingStatus,
   PharmacyReplenishmentCreateRequest,
+  PharmacyReplenishmentItemFulfillmentRequest,
   PharmacyReplenishmentRequestStatus,
   PharmacyReplenishmentResponse,
   PharmacyStockCorrectionRequest,
@@ -216,8 +223,48 @@ export const pharmacyService = {
     return response.data;
   },
 
+  async approveHorusMapping(mappingId: string, body: HorusMappingApproveRequest): Promise<HorusExternalMedicineMapping> {
+    const response = await api.post<HorusExternalMedicineMapping>(`/horus/mappings/${mappingId}/approve`, body);
+    return response.data;
+  },
+
+  async revertHorusMapping(mappingId: string, body: HorusMappingReasonRequest): Promise<HorusExternalMedicineMapping> {
+    const response = await api.post<HorusExternalMedicineMapping>(`/horus/mappings/${mappingId}/revert`, body);
+    return response.data;
+  },
+
+  async ignoreHorusMapping(mappingId: string, body: HorusMappingReasonRequest): Promise<HorusExternalMedicineMapping> {
+    const response = await api.post<HorusExternalMedicineMapping>(`/horus/mappings/${mappingId}/ignore`, body);
+    return response.data;
+  },
+
+  async markHorusMappingForReview(mappingId: string, body: HorusMappingReasonRequest): Promise<HorusExternalMedicineMapping> {
+    const response = await api.post<HorusExternalMedicineMapping>(`/horus/mappings/${mappingId}/review`, body);
+    return response.data;
+  },
+
+  async getHorusMappingDecisions(mappingId: string): Promise<HorusExternalMedicineMappingDecision[]> {
+    const response = await api.get<HorusExternalMedicineMappingDecision[]>(`/horus/mappings/${mappingId}/decisions`);
+    return response.data;
+  },
+
   async getHorusDivergences(): Promise<HorusStockDivergence[]> {
     const response = await api.get<HorusStockDivergence[]>('/horus/divergences');
+    return response.data;
+  },
+
+  async getHorusOperationalDivergences(params?: { status?: HorusOperationalDivergenceStatus }): Promise<HorusOperationalDivergence[]> {
+    const response = await api.get<HorusOperationalDivergence[]>('/horus/operational-divergences', {
+      params: { status: params?.status }
+    });
+    return response.data;
+  },
+
+  async decideHorusOperationalDivergence(
+    divergenceId: string,
+    body: HorusOperationalDivergenceDecisionRequest
+  ): Promise<HorusOperationalDivergence> {
+    const response = await api.post<HorusOperationalDivergence>(`/horus/operational-divergences/${divergenceId}/decision`, body);
     return response.data;
   },
 
@@ -257,6 +304,18 @@ export const pharmacyService = {
 
   async createReplenishmentRequest(body: PharmacyReplenishmentCreateRequest): Promise<PharmacyReplenishmentResponse> {
     const response = await api.post<PharmacyReplenishmentResponse>('/pharmacy/replenishment-requests', body);
+    return response.data;
+  },
+
+  async fulfillReplenishmentItem(
+    requestId: string,
+    itemId: string,
+    body: PharmacyReplenishmentItemFulfillmentRequest
+  ): Promise<PharmacyReplenishmentResponse> {
+    const response = await api.patch<PharmacyReplenishmentResponse>(
+      `/pharmacy/replenishment-requests/${requestId}/items/${itemId}/fulfillment`,
+      body
+    );
     return response.data;
   },
 

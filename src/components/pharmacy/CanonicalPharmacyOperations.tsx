@@ -4,7 +4,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/useAuth";
 import { pharmacyService } from "@/services/pharmacyService";
 import type {
   PharmacyCorrectionResponse,
@@ -12,9 +17,10 @@ import type {
   PharmacyExternalTaskResponse,
   PharmacyParityReportResponse,
   PharmacyReceivingResponse,
+  PharmacyReplenishmentDestinationType,
   PharmacyReplenishmentResponse
 } from "@/types/pharmacy";
-import { ClipboardCheck, FileBarChart2, ListChecks, RefreshCw, RotateCcw, ShieldAlert, Truck } from "lucide-react";
+import { ClipboardCheck, FileBarChart2, ListChecks, Plus, RefreshCw, RotateCcw, ShieldAlert, Truck } from "lucide-react";
 
 type LoadState = {
   requests: PharmacyReplenishmentResponse[];
@@ -35,9 +41,21 @@ const emptyState: LoadState = {
 };
 
 export function CanonicalPharmacyOperations() {
+  const { user } = useAuth();
   const [data, setData] = useState<LoadState>(emptyState);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState({
+    authorStaffId: "",
+    destinationType: "EMERGENCY" as PharmacyReplenishmentDestinationType,
+    destinationDepartment: "Emergência",
+    priority: "NORMAL",
+    justification: "",
+    requestNote: "",
+    medicineId: "",
+    requestedQuantity: "1"
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,6 +81,45 @@ export function CanonicalPharmacyOperations() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (user?.staffId) {
+      setForm((current) => ({ ...current, authorStaffId: current.authorStaffId || user.staffId || "" }));
+    }
+  }, [user?.staffId]);
+
+  const createSetorialRequest = async () => {
+    const authorStaffId = form.authorStaffId.trim() || user?.staffId;
+    const medicineId = form.medicineId.trim();
+    const quantity = Number(form.requestedQuantity);
+    if (!authorStaffId || !medicineId || !Number.isFinite(quantity) || quantity <= 0) {
+      setError("Informe profissional, medicamento e quantidade válida para criar a solicitação setorial.");
+      return;
+    }
+
+    setCreating(true);
+    setError(null);
+    try {
+      await pharmacyService.createReplenishmentRequest({
+        authorStaffId,
+        operatorStaffId: user?.staffId ?? null,
+        initialStatus: "SUBMITTED_LOCAL",
+        destination: form.destinationDepartment.trim(),
+        destinationType: form.destinationType,
+        destinationDepartment: form.destinationDepartment.trim(),
+        priority: form.priority.trim() || "NORMAL",
+        justification: form.justification.trim() || null,
+        requestNote: form.requestNote.trim() || null,
+        items: [{ medicineId, requestedQuantity: quantity }]
+      });
+      setForm((current) => ({ ...current, medicineId: "", requestedQuantity: "1", requestNote: "", justification: "" }));
+      await load();
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || "Não foi possível criar a solicitação setorial.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const confirmTask = async (task: PharmacyExternalTaskResponse) => {
     const operatorStaffId = window.prompt("ID do operador responsável");
     if (!operatorStaffId) return;
@@ -86,6 +143,21 @@ export function CanonicalPharmacyOperations() {
     await load();
   };
 
+  const fulfillRequestItem = async (request: PharmacyReplenishmentResponse) => {
+    const item = request.items.find((candidate) => (candidate.pendingQuantity ?? candidate.requestedQuantity) > 0);
+    if (!item) return;
+    const operatorStaffId = user?.staffId || window.prompt("ID do operador responsável");
+    if (!operatorStaffId) return;
+    const quantityText = window.prompt("Quantidade atendida", String(item.pendingQuantity ?? item.requestedQuantity));
+    const fulfilledQuantity = Number(quantityText);
+    if (!Number.isFinite(fulfilledQuantity) || fulfilledQuantity < 0) return;
+    await pharmacyService.fulfillReplenishmentItem(request.id, item.id, {
+      operatorStaffId,
+      fulfilledQuantity
+    });
+    await load();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -105,10 +177,93 @@ export function CanonicalPharmacyOperations() {
         </Alert>
       )}
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Plus className="h-4 w-4" />
+            Solicitação setorial
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="space-y-2">
+            <Label>Destino</Label>
+            <Select
+              value={form.destinationType}
+              onValueChange={(value) => setForm((current) => ({ ...current, destinationType: value as PharmacyReplenishmentDestinationType }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="EMERGENCY">Emergência</SelectItem>
+                <SelectItem value="DENTISTRY">Odontologia</SelectItem>
+                <SelectItem value="PHARMACY">Farmácia</SelectItem>
+                <SelectItem value="OTHER">Outro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Departamento</Label>
+            <Input value={form.destinationDepartment} onChange={(event) => setForm((current) => ({ ...current, destinationDepartment: event.target.value }))} />
+          </div>
+          <div className="space-y-2">
+            <Label>Medicamento</Label>
+            <Input value={form.medicineId} onChange={(event) => setForm((current) => ({ ...current, medicineId: event.target.value }))} placeholder="ID do medicamento" />
+          </div>
+          <div className="space-y-2">
+            <Label>Quantidade</Label>
+            <Input type="number" min="0" step="0.01" value={form.requestedQuantity} onChange={(event) => setForm((current) => ({ ...current, requestedQuantity: event.target.value }))} />
+          </div>
+          {!user?.staffId && (
+            <div className="space-y-2">
+              <Label>Profissional solicitante</Label>
+              <Input value={form.authorStaffId} onChange={(event) => setForm((current) => ({ ...current, authorStaffId: event.target.value }))} placeholder="ID do profissional" />
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label>Prioridade</Label>
+            <Input value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value }))} />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Justificativa</Label>
+            <Textarea value={form.justification} onChange={(event) => setForm((current) => ({ ...current, justification: event.target.value }))} rows={2} />
+          </div>
+          <div className="space-y-2 xl:col-span-2">
+            <Label>Observação</Label>
+            <Textarea value={form.requestNote} onChange={(event) => setForm((current) => ({ ...current, requestNote: event.target.value }))} rows={2} />
+          </div>
+          <div className="flex items-end">
+            <Button onClick={() => void createSetorialRequest()} disabled={creating}>
+              <Plus className="mr-2 h-4 w-4" />
+              Criar solicitação
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <SummaryCard title="Solicitações" icon={<ListChecks className="h-5 w-5" />} value={data.requests.length} loading={loading}>
           {data.requests.slice(0, 4).map((request) => (
-            <Row key={request.id} primary={request.destination || request.id} secondary={request.note || request.id} status={request.status} />
+            <div key={request.id} className="space-y-2 rounded-md border p-3">
+              <Row
+                primary={request.destinationDepartment || request.destination || request.id}
+                secondary={`${request.destinationType || "OTHER"} · ${request.priority || "NORMAL"}`}
+                status={request.status}
+              />
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                {request.items.map((item) => (
+                  <Badge key={item.id} variant="outline">
+                    pendente {item.pendingQuantity ?? 0}/{item.requestedQuantity}
+                  </Badge>
+                ))}
+              </div>
+              {request.items.some((item) => (item.pendingQuantity ?? item.requestedQuantity) > 0) && (
+                <Button variant="outline" size="sm" onClick={() => void fulfillRequestItem(request)}>
+                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                  Atender item
+                </Button>
+              )}
+            </div>
           ))}
         </SummaryCard>
 

@@ -214,6 +214,30 @@ export interface HorusExternalMedicineMapping {
   updatedAt: string;
 }
 
+export type HorusExternalMedicineMappingDecisionType = 'APPROVE' | 'REVERT' | 'IGNORE' | 'MARK_REVIEW';
+
+export interface HorusExternalMedicineMappingDecision {
+  id: string;
+  mappingId: string;
+  decisionType: HorusExternalMedicineMappingDecisionType;
+  previousStatus?: HorusExternalMedicineMappingStatus | null;
+  newStatus: HorusExternalMedicineMappingStatus;
+  previousMedicineId?: string | null;
+  newMedicineId?: string | null;
+  reason: string;
+  actorUserId: string;
+  createdAt: string;
+}
+
+export interface HorusMappingApproveRequest {
+  medicineId: string;
+  reason?: string;
+}
+
+export interface HorusMappingReasonRequest {
+  reason: string;
+}
+
 export interface HorusStockDivergence {
   rowId: string;
   runId: string;
@@ -231,6 +255,44 @@ export interface HorusStockDivergence {
   mappedMedicineName?: string | null;
   divergenceTypes: string[];
   reasons: string[];
+}
+
+export type HorusOperationalDivergenceStatus =
+  | 'OPEN'
+  | 'IN_REVIEW'
+  | 'RESOLVED_MANUAL'
+  | 'EXTERNAL_TASK_CREATED'
+  | 'IGNORED'
+  | 'CORRECTION_REQUIRED';
+
+export type HorusOperationalDivergenceType =
+  | 'PENDING_MAPPING'
+  | 'NO_AVAILABLE_STOCK'
+  | 'BLOCKED_BATCH'
+  | 'EXPIRED_BATCH'
+  | 'NEAR_EXPIRY_BATCH'
+  | 'QUANTITY_CONFLICT';
+
+export interface HorusOperationalDivergence {
+  id: string;
+  sourceRunId: string;
+  sourceSnapshotId: string;
+  sourceRowId: string;
+  mappingId?: string | null;
+  divergenceType: HorusOperationalDivergenceType;
+  status: HorusOperationalDivergenceStatus;
+  resolution?: string | null;
+  reason?: string | null;
+  assignedExternalTaskId?: string | null;
+  resolvedBy?: string | null;
+  resolvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HorusOperationalDivergenceDecisionRequest {
+  status: HorusOperationalDivergenceStatus;
+  reason: string;
 }
 
 export interface HorusSyncArtifact {
@@ -310,6 +372,15 @@ export type PharmacyReplenishmentRequestStatus =
   | 'CANCELLED'
   | 'FAILED_EXTERNAL';
 
+export type PharmacyReplenishmentDestinationType = 'EMERGENCY' | 'DENTISTRY' | 'PHARMACY' | 'OTHER';
+
+export type PharmacyReplenishmentRequestItemStatus =
+  | 'REQUESTED'
+  | 'APPROVED'
+  | 'PARTIALLY_FULFILLED'
+  | 'FULFILLED'
+  | 'CANCELLED';
+
 export interface PharmacyReplenishmentItemRequest {
   medicineId: string;
   requestedQuantity: number;
@@ -318,10 +389,34 @@ export interface PharmacyReplenishmentItemRequest {
 export interface PharmacyReplenishmentCreateRequest {
   authorStaffId: string;
   operatorStaffId?: string | null;
-  status?: PharmacyReplenishmentRequestStatus;
-  destination: string;
-  note?: string | null;
+  initialStatus?: PharmacyReplenishmentRequestStatus;
+  destination?: string | null;
+  destinationType?: PharmacyReplenishmentDestinationType | null;
+  destinationDepartment?: string | null;
+  priority?: string | null;
+  justification?: string | null;
+  requestNote?: string | null;
   items: PharmacyReplenishmentItemRequest[];
+}
+
+export interface PharmacyReplenishmentItemResponse {
+  id: string;
+  organizationId: string;
+  requestId: string;
+  medicineId: string;
+  requestedQuantity: number;
+  approvedQuantity?: number | null;
+  fulfilledQuantity?: number | null;
+  pendingQuantity?: number | null;
+  status: PharmacyReplenishmentRequestItemStatus;
+  cancellationReason?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface PharmacyReplenishmentItemFulfillmentRequest {
+  operatorStaffId: string;
+  fulfilledQuantity: number;
 }
 
 export interface PharmacyReplenishmentResponse {
@@ -330,12 +425,19 @@ export interface PharmacyReplenishmentResponse {
   authorStaffId: string;
   operatorStaffId?: string | null;
   status: PharmacyReplenishmentRequestStatus;
-  note?: string | null;
+  requestNote?: string | null;
   cancellationReason?: string | null;
   destination?: string | null;
+  destinationType?: PharmacyReplenishmentDestinationType | null;
+  destinationDepartment?: string | null;
+  priority?: string | null;
+  justification?: string | null;
+  externalProvider?: string | null;
+  externalReference?: string | null;
+  externalSubmittedAt?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
-  items: Array<Record<string, unknown>>;
+  items: PharmacyReplenishmentItemResponse[];
 }
 
 export type PharmacyExternalTaskStatus =
@@ -503,8 +605,22 @@ export interface PharmacyCorrectionResponse {
   updatedAt?: string | null;
 }
 
+export type PharmacyParityReportId =
+  | 'STOCK_POSITION'
+  | 'ENTRY_BY_PERIOD'
+  | 'ENTRY_AND_EXIT'
+  | 'REQUEST_ATTENDED_AND_UNATTENDED'
+  | 'RESTOCKING'
+  | 'DISPENSE_OUTBOUND_BI'
+  | 'SUS_USER_DISPENSE'
+  | 'SPECIAL_CONTROL_MEDICINE'
+  | 'HORUS_INGESTION_COVERAGE'
+  | 'HORUS_OPERATIONAL_DIVERGENCES'
+  | 'SECTOR_CONSUMPTION'
+  | 'SECTOR_COST_INFORMATION';
+
 export interface PharmacyParityReportResponse {
-  reportId: string;
+  reportId: PharmacyParityReportId | string;
   dataOrigin: 'LOCAL' | 'HORUS_IMPORTED' | 'MIXED';
   reconciliationStatus: 'LOCAL_ONLY' | 'PENDING' | 'PARTIAL' | 'RECONCILED' | 'DIVERGENT';
   fidelity: 'INFORMATIONAL' | 'VISUAL_REFERENCE_ONLY';

@@ -7,6 +7,10 @@ import { PharmacyQueue } from "@/components/pharmacy/PharmacyQueue";
 import { StockManagement } from "@/components/pharmacy/StockManagement";
 import { InventoryAlerts } from "@/components/pharmacy/InventoryAlerts";
 import { HorusAuditLog } from "@/components/pharmacy/HorusAuditLog";
+import { HorusIntegrationPanel } from "@/components/pharmacy/HorusIntegrationPanel";
+import { HorusMappingsPanel } from "@/components/pharmacy/HorusMappingsPanel";
+import { HorusOperationalDivergencesPanel } from "@/components/pharmacy/HorusOperationalDivergencesPanel";
+import { PharmacyPostIngestionReports } from "@/components/pharmacy/PharmacyPostIngestionReports";
 import { CanonicalPharmacyOperations } from "@/components/pharmacy/CanonicalPharmacyOperations";
 import { CatmatSanitation } from "@/components/pharmacy/CatmatSanitation";
 
@@ -39,6 +43,10 @@ export default function Pharmacy() {
           <TabsTrigger value="canonical">Operação canônica</TabsTrigger>
           <TabsTrigger value="stock">Estoque</TabsTrigger>
           <TabsTrigger value="catmat">CATMAT/LME</TabsTrigger>
+          {horusEnabled && <TabsTrigger value="horus-integration">Integração HÓRUS</TabsTrigger>}
+          {horusEnabled && <TabsTrigger value="horus-mappings">Mapeamentos HÓRUS</TabsTrigger>}
+          {horusEnabled && <TabsTrigger value="horus-divergences">Divergências HÓRUS</TabsTrigger>}
+          <TabsTrigger value="post-ingestion-reports">Relatórios pós-ingestão</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
           {horusEnabled && <TabsTrigger value="audit">Auditoria legada</TabsTrigger>}
         </TabsList>
@@ -61,6 +69,28 @@ export default function Pharmacy() {
 
         <TabsContent value="catmat" className="space-y-4">
           <CatmatSanitation />
+        </TabsContent>
+
+        {horusEnabled && (
+          <TabsContent value="horus-integration" className="space-y-4">
+            <HorusIntegrationPanel />
+          </TabsContent>
+        )}
+
+        {horusEnabled && (
+          <TabsContent value="horus-mappings" className="space-y-4">
+            <HorusMappingsPanel />
+          </TabsContent>
+        )}
+
+        {horusEnabled && (
+          <TabsContent value="horus-divergences" className="space-y-4">
+            <HorusOperationalDivergencesPanel />
+          </TabsContent>
+        )}
+
+        <TabsContent value="post-ingestion-reports" className="space-y-4">
+          <PharmacyPostIngestionReports />
         </TabsContent>
 
         <TabsContent value="alerts" className="space-y-4">
