@@ -33,6 +33,7 @@ import ActivateAccount from "./pages/ActivateAccount";
 import DutyManagement from "./pages/DutyManagement";
 import NightShiftReview from "./pages/NightShiftReview";
 import SyncQueue from "./pages/SyncQueue";
+import PecReviewBoard from "./pages/PecReviewBoard";
 import PecShiftClosing from "./pages/PecShiftClosing";
 import MyPecConnection from "./pages/MyPecConnection";
 import NotFound from "./pages/NotFound";
@@ -229,6 +230,11 @@ const App = () => (
             <Route path="pec-shift-closing" element={
               <RequireAccess allowedRoles={["ADMIN", "GESTAO", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN"]} module="URGENCIA">
                 <PecShiftClosing />
+              </RequireAccess>
+            } />
+            <Route path="pec-review-board" element={
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "HOSPITAL_MANAGER"]} module="URGENCIA">
+                <PecReviewBoard />
               </RequireAccess>
             } />
             <Route path="minha-conexao-externa" element={

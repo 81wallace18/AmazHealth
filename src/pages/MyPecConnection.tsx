@@ -110,6 +110,11 @@ function statusCopy(status?: string) {
   }
 }
 
+function primaryActionLabel(provider: ExternalIdentityProvider) {
+  if (provider === 'ESUS_PEC') return 'Cadastrar e testar acesso real no PEC';
+  return `Rotacionar em ${providerOptions.find((option) => option.value === provider)?.shortLabel ?? provider}`;
+}
+
 function formatDate(value?: string | null) {
   if (!value) return 'Sem registro';
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
@@ -144,6 +149,7 @@ export default function MyPecConnection() {
   const Icon = copy.icon;
   const canUseLegacyPec = provider === 'ESUS_PEC';
   const canRotate = newPassword.trim().length > 0 && !busy;
+  const canRequestPecTest = !busy && (newPassword.trim().length > 0 || Boolean(legacyPecCredential?.configured));
   const isAdministrative = Boolean(user?.roles?.some((role) =>
     ['ADMIN', 'TENANT_ADMIN', 'PLATFORM_ADMIN', 'HOSPITAL_MANAGER'].includes(role.toUpperCase())
   ));
@@ -203,18 +209,25 @@ export default function MyPecConnection() {
     }
   }
 
-  async function saveLegacyPecCredential() {
-    if (!externalUsername.trim() || !newPassword.trim()) {
-      toast.error('Informe CPF/login e senha do PEC.');
+  async function saveAndTestPecCredential() {
+    if (!newPassword.trim() && !legacyPecCredential?.configured) {
+      toast.error('Faça login com o PEC ou informe a senha para cadastrar a credencial.');
       return;
     }
     setBusy(true);
     try {
-      await pecShiftClosingService.saveCredential(externalUsername, newPassword);
-      setNewPassword('');
+      if (newPassword.trim()) {
+        if (!externalUsername.trim()) {
+          toast.error('Informe CPF/login do PEC.');
+          return;
+        }
+        await pecShiftClosingService.saveCredential(externalUsername, newPassword);
+        setNewPassword('');
+      }
       const status = await pecShiftClosingService.testCredential();
       setLegacyPecCredential(status);
-      toast.success('Teste enviado para o PEC.');
+      await loadStatus(true);
+      toast.success('Teste real enviado para o worker PEC.');
     } finally {
       setBusy(false);
     }
@@ -312,10 +325,12 @@ export default function MyPecConnection() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5" />
-              Rotacionar senha externa
+              {provider === 'ESUS_PEC' ? 'Cadastrar e validar acesso PEC' : 'Rotacionar senha externa'}
             </CardTitle>
             <CardDescription>
-              A senha fica apenas no campo durante o envio. A troca de senha real continua acontecendo no provedor externo.
+              {provider === 'ESUS_PEC'
+                ? 'Informe a conta real do PEC deste profissional. O teste é feito pelo worker no PEC configurado da unidade.'
+                : 'A senha fica apenas no campo durante o envio. A troca de senha real continua acontecendo no provedor externo.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -342,17 +357,31 @@ export default function MyPecConnection() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={rotateCredential} disabled={!canRotate}>
-                {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-                Rotacionar em {providerOptions.find((option) => option.value === provider)?.shortLabel}
-              </Button>
+              {canUseLegacyPec ? (
+                <Button onClick={saveAndTestPecCredential} disabled={!canRequestPecTest}>
+                  {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                  {newPassword.trim() ? primaryActionLabel(provider) : 'Testar acesso real no PEC'}
+                </Button>
+              ) : (
+                <Button onClick={rotateCredential} disabled={!canRotate}>
+                  {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                  {primaryActionLabel(provider)}
+                </Button>
+              )}
               {canUseLegacyPec && (
-                <Button variant="outline" onClick={saveLegacyPecCredential} disabled={!canRotate || !externalUsername.trim()}>
+                <Button variant="outline" onClick={rotateCredential} disabled={!canRotate}>
                   <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Salvar/testar PEC legado
+                  Atualizar credencial canônica de login
                 </Button>
               )}
             </div>
+            {provider === 'ESUS_PEC' && (
+              <Alert>
+                <AlertDescription>
+                  Para validação real, o worker PEC precisa estar ativo com `PEC_WORKER_TOKEN` configurado. Enquanto o status estiver `TESTING`, o teste ainda não foi consumido pelo worker.
+                </AlertDescription>
+              </Alert>
+            )}
             {credential?.healthStatus === 'NOT_CONFIGURED' && (
               <Alert>
                 <AlertDescription>

@@ -25,6 +25,7 @@ export type ExternalCredentialHealthStatus =
 
 export type ExternalProfessionalCredentialStatus =
   | 'NOT_TESTED'
+  | 'TESTING'
   | 'VALID'
   | 'EXPIRED'
   | 'INVALID_PASSWORD'
