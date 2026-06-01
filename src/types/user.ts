@@ -4,6 +4,7 @@ export type RoleType =
   | 'doctor'
   | 'nurse'
   | 'nurse_manager'
+  | 'nurse_technician'
   | 'pharmacist'
   | 'receptionist'
   | 'hospital_manager'

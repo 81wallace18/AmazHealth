@@ -3,6 +3,7 @@ import {
   ExternalCredentialRotationRequest,
   ExternalCredentialRotationResult,
   ExternalCredentialStatusResponse,
+  ExternalIdentityApproveWithNewProfessionalRequest,
   ExternalIdentityApprovalRequest,
   ExternalIdentityLink,
   ExternalIdentityLinkStatus,
@@ -47,6 +48,17 @@ class ExternalIdentityService {
 
   async approve(linkId: string, data: ExternalIdentityApprovalRequest): Promise<ExternalIdentityLink> {
     const response = await api.patch<ExternalIdentityLink>(`${this.adminBaseUrl}/${linkId}/approve`, data);
+    return response.data;
+  }
+
+  async approveWithNewProfessional(
+    linkId: string,
+    data: ExternalIdentityApproveWithNewProfessionalRequest
+  ): Promise<ExternalIdentityLink> {
+    const response = await api.post<ExternalIdentityLink>(
+      `${this.adminBaseUrl}/${linkId}/approve-with-new-professional`,
+      data
+    );
     return response.data;
   }
 

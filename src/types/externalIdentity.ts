@@ -74,6 +74,12 @@ export interface ExternalIdentityApprovalRequest {
   statusReason?: string | null;
 }
 
+export interface ExternalIdentityApproveWithNewProfessionalRequest {
+  organizationId?: string;
+  role: string;
+  statusReason?: string | null;
+}
+
 export interface ExternalIdentityReviewRequest {
   statusReason?: string | null;
 }

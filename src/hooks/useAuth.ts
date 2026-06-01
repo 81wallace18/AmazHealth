@@ -215,6 +215,8 @@ export function useAuth() {
       // Salva no picker do device pra próxima vez aparecer só pedindo senha
       knownUsers.upsert({
         login,
+        provider: response.externalProvider ?? provider ?? 'LOCAL',
+        organizationId: response.user.organizationId,
         fullName: response.user.fullName,
         organizationName: response.user.organizationName,
       });
