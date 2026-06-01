@@ -204,6 +204,26 @@ function credentialLabel(submission?: PecSubmissionDetail | null) {
   ].filter(Boolean).join(' · ');
 }
 
+function manualReviewLabel(submission?: PecSubmissionDetail | null) {
+  if (!submission || submission.status !== 'MANUAL_REVIEW') return null;
+  if (submission.errorCode === 'PEC_DRAFT_SAVED_PENDING_FINALIZATION') {
+    return {
+      title: 'Rascunho salvo no PEC',
+      description: 'O worker salvou a ficha como rascunho. A produção oficial ainda depende de conferência humana e Finalizar registros no PEC.',
+    };
+  }
+  if (submission.errorCode === 'PEC_DRAFT_SAVE_UNCERTAIN') {
+    return {
+      title: 'Salvar rascunho ficou incerto',
+      description: 'O worker tentou salvar, mas não conseguiu confirmar o resultado. Não faça retry automático antes de consultar a lista do PEC.',
+    };
+  }
+  return {
+    title: 'Revisão manual necessária',
+    description: submission.errorMessage || 'A submissão precisa de conferência humana antes de qualquer nova tentativa.',
+  };
+}
+
 function sectionTitle(section: SubmissionSection) {
   switch (section) {
     case 'pending': return 'Revisão pendente';
@@ -317,14 +337,14 @@ export default function PecShiftClosing() {
       if (data.blockingMessages.length > 0) {
         toast.warning('Prévia montada com pendências para corrigir.');
       } else {
-        toast.success('Prévia pronta para envio ao PEC.');
+        toast.success('Prévia pronta para criar fila assistida.');
       }
     } finally {
       setBusy(false);
     }
   }
 
-  async function createAndStartBatch() {
+  async function createAssistedBatch() {
     if (!canCreateBatch) {
       toast.error('Corrija as pendências antes de enviar ao PEC.');
       return;
@@ -332,9 +352,8 @@ export default function PecShiftClosing() {
     setBusy(true);
     try {
       const created = await pecShiftClosingService.createBatch(date, shift);
-      const started = await pecShiftClosingService.startBatch(created.id);
-      setBatch(started);
-      toast.success('Submissões liberadas no nosso sistema.');
+      setBatch(created);
+      toast.success('Fila assistida criada para revisão profissional.');
       await loadProfessionalSubmissions();
     } finally {
       setBusy(false);
@@ -564,7 +583,7 @@ export default function PecShiftClosing() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">{submissionsBySection.pending.length} em revisão</Badge>
-              <Badge variant="outline">{submissionsBySection.active.length} prontas/processando</Badge>
+              <Badge variant="outline">{submissionsBySection.active.length} liberadas/processando</Badge>
               <Badge variant="outline">{submissionsBySection.history.length} no histórico</Badge>
             </div>
           </div>
@@ -615,7 +634,8 @@ export default function PecShiftClosing() {
               </div>
             ) : (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-                <div className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> Tudo pronto para liberar as submissões ao PEC.</div>
+                <div className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> Tudo pronto para criar a fila assistida.</div>
+                <p className="mt-1">As submissões entram em revisão pendente. O worker só processa depois da liberação manual de cada item.</p>
               </div>
             )}
 
@@ -643,8 +663,8 @@ export default function PecShiftClosing() {
             </Table>
 
             <div className="flex justify-end">
-              <Button onClick={createAndStartBatch} disabled={busy || !canCreateBatch}>
-                <Play className="mr-2 h-4 w-4" /> Confirmar submissões
+              <Button onClick={createAssistedBatch} disabled={busy || !canCreateBatch}>
+                <Play className="mr-2 h-4 w-4" /> Criar fila assistida
               </Button>
             </div>
           </CardContent>
@@ -654,7 +674,7 @@ export default function PecShiftClosing() {
       {batch && (
         <Card>
           <CardHeader>
-            <CardTitle>Status do envio</CardTitle>
+            <CardTitle>Status da fila assistida</CardTitle>
             <CardDescription>{batch.userMessage}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
@@ -705,6 +725,14 @@ export default function PecShiftClosing() {
                   {credentialLabel(selected)}
                 </AlertDescription>
               </Alert>
+
+              {manualReviewLabel(selected) && (
+                <Alert variant={selected.errorCode === 'PEC_DRAFT_SAVED_PENDING_FINALIZATION' ? 'default' : 'destructive'}>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{manualReviewLabel(selected)?.title}</AlertTitle>
+                  <AlertDescription>{manualReviewLabel(selected)?.description}</AlertDescription>
+                </Alert>
+              )}
 
               <div className="grid gap-3 md:grid-cols-4">
                 <div className="rounded-md border p-3">
@@ -760,10 +788,10 @@ export default function PecShiftClosing() {
                   </Button>
                   <Button onClick={() => openResponsibleAction({
                     kind: 'mark-ready',
-                    title: 'Marcar pronto para envio',
-                    description: 'Confirme autoria, vínculo SUS, credencial e campos finais antes de liberar para o worker.',
+                    title: 'Liberar para rascunho assistido',
+                    description: 'Confirme autoria, vínculo SUS, credencial e campos finais. O worker deve salvar rascunho no PEC e retornar revisão manual; produção oficial continua bloqueada até Finalizar registros.',
                   })}>
-                    <Send className="mr-2 h-4 w-4" /> Marcar READY
+                    <Send className="mr-2 h-4 w-4" /> Liberar rascunho assistido
                   </Button>
                 </div>
               )}
@@ -855,7 +883,7 @@ export default function PecShiftClosing() {
             <div className="space-y-4">
               <Alert>
                 <ShieldCheck className="h-4 w-4" />
-                <AlertTitle>{readyAction ? 'Confirmação READY' : 'Confirmação de autoria'}</AlertTitle>
+                <AlertTitle>{readyAction ? 'Confirmação para rascunho assistido' : 'Confirmação de autoria'}</AlertTitle>
                 <AlertDescription>
                   {professionalLabel(selected)}<br />
                   {assignmentLabel(selected)}<br />
@@ -864,24 +892,33 @@ export default function PecShiftClosing() {
               </Alert>
 
               {readyAction && selected && (
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div className="rounded-md border p-3 text-sm">
-                    <div className="text-xs text-muted-foreground">Assinante</div>
-                    <div className="mt-1 font-medium">{selected.professional?.name ?? shortId(selected.professionalStaffId)}</div>
-                  </div>
-                  <div className="rounded-md border p-3 text-sm">
-                    <div className="text-xs text-muted-foreground">CBO / CNES / INE</div>
-                    <div className="mt-1 font-medium">
-                      {selected.susAssignment?.cboCode ?? 'CBO pendente'} · {selected.susAssignment?.cnesCode ?? 'CNES pendente'} · {selected.susAssignment?.ineCode ?? 'INE pendente'}
+                <>
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Guardrail de produção oficial</AlertTitle>
+                    <AlertDescription>
+                      Esta ação libera o worker para preencher e salvar rascunho no PEC. Ela não autoriza Finalizar registros, não deve gerar EXPORTED e não deve fazer retry cego se o resultado ficar incerto.
+                    </AlertDescription>
+                  </Alert>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-md border p-3 text-sm">
+                      <div className="text-xs text-muted-foreground">Assinante</div>
+                      <div className="mt-1 font-medium">{selected.professional?.name ?? shortId(selected.professionalStaffId)}</div>
+                    </div>
+                    <div className="rounded-md border p-3 text-sm">
+                      <div className="text-xs text-muted-foreground">CBO / CNES / INE</div>
+                      <div className="mt-1 font-medium">
+                        {selected.susAssignment?.cboCode ?? 'CBO pendente'} · {selected.susAssignment?.cnesCode ?? 'CNES pendente'} · {selected.susAssignment?.ineCode ?? 'INE pendente'}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-3 text-sm">
+                      <div className="text-xs text-muted-foreground">Credencial</div>
+                      <div className="mt-1 font-medium">
+                        {selected.credential?.source ?? selected.credential?.provider ?? 'origem pendente'} · {selected.credential?.validityStatus ?? 'status pendente'}
+                      </div>
                     </div>
                   </div>
-                  <div className="rounded-md border p-3 text-sm">
-                    <div className="text-xs text-muted-foreground">Credencial</div>
-                    <div className="mt-1 font-medium">
-                      {selected.credential?.source ?? selected.credential?.provider ?? 'origem pendente'} · {selected.credential?.validityStatus ?? 'status pendente'}
-                    </div>
-                  </div>
-                </div>
+                </>
               )}
 
               {pendingAction.requiresFields ? (
