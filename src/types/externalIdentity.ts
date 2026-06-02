@@ -25,6 +25,7 @@ export type ExternalCredentialHealthStatus =
 
 export type ExternalProfessionalCredentialStatus =
   | 'NOT_TESTED'
+  | 'TESTING'
   | 'VALID'
   | 'EXPIRED'
   | 'INVALID_PASSWORD'
@@ -70,6 +71,12 @@ export interface ExternalIdentityApprovalRequest {
   organizationId?: string;
   userId?: string | null;
   staffId?: string | null;
+  statusReason?: string | null;
+}
+
+export interface ExternalIdentityApproveWithNewProfessionalRequest {
+  organizationId?: string;
+  role: string;
   statusReason?: string | null;
 }
 

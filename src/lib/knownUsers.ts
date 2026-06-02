@@ -8,9 +8,15 @@
 const STORAGE_KEY = 'amazhealth_known_users';
 const MAX_USERS = 10;
 
+type KnownUserProvider = 'LOCAL' | 'HORUS_LEGACY' | 'ESUS_PEC' | 'ESUS_AF';
+
 export interface KnownUser {
   /** Identificador usado no login (username ou email). */
   login: string;
+  /** Provedor usado no último login bem-sucedido. */
+  provider?: KnownUserProvider;
+  /** Organização usada no último login bem-sucedido, quando conhecida. */
+  organizationId?: string;
   /** Nome completo pra display (ex: "Dr. Wallace Patrick"). */
   fullName?: string;
   /** Nome da organização ativa pra dar contexto. */
@@ -21,6 +27,24 @@ export interface KnownUser {
   lastLoginAt: number;
 }
 
+function inferProvider(user: Partial<KnownUser>): KnownUserProvider {
+  if (user.provider) return user.provider;
+  const login = (user.login ?? '').trim();
+  if (/^\d{8,15}$/.test(login) || /^ext_\d{8,15}$/.test(login)) {
+    return 'ESUS_PEC';
+  }
+  return 'LOCAL';
+}
+
+export function normalizeKnownUserLogin(user: Pick<KnownUser, 'login' | 'provider'>): string {
+  const login = user.login.trim();
+  const provider = inferProvider(user);
+  if (provider === 'ESUS_PEC' && /^ext_\d{8,15}$/.test(login)) {
+    return login.replace(/^ext_/, '');
+  }
+  return login;
+}
+
 function loadAll(): KnownUser[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -28,7 +52,17 @@ function loadAll(): KnownUser[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed as KnownUser[];
+    return (parsed as KnownUser[]).map((user) => {
+      const normalizedLogin = normalizeKnownUserLogin(user);
+      const normalizedProvider = inferProvider(user);
+      const staleInternalName = /^ext_\d{8,15}$/.test(user.fullName ?? '');
+      return {
+        ...user,
+        login: normalizedLogin,
+        provider: normalizedProvider,
+        fullName: staleInternalName ? undefined : user.fullName,
+      };
+    });
   } catch {
     return [];
   }
@@ -52,14 +86,26 @@ export const knownUsers = {
     return loadAll().sort((a, b) => b.lastLoginAt - a.lastLoginAt);
   },
 
-  upsert(input: { login: string; fullName?: string; organizationName?: string }): void {
+  upsert(input: {
+    login: string;
+    provider?: KnownUserProvider;
+    organizationId?: string;
+    fullName?: string;
+    organizationName?: string;
+  }): void {
     const all = loadAll();
-    const idx = all.findIndex((u) => u.login.toLowerCase() === input.login.toLowerCase());
-    const entry: KnownUser = {
+    const normalizedLogin = normalizeKnownUserLogin({
       login: input.login,
+      provider: input.provider,
+    });
+    const idx = all.findIndex((u) => u.login.toLowerCase() === normalizedLogin.toLowerCase());
+    const entry: KnownUser = {
+      login: normalizedLogin,
+      provider: input.provider ?? all[idx]?.provider ?? inferProvider({ login: normalizedLogin }),
+      organizationId: input.organizationId ?? all[idx]?.organizationId,
       fullName: input.fullName ?? all[idx]?.fullName,
       organizationName: input.organizationName ?? all[idx]?.organizationName,
-      initials: computeInitials(input.fullName, input.login),
+      initials: computeInitials(input.fullName, normalizedLogin),
       lastLoginAt: Date.now(),
     };
     if (idx >= 0) {

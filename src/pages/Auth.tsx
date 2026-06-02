@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { knownUsers, KnownUser } from '@/lib/knownUsers';
+import { knownUsers, KnownUser, normalizeKnownUserLogin } from '@/lib/knownUsers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +38,18 @@ const providerOptions: Array<{ value: 'LOCAL' | ExternalIdentityProvider; label:
   { value: 'ESUS_AF', label: 'e-SUS AF' },
 ];
 
+const providerForKnownUser = (user: KnownUser): 'LOCAL' | ExternalIdentityProvider => {
+  if (user.provider) return user.provider;
+  return /^\d{8,15}$/.test(normalizeKnownUserLogin(user)) ? 'ESUS_PEC' : 'LOCAL';
+};
+
+const displayNameForKnownUser = (user: KnownUser): string => {
+  if (user.fullName && !/^ext_\d{8,15}$/.test(user.fullName)) {
+    return user.fullName;
+  }
+  return normalizeKnownUserLogin(user);
+};
+
 export default function Auth() {
   const { signIn, loading } = useAuth();
   const navigate = useNavigate();
@@ -61,10 +73,11 @@ export default function Auth() {
   // Quando seleciona usuário do picker, pré-preenche o login e foca no campo senha.
   useEffect(() => {
     if (selectedUser) {
-      loginForm.setValue('login', selectedUser.login);
+      loginForm.setValue('login', normalizeKnownUserLogin(selectedUser));
       loginForm.setValue('password', '');
       loginForm.setValue('rememberMe', true);
-      loginForm.setValue('provider', 'LOCAL');
+      loginForm.setValue('provider', providerForKnownUser(selectedUser));
+      loginForm.setValue('organizationId', selectedUser.organizationId ?? '');
       loginForm.clearErrors();
       setLoginState(null);
       const t = setTimeout(() => {
@@ -114,7 +127,11 @@ export default function Auth() {
   };
 
   const handlePickUser = (user: KnownUser) => {
-    setSelectedUser(user);
+    setSelectedUser({
+      ...user,
+      login: normalizeKnownUserLogin(user),
+      provider: providerForKnownUser(user),
+    });
     setMode('login');
   };
 
@@ -199,7 +216,7 @@ export default function Auth() {
                 <Avatar initials={selectedUser.initials ?? '?'} size="lg" />
               </div>
               <CardTitle className="text-2xl font-bold">
-                {selectedUser.fullName ?? selectedUser.login}
+                {displayNameForKnownUser(selectedUser)}
               </CardTitle>
               {selectedUser.organizationName && (
                 <CardDescription>{selectedUser.organizationName}</CardDescription>
@@ -362,7 +379,7 @@ function UserTile({
         }
       }}
       className="group relative flex flex-col items-center gap-2 rounded-lg border bg-card p-4 transition-all hover:border-primary hover:shadow-md"
-      aria-label={`Selecionar usuário ${user.fullName ?? user.login}`}
+      aria-label={`Selecionar usuário ${displayNameForKnownUser(user)}`}
     >
       <button
         type="button"
@@ -374,7 +391,7 @@ function UserTile({
       </button>
       <Avatar initials={user.initials ?? '?'} size="md" />
       <div className="text-center">
-        <div className="line-clamp-1 text-sm font-semibold">{user.fullName ?? user.login}</div>
+        <div className="line-clamp-1 text-sm font-semibold">{displayNameForKnownUser(user)}</div>
         {user.organizationName && (
           <div className="line-clamp-1 text-xs text-muted-foreground">{user.organizationName}</div>
         )}

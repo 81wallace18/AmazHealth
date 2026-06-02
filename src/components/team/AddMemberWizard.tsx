@@ -38,6 +38,7 @@ const ROLE_LABELS: Record<RoleType, string> = {
   doctor: 'Médico',
   nurse: 'Enfermeiro',
   nurse_manager: 'Coord. Enfermagem',
+  nurse_technician: 'Téc. Enfermagem',
   pharmacist: 'Farmacêutico',
   receptionist: 'Recepcionista',
   hospital_manager: 'Gestão Hospitalar',
@@ -48,7 +49,7 @@ const ROLE_LABELS: Record<RoleType, string> = {
 const step1Schema = z.object({
   firstName: z.string().min(1, 'Nome é obrigatório').max(100),
   lastName: z.string().min(1, 'Sobrenome é obrigatório').max(100),
-  role: z.enum(['admin', 'gestao', 'doctor', 'nurse', 'nurse_manager', 'pharmacist', 'receptionist', 'hospital_manager', 'finance', 'staff'] as const, {
+  role: z.enum(['admin', 'gestao', 'doctor', 'nurse', 'nurse_manager', 'nurse_technician', 'pharmacist', 'receptionist', 'hospital_manager', 'finance', 'staff'] as const, {
     required_error: 'Função é obrigatória',
   }),
   specialization: z.string().max(100).optional(),
