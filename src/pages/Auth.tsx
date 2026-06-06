@@ -77,7 +77,9 @@ export default function Auth() {
       loginForm.setValue('password', '');
       loginForm.setValue('rememberMe', true);
       loginForm.setValue('provider', providerForKnownUser(selectedUser));
-      loginForm.setValue('organizationId', selectedUser.organizationId ?? '');
+      // O picker guarda organizacao como metadata de exibicao. No login, o
+      // backend deve inferir a organizacao atual para evitar IDs salvos obsoletos.
+      loginForm.setValue('organizationId', '');
       loginForm.clearErrors();
       setLoginState(null);
       const t = setTimeout(() => {
@@ -93,10 +95,11 @@ export default function Auth() {
     const externalProvider = values.provider && values.provider !== 'LOCAL'
       ? values.provider as ExternalIdentityProvider
       : undefined;
+    const organizationId = externalProvider ? values.organizationId?.trim() || undefined : undefined;
     const result = await signIn(
       values.login,
       values.password,
-      values.organizationId,
+      organizationId,
       values.rememberMe,
       externalProvider
     );

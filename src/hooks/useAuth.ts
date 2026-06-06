@@ -176,7 +176,7 @@ export function useAuth() {
       const response: AuthResponse = await authService.login({
         login,
         password,
-        organizationId,
+        organizationId: organizationId?.trim() || undefined,
         externalProvider,
       });
 
