@@ -13,7 +13,7 @@ Aplicação web do **AmazHealth** (HIS/Sistema Hospitalar) — interface de rece
 ## Variáveis de ambiente
 
 - `VITE_API_URL` (base da API)
-  - Desenvolvimento (local): `http://localhost:8080/api/v1`
+  - Desenvolvimento (local): `http://localhost:18080/api/v1`
   - Produção (mesma origem via reverse proxy): `/api/v1`
   - Produção (API em outro domínio): `https://api.seudominio.com/api/v1`
 
@@ -41,7 +41,7 @@ docker compose -f docker-compose.yml --profile dev up -d web-dev
 
 Acessos:
 - Frontend: `http://localhost:5173`
-- API: `http://localhost:8080/api/v1`
+- API: `http://localhost:18080/api/v1`
 
 ---
 
@@ -69,10 +69,10 @@ npm run build
 
 ## Rodar “prod-like” local (Nginx)
 
-Pré-requisito: backend rodando em `http://localhost:8080`.
+Pré-requisito: backend rodando em `http://localhost:18080`.
 
 ```bash
-VITE_API_URL=http://localhost:8080/api/v1 docker compose -f docker-compose.yml --profile prod up -d --build web
+VITE_API_URL=http://localhost:18080/api/v1 docker compose -f docker-compose.yml --profile prod up -d --build web
 ```
 
 Acesso: `http://localhost:8081`
@@ -88,7 +88,7 @@ Observação:
 Pré-requisitos: backend + frontend rodando.
 
 Variáveis suportadas:
-- `E2E_BACKEND_URL` (default: `http://localhost:8080/api/v1`)
+- `E2E_BACKEND_URL` (default: `http://localhost:18080/api/v1`)
 - `E2E_FRONTEND_URL` (default: `http://localhost:5173`)
 
 ```bash
@@ -112,7 +112,7 @@ Frontend web do AmazHealth HIS em React + Vite + TypeScript.
 ## Configuracao
 Copie `.env.example` para `.env` e ajuste:
 
-- `VITE_API_URL` (padrao: `http://localhost:8080/api/v1`)
+- `VITE_API_URL` (padrao: `http://localhost:18080/api/v1`)
 
 ## Comandos
 
@@ -130,5 +130,5 @@ npm run preview
 ```
 
 ## Integracao com backend
-- Em dev local: `VITE_API_URL=http://localhost:8080/api/v1`
+- Em dev local: `VITE_API_URL=http://localhost:18080/api/v1`
 - Em producao via NGINX: usar `VITE_API_URL=/api/v1`
