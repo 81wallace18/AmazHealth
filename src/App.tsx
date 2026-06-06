@@ -57,18 +57,27 @@ const ALL_SYNC_QUEUE_ROLES: UserRole[] = [
   "TENANT_MANAGER",
 ];
 
+function RouteLoadingState() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background px-6">
+      <div className="w-full max-w-sm text-center">
+        <div
+          className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-primary/20 border-t-primary"
+          role="status"
+          aria-label="Carregando contexto da sessão"
+        />
+        <p className="mt-4 text-sm font-medium text-foreground">Carregando contexto</p>
+        <p className="mt-1 text-sm text-muted-foreground">Verificando sessão, permissões e unidade ativa.</p>
+      </div>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
   
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
-    );
+    return <RouteLoadingState />;
   }
   
   if (!isAuthenticated) {
@@ -82,14 +91,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
   
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
-    );
+    return <RouteLoadingState />;
   }
   
   if (isAuthenticated) {

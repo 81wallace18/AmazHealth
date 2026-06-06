@@ -105,17 +105,23 @@ export default function Patients() {
       if (printWindow) {
         printWindow.document.write(`
           <html><head><title>Etiqueta</title><style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            .code { font-family: monospace; font-size: 18px; font-weight: bold; }
-            .name { font-size: 16px; margin: 8px 0; }
-            .info { font-size: 12px; color: #666; }
-          </style></head><body>
+            :root { color: #082118; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+            body { margin: 0; padding: 20px; color: #082118; }
+            .label { width: 320px; border: 1px solid #dae7e2; border-radius: 6px; padding: 14px; }
+            .code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: 18px; font-weight: 700; letter-spacing: 0.02em; }
+            .name { font-size: 16px; font-weight: 650; margin: 8px 0; }
+            .info { font-size: 12px; color: #57756a; line-height: 1.45; }
+            @media print {
+              body { padding: 0; }
+              .label { border-color: #8fa39b; }
+            }
+          </style></head><body><section class="label">
             <div class="code">${data.patientCode}</div>
             <div class="name">${data.fullName}</div>
             <div class="info">Nasc: ${new Date(data.dateOfBirth).toLocaleDateString("pt-BR")}</div>
             ${data.attendanceNumber ? `<div class="info">Atendimento: ${data.attendanceNumber}</div>` : ""}
             <div class="info">UBS Serra Pelada</div>
-          </body></html>
+          </section></body></html>
         `);
         printWindow.document.close();
         printWindow.print();

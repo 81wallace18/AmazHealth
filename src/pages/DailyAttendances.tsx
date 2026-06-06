@@ -67,12 +67,12 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }>
   CANCELLED: { label: "Cancelado", bg: "bg-gray-100", text: "text-gray-500" },
 };
 
-const TRIAGE_COLORS: Record<string, { bg: string; border: string; label: string }> = {
-  RED: { bg: "bg-red-500", border: "border-l-red-500", label: "Emergência" },
-  ORANGE: { bg: "bg-orange-500", border: "border-l-orange-500", label: "Muito Urgente" },
-  YELLOW: { bg: "bg-yellow-400", border: "border-l-yellow-400", label: "Urgente" },
-  GREEN: { bg: "bg-green-500", border: "border-l-green-500", label: "Pouco Urgente" },
-  BLUE: { bg: "bg-blue-500", border: "border-l-blue-500", label: "Não Urgente" },
+const TRIAGE_COLORS: Record<string, { bg: string; tone: string; label: string }> = {
+  RED: { bg: "bg-red-500", tone: "border-red-200 bg-red-50 text-red-900", label: "Emergência" },
+  ORANGE: { bg: "bg-orange-500", tone: "border-orange-200 bg-orange-50 text-orange-900", label: "Muito Urgente" },
+  YELLOW: { bg: "bg-yellow-400", tone: "border-yellow-200 bg-yellow-50 text-yellow-900", label: "Urgente" },
+  GREEN: { bg: "bg-green-500", tone: "border-green-200 bg-green-50 text-green-900", label: "Pouco Urgente" },
+  BLUE: { bg: "bg-blue-500", tone: "border-blue-200 bg-blue-50 text-blue-900", label: "Não Urgente" },
 };
 
 const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
@@ -98,57 +98,63 @@ function MiniCalendar({ selectedDate, onSelect }: { selectedDate: Date; onSelect
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewMonth(subMonths(viewMonth, 1))}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 shrink-0"
+          aria-label="Mês anterior"
+          onClick={() => setViewMonth(subMonths(viewMonth, 1))}
+        >
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="text-sm font-medium capitalize">
+        <span className="text-sm font-semibold capitalize">
           {format(viewMonth, "MMMM yyyy", { locale: ptBR })}
         </span>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewMonth(addMonths(viewMonth, 1))}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 shrink-0"
+          aria-label="Próximo mês"
+          onClick={() => setViewMonth(addMonths(viewMonth, 1))}
+        >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-      <table className="w-full text-center text-xs">
-        <thead>
-          <tr>
-            {WEEKDAYS.map((d, i) => (
-              <th key={i} className="py-1 text-muted-foreground font-medium">{d}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {weeks.map((week, wi) => (
-            <tr key={wi}>
-              {week.map((d, di) => {
-                const selected = isSameDay(d, selectedDate);
-                const today = isToday(d);
-                const inMonth = isSameMonth(d, viewMonth);
-                return (
-                  <td key={di} className="p-0.5">
-                    <button
-                      onClick={() => onSelect(d)}
-                      className={`w-7 h-7 rounded-full text-xs transition-colors
-                        ${selected ? "bg-primary text-primary-foreground font-bold" : ""}
-                        ${today && !selected ? "border border-primary text-primary font-bold" : ""}
-                        ${!inMonth ? "text-muted-foreground/40" : ""}
-                        ${inMonth && !selected ? "hover:bg-muted" : ""}
-                      `}
-                    >
-                      {format(d, "d")}
-                    </button>
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="grid grid-cols-7 gap-1 text-center text-xs">
+        {WEEKDAYS.map((d, i) => (
+          <div key={i} className="flex h-7 items-center justify-center font-medium text-muted-foreground">
+            {d}
+          </div>
+        ))}
+        {weeks.flat().map((d) => {
+          const selected = isSameDay(d, selectedDate);
+          const today = isToday(d);
+          const inMonth = isSameMonth(d, viewMonth);
+          return (
+            <button
+              key={d.toISOString()}
+              type="button"
+              onClick={() => onSelect(d)}
+              aria-label={format(d, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              aria-pressed={selected}
+              className={`flex h-10 min-w-0 items-center justify-center rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+                ${selected ? "bg-primary text-primary-foreground font-bold" : ""}
+                ${today && !selected ? "border border-primary text-primary font-bold" : ""}
+                ${!inMonth ? "text-muted-foreground/40" : ""}
+                ${inMonth && !selected ? "hover:bg-muted" : ""}
+              `}
+            >
+              {format(d, "d")}
+            </button>
+          );
+        })}
+      </div>
       <Button
         variant="outline"
         size="sm"
-        className="w-full text-xs"
+        className="h-10 w-full text-xs"
         onClick={() => { onSelect(new Date()); setViewMonth(startOfMonth(new Date())); }}
       >
         Hoje
@@ -229,7 +235,7 @@ export default function DailyAttendances() {
     <div className="p-4 sm:p-6">
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         {/* Coluna esquerda */}
-        <div className="w-full lg:w-64 flex-shrink-0 space-y-4">
+        <div className="w-full flex-shrink-0 space-y-4 lg:w-80">
           <Card>
             <CardContent className="pt-4">
               <MiniCalendar selectedDate={selectedDate} onSelect={setSelectedDate} />
@@ -364,13 +370,19 @@ export default function DailyAttendances() {
                   return (
                     <div
                       key={att.id}
-                      className={`flex items-center gap-3 p-3 hover:bg-muted/30 transition-colors border-l-4 ${triageCfg ? triageCfg.border : "border-l-transparent"}`}
+                      className="flex items-center gap-3 border-b p-3 transition-colors hover:bg-muted/30 last:border-b-0"
                     >
                       {/* Info do paciente */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold">{att.patientName}</span>
                           <span className={`text-sm ${statusCfg.text}`}>| {statusCfg.label}</span>
+                          {triageCfg && (
+                            <Badge variant="outline" className={`gap-1 text-xs ${triageCfg.tone}`}>
+                              <span className={`h-2 w-2 rounded-full ${triageCfg.bg}`} aria-hidden="true" />
+                              Prioridade: {triageCfg.label}
+                            </Badge>
+                          )}
                           {att.emergencyBypass && (
                             <Badge variant="destructive" className="text-xs">EMERGÊNCIA</Badge>
                           )}
