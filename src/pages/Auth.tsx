@@ -90,7 +90,7 @@ export default function Auth() {
   const onLogin = async (values: LoginValues) => {
     loginForm.clearErrors('root');
     setLoginState(null);
-    const provider = values.provider && values.provider !== 'LOCAL'
+    const externalProvider = values.provider && values.provider !== 'LOCAL'
       ? values.provider as ExternalIdentityProvider
       : undefined;
     const result = await signIn(
@@ -98,7 +98,7 @@ export default function Auth() {
       values.password,
       values.organizationId,
       values.rememberMe,
-      provider
+      externalProvider
     );
     const { error, message, mustChangePassword } = result;
     if (!error) {

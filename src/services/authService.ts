@@ -21,7 +21,6 @@ export interface LoginData {
   login: string;
   password: string;
   organizationId?: string; // Opcional - backend usa primeira org se não fornecido
-  provider?: ExternalIdentityProvider;
   externalProvider?: ExternalIdentityProvider;
   staffId?: string;
 }

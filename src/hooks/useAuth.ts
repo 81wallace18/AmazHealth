@@ -169,7 +169,7 @@ export function useAuth() {
     password: string,
     organizationId?: string,
     rememberMe?: boolean,
-    provider?: ExternalIdentityProvider
+    externalProvider?: ExternalIdentityProvider
   ) => {
     try {
       setLoading(true);
@@ -177,7 +177,7 @@ export function useAuth() {
         login,
         password,
         organizationId,
-        provider,
+        externalProvider,
       });
 
       const authenticationStatus = response.authenticationStatus ?? 'AUTHENTICATED';
@@ -187,7 +187,7 @@ export function useAuth() {
           error: null,
           message: response.message || 'Seu vínculo externo ainda aguarda aprovação administrativa.',
           authenticationStatus,
-          externalProvider: response.externalProvider ?? provider,
+          externalProvider: response.externalProvider ?? externalProvider,
           externalIdentityStatus: response.externalIdentityStatus,
           pendingApproval: true,
           mustChangePassword: false,
@@ -203,7 +203,7 @@ export function useAuth() {
           error: null,
           message: response.message || 'A senha do provedor externo expirou. Renove no sistema de origem e tente novamente.',
           authenticationStatus: 'PASSWORD_EXPIRED',
-          externalProvider: response.externalProvider ?? provider,
+          externalProvider: response.externalProvider ?? externalProvider,
           externalIdentityStatus: response.externalIdentityStatus,
           requiresExternalPasswordChange: true,
           mustChangePassword: false,
@@ -215,7 +215,7 @@ export function useAuth() {
       // Salva no picker do device pra próxima vez aparecer só pedindo senha
       knownUsers.upsert({
         login,
-        provider: response.externalProvider ?? provider ?? 'LOCAL',
+        provider: response.externalProvider ?? externalProvider ?? 'LOCAL',
         organizationId: response.user.organizationId,
         fullName: response.user.fullName,
         organizationName: response.user.organizationName,
@@ -233,7 +233,7 @@ export function useAuth() {
         message: response.message ?? null,
         mustChangePassword: normalized.mustChangePassword ?? false,
         authenticationStatus,
-        externalProvider: response.externalProvider ?? provider,
+        externalProvider: response.externalProvider ?? externalProvider,
         externalIdentityStatus: response.externalIdentityStatus,
       };
     } catch (error: any) {
