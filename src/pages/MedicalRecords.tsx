@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useMedicalRecords } from "@/hooks/useMedicalRecords";
 import { useCapabilities } from "@/auth/useCapabilities";
+import { usePermissions } from "@/auth/permissions";
 import { useAuth } from "@/hooks/useAuth";
 import { PrescriptionForm } from "@/components/prescriptions/PrescriptionForm";
 import { PrescriptionList } from "@/components/prescriptions/PrescriptionList";
@@ -69,6 +70,32 @@ export default function MedicalRecords() {
   const isWorkspace = Boolean(visitId);
   const { records, loading, createRecord, refetch } = useMedicalRecords({ visitId });
   const capabilities = useCapabilities();
+  const permissions = usePermissions();
+  const canWriteNursingProcedure = permissions.can({
+    resource: "PRONTUARIO",
+    action: "WRITE_NURSING_PROCEDURE",
+    context: { sector: "URGENCIA", patientRelationship: "UNDER_CARE", mode: "ROUTINE", shareGrant: "NONE" },
+  });
+  const canWriteMedicalEvolution = permissions.can({
+    resource: "PRONTUARIO",
+    action: "WRITE_MEDICAL_EVOLUTION",
+    context: { sector: "URGENCIA", patientRelationship: "UNDER_CARE", mode: "ROUTINE", shareGrant: "NONE" },
+  });
+  const canReadPrescription = permissions.can({
+    resource: "PRONTUARIO",
+    action: "READ_PRESCRIPTION",
+    context: { sector: "URGENCIA", patientRelationship: "UNDER_CARE", mode: "ROUTINE", shareGrant: "NONE" },
+  });
+  const canWritePrescription = permissions.can({
+    resource: "PRONTUARIO",
+    action: "WRITE_PRESCRIPTION",
+    context: { sector: "URGENCIA", patientRelationship: "UNDER_CARE", mode: "ROUTINE", shareGrant: "NONE" },
+  });
+  const canDefineAttendanceOutcome = permissions.can({
+    resource: "PRONTUARIO",
+    action: "DEFINE_OUTCOME",
+    context: { sector: "URGENCIA", patientRelationship: "UNDER_CARE", mode: "ROUTINE", shareGrant: "NONE" },
+  });
   const { toast } = useToast();
   const [attendance, setAttendance] = useState<Attendance | null>(null);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -98,10 +125,11 @@ export default function MedicalRecords() {
     treatment: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const canWriteClinicalRecord = canWriteNursingProcedure || canWriteMedicalEvolution;
   const canOnlyRecordEvolution =
-    capabilities.canRecordEvolution &&
-    !capabilities.canCreatePrescription &&
-    !capabilities.canDefineOutcome;
+    canWriteNursingProcedure &&
+    !canWritePrescription &&
+    !canDefineAttendanceOutcome;
 
   useEffect(() => {
     document.title = "Prontuários Médicos | Gestão de Prontuários";
@@ -306,8 +334,8 @@ export default function MedicalRecords() {
           <DialogTrigger asChild>
             <Button 
               className="bg-primary hover:bg-primary/90"
-              disabled={!capabilities.canRecordEvolution}
-              title={!capabilities.canRecordEvolution ? "Você não tem permissão para registrar prontuários" : ""}
+              disabled={!canWriteClinicalRecord}
+              title={!canWriteClinicalRecord ? "Você não tem permissão para registrar prontuários" : ""}
             >
               <Plus className="h-4 w-4 mr-2" />
               {canOnlyRecordEvolution ? "Nova Evolução" : "Novo Prontuário"}
@@ -580,9 +608,9 @@ export default function MedicalRecords() {
       <Tabs defaultValue="list" className="space-y-4">
         <TabsList>
           <TabsTrigger value="list">{isWorkspace ? "Prontuário" : "Lista de Prontuários"}</TabsTrigger>
-          {isWorkspace && capabilities.canRecordEvolution && <TabsTrigger value="nursing-procedures">Procedimentos</TabsTrigger>}
-          {isWorkspace && capabilities.canReadPrescription && <TabsTrigger value="prescriptions">Prescrições</TabsTrigger>}
-          {isWorkspace && capabilities.canDefineOutcome && <TabsTrigger value="finalize">Finalizar</TabsTrigger>}
+          {isWorkspace && canWriteNursingProcedure && <TabsTrigger value="nursing-procedures">Procedimentos</TabsTrigger>}
+          {isWorkspace && canReadPrescription && <TabsTrigger value="prescriptions">Prescrições</TabsTrigger>}
+          {isWorkspace && canDefineAttendanceOutcome && <TabsTrigger value="finalize">Finalizar</TabsTrigger>}
           {!isWorkspace && <TabsTrigger value="analytics">Relatórios</TabsTrigger>}
         </TabsList>
 
@@ -712,13 +740,13 @@ export default function MedicalRecords() {
           </Card>
         </TabsContent>
 
-        {isWorkspace && capabilities.canRecordEvolution && visitId && (
+        {isWorkspace && canWriteNursingProcedure && visitId && (
           <TabsContent value="nursing-procedures" className="space-y-4">
             <NursingProcedurePanel visitId={visitId} />
           </TabsContent>
         )}
 
-        {isWorkspace && capabilities.canReadPrescription && (
+        {isWorkspace && canReadPrescription && (
           <TabsContent value="prescriptions" className="space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -730,9 +758,9 @@ export default function MedicalRecords() {
               <Button
                 className="bg-primary hover:bg-primary/90"
                 onClick={() => setIsPrescriptionOpen(true)}
-                disabled={!capabilities.canCreatePrescription || !attendance}
+                disabled={!canWritePrescription || !attendance}
                 title={
-                  !capabilities.canCreatePrescription
+                  !canWritePrescription
                     ? "Você não tem permissão para criar prescrições"
                     : !attendance
                     ? "Carregue o atendimento para continuar"
@@ -772,7 +800,7 @@ export default function MedicalRecords() {
           </TabsContent>
         )}
 
-        {isWorkspace && capabilities.canDefineOutcome && (
+        {isWorkspace && canDefineAttendanceOutcome && (
           <TabsContent value="finalize" className="space-y-4">
             <Card>
               <CardHeader>
@@ -785,8 +813,8 @@ export default function MedicalRecords() {
                 <Button
                   className="bg-primary hover:bg-primary/90"
                   onClick={() => setIsFinalizeOpen(true)}
-                  disabled={!capabilities.canDefineOutcome || !visitId}
-                  title={!capabilities.canDefineOutcome ? "Você não tem permissão para finalizar atendimentos" : ""}
+                  disabled={!canDefineAttendanceOutcome || !visitId}
+                  title={!canDefineAttendanceOutcome ? "Você não tem permissão para finalizar atendimentos" : ""}
                 >
                   Finalizar atendimento
                 </Button>

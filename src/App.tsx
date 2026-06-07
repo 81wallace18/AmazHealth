@@ -9,6 +9,7 @@ import { useAuth } from "./hooks/useAuth";
 import { RequireCapability } from "./components/RequireCapability";
 import { RequireRole } from "./components/RequireRole";
 import { RequireAccess } from "./components/RequireAccess";
+import { RequirePermission } from "./components/RequirePermission";
 import type { UserRole } from "./auth/capabilities";
 import Dashboard from "./pages/Dashboard";
 import GestoraDashboard from "./pages/GestoraDashboard";
@@ -135,7 +136,7 @@ const App = () => (
               </RequireAccess>
             } />
             <Route path="daily-attendances" element={
-              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "RECEPTIONIST", "HOSPITAL_MANAGER"]} module="URGENCIA">
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "RECEPTIONIST", "HOSPITAL_MANAGER"]} module="URGENCIA">
                 <DailyAttendances />
               </RequireAccess>
             } />
@@ -160,18 +161,22 @@ const App = () => (
               </RequireAccess>
             } />
             <Route path="medical-records" element={
-              <RequireCapability capabilities={["canRecordEvolution", "canCreatePrescription", "canDefineOutcome", "canReadPrescription"]}>
-                <MedicalRecords />
-              </RequireCapability>
+              <RequireAccess allowedRoles={["DOCTOR", "NURSE", "NURSE_TECHNICIAN", "PLATFORM_ADMIN"]} module="URGENCIA">
+                <RequirePermission permission={{ resource: "PRONTUARIO", action: "READ", context: { sector: "URGENCIA", patientRelationship: "UNDER_CARE", mode: "ROUTINE", shareGrant: "NONE" } }}>
+                  <MedicalRecords />
+                </RequirePermission>
+              </RequireAccess>
             } />
             <Route path="triage" element={
-              <RequireCapability capabilities={["canCreateTriage", "canViewTriageBoard"]}>
+              <RequirePermission permission={{ resource: "TRIAGEM", action: "READ_BOARD", context: { sector: "URGENCIA", duty: "ACTIVE" } }}>
                 <Triage />
-              </RequireCapability>
+              </RequirePermission>
             } />
             <Route path="reception/triage" element={
               <RequireAccess allowedRoles={["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER"]} module="URGENCIA">
-                <ReceptionTriage />
+                <RequirePermission permission={{ resource: "RECEPCAO", action: "OPEN_ATTENDANCE", context: { sector: "URGENCIA" } }}>
+                  <ReceptionTriage />
+                </RequirePermission>
               </RequireAccess>
             } />
             <Route path="admissions" element={

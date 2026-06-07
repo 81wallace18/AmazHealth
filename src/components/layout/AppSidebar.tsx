@@ -43,6 +43,7 @@ import { useOrgConfig } from "@/hooks/useOrgConfig";
 import { useCapabilities } from "@/auth/useCapabilities";
 import { getPrimaryRole, normalizeRole } from "@/auth/rolePriority";
 import type { UserCapabilities, UserRole } from "@/auth/capabilities";
+import { usePermissions, type PermissionRequest } from "@/auth/permissions";
 import { NightModeIndicator } from "@/components/layout/NightModeIndicator";
 
 interface NavigationItem {
@@ -59,6 +60,8 @@ interface NavigationItem {
   policy?: string;
   /** Capability efetiva necessaria quando role pura não representa policy/RBAC final. */
   capability?: keyof UserCapabilities;
+  /** Permissao contextual local alinhada ao desenho resource/action/context. */
+  permission?: PermissionRequest;
 }
 
 const navigationItems: NavigationItem[] = [
@@ -67,7 +70,7 @@ const navigationItems: NavigationItem[] = [
     url: "/",
     icon: BarChart3,
     group: "Principal",
-    allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "PHARMACIST", "HOSPITAL_MANAGER", "FINANCE"],
+    allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "PHARMACIST", "RECEPTIONIST", "HOSPITAL_MANAGER", "FINANCE"],
   },
   {
     title: "Atendimentos",
@@ -100,7 +103,7 @@ const navigationItems: NavigationItem[] = [
     group: "Atendimento",
     allowedRoles: ["DOCTOR", "NURSE", "NURSE_TECHNICIAN", "PLATFORM_ADMIN"],
     module: "URGENCIA",
-    capability: "canRecordEvolution",
+    permission: { resource: "PRONTUARIO", action: "READ", context: { sector: "URGENCIA", patientRelationship: "UNDER_CARE", mode: "ROUTINE", shareGrant: "NONE" } },
   },
   {
     title: "Consultas",
@@ -116,17 +119,18 @@ const navigationItems: NavigationItem[] = [
     url: "/triage",
     icon: Leaf,
     group: "Atendimento",
-    allowedRoles: ["NURSE", "NURSE_TECHNICIAN", "PLATFORM_ADMIN"],
+    allowedRoles: ["DOCTOR", "NURSE", "NURSE_TECHNICIAN", "PLATFORM_ADMIN"],
     module: "URGENCIA",
-    capability: "canViewTriageBoard",
+    permission: { resource: "TRIAGEM", action: "READ_BOARD", context: { sector: "URGENCIA", duty: "ACTIVE" } },
   },
   {
     title: "Recepção",
     url: "/reception/triage",
     icon: UserPlus,
     group: "Atendimento",
-    allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN"],
+    allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER"],
     module: "URGENCIA",
+    permission: { resource: "RECEPCAO", action: "OPEN_ATTENDANCE", context: { sector: "URGENCIA" } },
   },
   {
     title: "Fechamento PEC",
@@ -259,6 +263,7 @@ export function AppSidebar() {
   const { user } = useAuth();
   const { hasIntegration, hasPolicy } = useOrgConfig();
   const capabilities = useCapabilities();
+  const permissions = usePermissions();
   const primaryRole = getPrimaryRole(user?.roles);
   const normalizedRoles = new Set(
     (user?.roles ?? [])
@@ -283,6 +288,9 @@ export function AppSidebar() {
       }
     }
     if (item.capability && !capabilities.can(item.capability)) {
+      return false;
+    }
+    if (item.permission && !permissions.can(item.permission)) {
       return false;
     }
     // Filtro por modulo da organizacao (null = tudo habilitado)

@@ -42,6 +42,7 @@ import attendanceService from "@/services/attendanceService";
 import { patientService } from "@/services/patientService";
 import { triageService } from "@/services/triageService";
 import { useCapabilities } from "@/auth/useCapabilities";
+import { usePermissions } from "@/auth/permissions";
 import type { ReceptionPatientListItem, ReceptionQueueItem } from "@/types/reception";
 import type { Patient } from "@/types/patient";
 import type { ManchesterColor } from "@/types/triage";
@@ -57,6 +58,12 @@ const MANCHESTER_OPTIONS: { value: ManchesterColor; label: string; color: string
 
 export default function ReceptionTriage() {
   const capabilities = useCapabilities();
+  const permissions = usePermissions();
+  const canRegisterClinicalTriage = permissions.can({
+    resource: "TRIAGEM",
+    action: "START",
+    context: { sector: "URGENCIA", duty: "ACTIVE" },
+  });
 
   // Busca
   const [searchQuery, setSearchQuery] = useState("");
@@ -166,8 +173,7 @@ export default function ReceptionTriage() {
       const patient = await patientService.getById(item.patientId);
       setSelectedPatient(patient);
       resetForm();
-      // Enfermeira ve sinais vitais aberto por padrao
-      setVitalsOpen(capabilities.canCreateTriage);
+      setVitalsOpen(canRegisterClinicalTriage);
       setIsAttendanceOpen(true);
     } catch {
       toast.error("Erro ao carregar dados do paciente.");
@@ -299,7 +305,7 @@ export default function ReceptionTriage() {
       // Abre dialog de atendimento automaticamente com o paciente recem criado
       setSelectedPatient(patient);
       resetForm();
-      setVitalsOpen(capabilities.canCreateTriage);
+      setVitalsOpen(canRegisterClinicalTriage);
       setIsAttendanceOpen(true);
     } catch (error: any) {
       const msg = error?.response?.data?.message || "Erro ao cadastrar paciente.";
@@ -459,7 +465,7 @@ export default function ReceptionTriage() {
               setIsRegisterOpen(false);
               setSelectedPatient(patient);
               resetForm();
-              setVitalsOpen(capabilities.canCreateTriage);
+              setVitalsOpen(canRegisterClinicalTriage);
               setIsAttendanceOpen(true);
             }}
           />
@@ -514,6 +520,7 @@ export default function ReceptionTriage() {
             </div>
 
             {/* Sinais Vitais (colapsavel) */}
+            {canRegisterClinicalTriage && (
             <Collapsible open={vitalsOpen} onOpenChange={setVitalsOpen}>
               <CollapsibleTrigger asChild>
                 <Button variant="outline" className="w-full justify-between" type="button">
@@ -637,6 +644,7 @@ export default function ReceptionTriage() {
                 </div>
               </CollapsibleContent>
             </Collapsible>
+            )}
           </div>
 
           <DialogFooter>
