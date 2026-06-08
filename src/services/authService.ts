@@ -72,6 +72,7 @@ export interface MeResponse {
   userId: string;
   username: string;
   email: string;
+  fullName?: string | null;
   activeOrganizationId: string;
   activeOrganizationName: string;
   activeRoles: string[];

@@ -59,7 +59,7 @@ const mapProfileToUser = (profile: MeResponse): User => ({
   id: profile.userId,
   username: profile.username,
   email: profile.email,
-  fullName: profile.username,
+  fullName: profile.fullName ?? profile.username,
   organizationId: profile.activeOrganizationId,
   organizationName: profile.activeOrganizationName,
   staffId: profile.staffId ?? null,

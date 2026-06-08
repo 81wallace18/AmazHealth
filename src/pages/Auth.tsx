@@ -43,9 +43,17 @@ const providerForKnownUser = (user: KnownUser): 'LOCAL' | ExternalIdentityProvid
   return /^\d{8,15}$/.test(normalizeKnownUserLogin(user)) ? 'ESUS_PEC' : 'LOCAL';
 };
 
+const isInternalOrExternalIdentifier = (value?: string): boolean => {
+  const normalized = (value ?? '').trim();
+  return /^ext_\d{8,15}$/.test(normalized) || /^\d{8,15}$/.test(normalized);
+};
+
 const displayNameForKnownUser = (user: KnownUser): string => {
-  if (user.fullName && !/^ext_\d{8,15}$/.test(user.fullName)) {
+  if (user.fullName && !isInternalOrExternalIdentifier(user.fullName)) {
     return user.fullName;
+  }
+  if (providerForKnownUser(user) === 'ESUS_PEC') {
+    return 'Profissional PEC';
   }
   return normalizeKnownUserLogin(user);
 };
