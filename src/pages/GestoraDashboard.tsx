@@ -81,8 +81,8 @@ export default function GestoraDashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard Gerencial</h1>
-          <p className="text-muted-foreground">Indicadores operacionais e analytics</p>
+          <h1 className="text-2xl font-bold tracking-tight">Painel Gerencial</h1>
+          <p className="text-muted-foreground">Indicadores operacionais e análises</p>
         </div>
         <div className="flex items-end gap-3">
           <div className="space-y-1">

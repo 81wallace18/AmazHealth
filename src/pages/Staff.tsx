@@ -33,7 +33,7 @@ const roleLabels: Record<RoleType | 'all', string> = {
   pharmacist: 'Farmacêutico',
   hospital_manager: 'Gestor Hospitalar',
   finance: 'Financeiro',
-  staff: 'Staff',
+  staff: 'Profissional',
 };
 
 const statusLabels: Record<StaffStatus | 'all', string> = {

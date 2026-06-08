@@ -215,19 +215,23 @@ const App = () => (
               </RequireAccess>
             } />
             <Route path="users" element={
-              <RequireAccess allowedRoles={["ADMIN"]}>
+              <RequireAccess allowedRoles={["ADMIN", "HOSPITAL_MANAGER"]}>
                 <UserManagement />
               </RequireAccess>
             } />
             <Route path="duties" element={
-              <RequireCapability capability="canManageDuties">
-                <DutyManagement />
-              </RequireCapability>
+              <RequireAccess allowedRoles={["ADMIN", "NURSE_MANAGER", "PLATFORM_ADMIN"]} module="URGENCIA" policy="night_shift_review">
+                <RequireCapability capability="canManageDuties">
+                  <DutyManagement />
+                </RequireCapability>
+              </RequireAccess>
             } />
             <Route path="night-shift-review" element={
-              <RequireCapability capability="canReviewNightActions">
-                <NightShiftReview />
-              </RequireCapability>
+              <RequireAccess allowedRoles={["DOCTOR", "NURSE_MANAGER", "PLATFORM_ADMIN"]} module="URGENCIA" policy="night_shift_review">
+                <RequireCapability capability="canReviewNightActions">
+                  <NightShiftReview />
+                </RequireCapability>
+              </RequireAccess>
             } />
             <Route path="sync-queue" element={
               <RequireRole allowedRoles={ALL_SYNC_QUEUE_ROLES}>
@@ -235,12 +239,12 @@ const App = () => (
               </RequireRole>
             } />
             <Route path="pec-shift-closing" element={
-              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN"]} module="URGENCIA">
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN"]} module="URGENCIA" integration="ESUS_PEC">
                 <PecShiftClosing />
               </RequireAccess>
             } />
             <Route path="pec-review-board" element={
-              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "HOSPITAL_MANAGER"]} module="URGENCIA">
+              <RequireAccess allowedRoles={["ADMIN", "GESTAO", "HOSPITAL_MANAGER"]} module="URGENCIA" integration="ESUS_PEC">
                 <PecReviewBoard />
               </RequireAccess>
             } />

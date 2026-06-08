@@ -66,7 +66,7 @@ interface NavigationItem {
 
 const navigationItems: NavigationItem[] = [
   {
-    title: "Dashboard",
+    title: "Início",
     url: "/",
     icon: BarChart3,
     group: "Principal",
@@ -233,7 +233,7 @@ const navigationItems: NavigationItem[] = [
     url: "/users",
     icon: UserPlus,
     group: "Gestão",
-    allowedRoles: ["ADMIN"],
+    allowedRoles: ["ADMIN", "HOSPITAL_MANAGER"],
   },
   {
     title: "Plantões",
@@ -330,14 +330,14 @@ export function AppSidebar() {
       case "GESTAO":
         return {
           title: "Indicadores",
-          description: "Acompanhar KPIs operacionais e relatórios da unidade.",
+          description: "Acompanhar indicadores operacionais e relatórios da unidade.",
           to: "/reports",
           label: "Abrir relatórios",
         };
       case "HOSPITAL_MANAGER":
         return {
           title: "Capacidade Hospitalar",
-          description: "Monitorar leitos, wards e pacientes internados.",
+          description: "Monitorar leitos, alas e pacientes internados.",
           to: "/hospital",
           label: "Abrir gestão",
         };

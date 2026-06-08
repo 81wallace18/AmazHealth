@@ -36,7 +36,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -85,6 +94,26 @@ const ROLE_LABELS: Record<RoleType, string> = {
   finance: "Financeiro",
   staff: "Funcionário",
 };
+
+const FIRST_WAVE_ROLE_OPTIONS: RoleType[] = [
+  "receptionist",
+  "nurse",
+  "nurse_technician",
+  "doctor",
+  "pharmacist",
+  "finance",
+  "hospital_manager",
+];
+
+const CONTROLLED_SUPPORT_ROLE_OPTIONS: RoleType[] = ["nurse_manager", "admin"];
+
+const EXTERNAL_NEW_PROFESSIONAL_ROLE_OPTIONS: RoleType[] = [
+  "nurse_technician",
+  "nurse",
+  "doctor",
+  "pharmacist",
+  "receptionist",
+];
 
 const PROVIDER_LABELS: Record<ExternalIdentityProvider, string> = {
   HORUS_LEGACY: "Hórus legado",
@@ -152,7 +181,7 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [externalLinks, setExternalLinks] = useState<ExternalIdentityLink[]>([]);
   const [externalProviderFilter, setExternalProviderFilter] = useState<ExternalIdentityProvider | "ALL">("ALL");
-  const [externalStatusFilter, setExternalStatusFilter] = useState<ExternalIdentityLinkStatus | "ALL">("PENDING_APPROVAL");
+  const [externalStatusFilter, setExternalStatusFilter] = useState<ExternalIdentityLinkStatus | "ALL">("ALL");
   const [externalLoading, setExternalLoading] = useState(false);
   const [syncingExternal, setSyncingExternal] = useState(false);
   const [approvalDrafts, setApprovalDrafts] = useState<Record<string, { userId?: string; staffId?: string }>>({});
@@ -178,7 +207,7 @@ export default function UserManagement() {
       fullName: "",
       email: "",
       cpf: "",
-      role: "staff",
+      role: "receptionist",
     },
   });
 
@@ -274,7 +303,7 @@ export default function UserManagement() {
       toast.success(response.tempPassword
         ? "Profissional criado. Entregue a senha temporária pessoalmente."
         : "Usuário criado. Compartilhe o link de ativação.");
-      form.reset({ fullName: "", email: "", cpf: "", role: "staff" });
+      form.reset({ fullName: "", email: "", cpf: "", role: "receptionist" });
       await loadUsers();
     } catch (error: any) {
       const message = error?.response?.data?.message || "Erro ao criar usuário.";
@@ -698,7 +727,7 @@ export default function UserManagement() {
                                 <SelectValue placeholder="Selecionar perfil" />
                               </SelectTrigger>
                               <SelectContent>
-                                {(["nurse_technician", "nurse", "doctor", "pharmacist", "receptionist", "staff"] as RoleType[]).map((role) => (
+                                {EXTERNAL_NEW_PROFESSIONAL_ROLE_OPTIONS.map((role) => (
                                   <SelectItem key={role} value={role}>
                                     {ROLE_LABELS[role] ?? role}
                                   </SelectItem>
@@ -849,25 +878,23 @@ export default function UserManagement() {
                       <SelectValue placeholder="Selecione o perfil" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(
-                        [
-                          "admin",
-                          "gestao",
-                          "doctor",
-                          "nurse",
-                          "nurse_manager",
-                          "nurse_technician",
-                          "pharmacist",
-                          "receptionist",
-                          "hospital_manager",
-                          "finance",
-                          "staff",
-                        ] as RoleType[]
-                      ).map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {ROLE_LABELS[role]}
-                        </SelectItem>
-                      ))}
+                      <SelectGroup>
+                        <SelectLabel>Primeira onda hospitalar</SelectLabel>
+                        {FIRST_WAVE_ROLE_OPTIONS.map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {ROLE_LABELS[role]}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                      <SelectSeparator />
+                      <SelectGroup>
+                        <SelectLabel>Suporte controlado</SelectLabel>
+                        {CONTROLLED_SUPPORT_ROLE_OPTIONS.map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {ROLE_LABELS[role]}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                   {form.formState.errors.role && (

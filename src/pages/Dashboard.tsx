@@ -122,7 +122,7 @@ export default function Dashboard() {
 
     return (
       (primaryRole && heroByRole[primaryRole]) || {
-        title: "Dashboard",
+        title: "Início",
         description: "Visão geral em tempo real das operações hospitalares.",
       }
     );
@@ -142,7 +142,7 @@ export default function Dashboard() {
         { label: "Equipe", description: "Visão da equipe assistencial", to: "/staff" },
       ],
       HOSPITAL_MANAGER: [
-        { label: "Gestão Hospitalar", description: "Leitos, wards e capacidade", to: "/hospital" },
+        { label: "Gestão Hospitalar", description: "Leitos, alas e capacidade", to: "/hospital" },
         { label: "Internação", description: "Pacientes admitidos", to: "/admissions" },
         { label: "Relatórios", description: "Ocupação e produtividade", to: "/reports" },
       ],

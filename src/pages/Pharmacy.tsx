@@ -38,7 +38,7 @@ export default function Pharmacy() {
 
       <Tabs defaultValue="queue" className="space-y-4">
         <TabsList className="flex flex-wrap">
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="dashboard">Painel</TabsTrigger>
           <TabsTrigger value="queue">Fila</TabsTrigger>
           <TabsTrigger value="canonical">Operação canônica</TabsTrigger>
           <TabsTrigger value="stock">Estoque</TabsTrigger>

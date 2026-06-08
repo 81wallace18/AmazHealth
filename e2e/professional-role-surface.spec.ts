@@ -55,12 +55,12 @@ const profiles: Profile[] = [
     blockedRoutes: ['/reception/triage', '/billing'],
   },
   {
-    label: 'GESTAO',
-    login: 'gestao.uat@hospital.com',
-    password: 'Gestao123!',
-    visibleLinks: ['/', '/daily-attendances', '/gestora-dashboard', '/reports'],
+    label: 'HOSPITAL_MANAGER',
+    login: 'gestor.hosp.uat@hospital.com',
+    password: 'GestorHosp123!',
+    visibleLinks: ['/', '/daily-attendances', '/gestora-dashboard', '/reports', '/users'],
     hiddenLinks: ['/medical-records', '/triage', '/reception/triage', '/billing'],
-    allowedRoutes: ['/daily-attendances', '/gestora-dashboard'],
+    allowedRoutes: ['/daily-attendances', '/gestora-dashboard', '/users'],
     blockedRoutes: ['/medical-records', '/triage'],
   },
 ];

@@ -107,10 +107,10 @@ export function UserRoleManagement() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Atribuir Role a Usuário
+            Atribuir perfil a usuário
           </CardTitle>
           <CardDescription>
-            Selecione um usuário sem role e atribua uma função no sistema
+            Selecione um usuário sem perfil e atribua uma função no sistema
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -119,7 +119,7 @@ export function UserRoleManagement() {
               <label className="text-sm font-medium mb-2 block">Usuário</label>
               <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um usuário sem role" />
+                  <SelectValue placeholder="Selecione um usuário sem perfil" />
                 </SelectTrigger>
                 <SelectContent>
                   {getUsersWithoutRole().map((user) => (
@@ -131,7 +131,7 @@ export function UserRoleManagement() {
               </Select>
             </div>
             <div className="flex-1">
-              <label className="text-sm font-medium mb-2 block">Role</label>
+              <label className="text-sm font-medium mb-2 block">Perfil</label>
               <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as AppRole)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -149,7 +149,7 @@ export function UserRoleManagement() {
               onClick={handleAssignRole} 
               disabled={!selectedUserId || !selectedRole || assigning}
             >
-              {assigning ? 'Atribuindo...' : 'Atribuir Role'}
+              {assigning ? 'Atribuindo...' : 'Atribuir perfil'}
             </Button>
             <Button variant="outline" onClick={refetch}>
               <RefreshCw className="h-4 w-4" />
@@ -160,9 +160,9 @@ export function UserRoleManagement() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Usuários e Suas Roles</CardTitle>
+          <CardTitle>Usuários e seus perfis</CardTitle>
           <CardDescription>
-            Visualize e gerencie as roles atribuídas aos usuários do sistema
+            Visualize e gerencie os perfis atribuídos aos usuários do sistema
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -172,7 +172,7 @@ export function UserRoleManagement() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Registro</TableHead>
                 <TableHead>Área</TableHead>
-                <TableHead>Roles</TableHead>
+                <TableHead>Perfis</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -198,7 +198,7 @@ export function UserRoleManagement() {
                         ))
                       ) : (
                         <Badge variant="outline" className="text-xs">
-                          Sem role
+                          Sem perfil
                         </Badge>
                       )}
                     </div>

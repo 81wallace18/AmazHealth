@@ -116,7 +116,7 @@ export default function Triage() {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Para acessar o módulo de triagem é necessário vincular o usuário a um profissional da equipe.
-            Cadastre o usuário em <strong>Staff</strong> e associe-o à área apropriada antes de prosseguir.
+            Cadastre o usuário em <strong>Equipe</strong> e associe-o à área apropriada antes de prosseguir.
           </AlertDescription>
         </Alert>
       </div>
