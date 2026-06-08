@@ -8,6 +8,7 @@ import { SyncBanner } from "@/components/SyncBanner";
 import { installSyncEventListeners, uninstallSyncEventListeners } from "@/lib/syncEvents";
 import { useAuth } from "@/hooks/useAuth";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
+import { DemoModeBanner } from "@/demo/DemoModeBanner";
 
 export function AppLayout() {
   const { signOut, isAuthenticated } = useAuth();
@@ -37,6 +38,7 @@ export function AppLayout() {
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <AppHeader />
+          <DemoModeBanner />
           <SyncBanner />
           <main className="min-w-0 flex-1 overflow-auto">
             <Outlet />

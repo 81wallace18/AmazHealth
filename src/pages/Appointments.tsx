@@ -16,6 +16,9 @@ import { staffService } from "@/services/staffService";
 import type { Appointment, AppointmentStatus } from "@/types/appointment";
 import type { Patient } from "@/types/patient";
 import type { Staff } from "@/services/staffService";
+import { DemoAutofillButton } from "@/demo/DemoAutofillButton";
+import { getAdminAppointmentExample } from "@/demo/demoFixtures";
+import { getDemoRunId } from "@/demo/demoMode";
 
 const statusColors: Record<AppointmentStatus, string> = {
   SCHEDULED: "bg-blue-500/10 text-blue-700 border-blue-200",
@@ -127,6 +130,21 @@ export default function Appointments() {
     });
   };
 
+  const fillAppointmentExample = () => {
+    const example = getAdminAppointmentExample(getDemoRunId()).data;
+    setFormError(null);
+    setFormState((prev) => ({
+      ...prev,
+      patientId: patients[0]?.id ?? prev.patientId,
+      doctorId: doctors[0]?.id ?? prev.doctorId,
+      type: example.type,
+      scheduledDate: example.scheduledDate,
+      durationMinutes: example.durationMinutes,
+      reason: example.reason,
+      notes: example.notes,
+    }));
+  };
+
   const handleCreate = async () => {
     if (!formState.patientId || !formState.doctorId || !formState.type || !formState.scheduledDate || !formState.reason) {
       setFormError("Preencha paciente, médico, tipo, data e motivo.");
@@ -199,6 +217,13 @@ export default function Appointments() {
               <DialogTitle>Novo Agendamento</DialogTitle>
               <DialogDescription>Informe os dados principais da consulta.</DialogDescription>
             </DialogHeader>
+            <div className="flex justify-end">
+              <DemoAutofillButton
+                onFill={fillAppointmentExample}
+                disabled={loadingLookups}
+                aria-label="Preencher exemplo de agendamento"
+              />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Paciente</label>
