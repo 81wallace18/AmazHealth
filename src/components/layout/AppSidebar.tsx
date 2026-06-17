@@ -1,7 +1,6 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   Users,
-  Calendar,
   FileText,
   Pill,
   Stethoscope,
@@ -87,14 +86,6 @@ const navigationItems: NavigationItem[] = [
     group: "Atendimento",
     allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "DOCTOR", "HOSPITAL_MANAGER"],
     module: "URGENCIA",
-  },
-  {
-    title: "Agendamentos",
-    url: "/appointments",
-    icon: Calendar,
-    group: "Atendimento",
-    allowedRoles: ["ADMIN"],
-    module: "AMBULATORIAL",
   },
   {
     title: "Prontuários",

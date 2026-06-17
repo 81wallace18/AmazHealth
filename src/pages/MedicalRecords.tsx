@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { FileText, Plus, Search, User, Calendar, Eye, Download, Edit, AlertTriangle, Heart, Activity } from "lucide-react";
+import { FileText, Plus, Search, Calendar, Eye, Download, Edit, Heart, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useMedicalRecords } from "@/hooks/useMedicalRecords";
-import { useCapabilities } from "@/auth/useCapabilities";
 import { usePermissions } from "@/auth/permissions";
 import { useAuth } from "@/hooks/useAuth";
 import { PrescriptionForm } from "@/components/prescriptions/PrescriptionForm";
@@ -25,6 +31,9 @@ import type { Patient } from "@/types/patient";
 import attendanceService, { type Attendance, type VisitStatus as AttendanceVisitStatus } from "@/services/attendanceService";
 import { patientService } from "@/services/patientService";
 import { useToast } from "@/hooks/use-toast";
+import { DemoAutofillButton } from "@/demo/DemoAutofillButton";
+import { getDemoRunId } from "@/demo/demoMode";
+import { getDoctorCareExample } from "@/demo/demoFixtures";
 
 const statusColors = {
   "consultation": "bg-blue-500/10 text-blue-700 border-blue-200",
@@ -64,12 +73,11 @@ const attendanceStatusLabels: Record<AttendanceVisitStatus, string> = {
 
 export default function MedicalRecords() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const visitId = searchParams.get('visitId') || undefined;
   const isWorkspace = Boolean(visitId);
   const { records, loading, createRecord, refetch } = useMedicalRecords({ visitId });
-  const capabilities = useCapabilities();
   const permissions = usePermissions();
   const canWriteNursingProcedure = permissions.can({
     resource: "PRONTUARIO",
@@ -114,6 +122,7 @@ export default function MedicalRecords() {
   const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState<string>("list");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [form, setForm] = useState({
     recordType: 'EVOLUTION' as RecordType,
@@ -130,6 +139,66 @@ export default function MedicalRecords() {
     canWriteNursingProcedure &&
     !canWritePrescription &&
     !canDefineAttendanceOutcome;
+  const hasAttendanceContext = Boolean(visitId) && Boolean(attendance) && !attendanceLoading && !attendanceError;
+
+  const resolveActiveTab = (requestedTab: string | null) => {
+    if (!isWorkspace) {
+      return requestedTab === "analytics" ? "analytics" : "list";
+    }
+
+    if (requestedTab === "finalize" && canDefineAttendanceOutcome) {
+      return "finalize";
+    }
+
+    if (requestedTab === "prescriptions" && canReadPrescription) {
+      return "prescriptions";
+    }
+
+    if (requestedTab === "nursing-procedures" && canWriteNursingProcedure) {
+      return "nursing-procedures";
+    }
+
+    return "list";
+  };
+
+  useEffect(() => {
+    setActiveTab(resolveActiveTab(searchParams.get('tab')));
+  }, [isWorkspace, canDefineAttendanceOutcome, canReadPrescription, canWriteNursingProcedure, searchParams]);
+
+  useEffect(() => {
+    setIsPrescriptionOpen(false);
+    setIsFormOpen(false);
+    setIsFinalizeOpen(false);
+  }, [visitId]);
+
+  const fillMedicalRecordExample = () => {
+    const example = getDoctorCareExample(getDemoRunId()).data;
+    setForm({
+      recordType: 'EVOLUTION',
+      chiefComplaint: attendance?.chiefComplaint || example.chiefComplaint,
+      historyOfPresentIllness: example.historyOfPresentIllness,
+      physicalExamination: example.physicalExamination,
+      diagnosis: example.diagnosis,
+      treatment: example.conduct,
+      notes: example.evolution,
+    });
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+
+    const next = new URLSearchParams(searchParams);
+    if (value === "list") {
+      next.delete('tab');
+    } else {
+      next.set('tab', value);
+    }
+
+    setSearchParams(next, { replace: true });
+  };
+
+  const canCreateWorkspaceRecord =
+    canWriteClinicalRecord && hasAttendanceContext;
 
   useEffect(() => {
     document.title = "Prontuários Médicos | Gestão de Prontuários";
@@ -142,8 +211,13 @@ export default function MedicalRecords() {
       setAttendance(null);
       setPatient(null);
       setAttendanceError(null);
+      setAttendanceLoading(false);
       return;
     }
+
+    setAttendance(null);
+    setPatient(null);
+    setAttendanceError(null);
 
     let cancelled = false;
 
@@ -167,6 +241,8 @@ export default function MedicalRecords() {
         }
       } catch (err: any) {
         const message = err?.message || "Não foi possível carregar o atendimento.";
+        setAttendance(null);
+        setPatient(null);
         if (!cancelled) setAttendanceError(message);
       } finally {
         if (!cancelled) setAttendanceLoading(false);
@@ -195,15 +271,18 @@ export default function MedicalRecords() {
           attendanceService.findByStatus("IN_PROGRESS"),
         ]);
 
-        const queue = [...waitingDoctor, ...inProgress]
-          .filter((item) => item.doctorId === user.staffId)
-          .sort((a, b) => {
-            const rank = (status: AttendanceVisitStatus) =>
-              status === "WAITING_DOCTOR" ? 0 : status === "IN_PROGRESS" ? 1 : 99;
-            const statusDiff = rank(a.status) - rank(b.status);
-            if (statusDiff !== 0) return statusDiff;
-            return new Date(a.visitDate).getTime() - new Date(b.visitDate).getTime();
-          });
+        let queue = [...waitingDoctor, ...inProgress]
+          .filter((item) => item.doctorId === user.staffId);
+
+        queue = Array.from(new Map(queue.map((item) => [item.id, item])).values());
+
+        queue.sort((a, b) => {
+          const rank = (status: AttendanceVisitStatus) =>
+            status === "WAITING_DOCTOR" ? 0 : status === "IN_PROGRESS" ? 1 : 99;
+          const statusDiff = rank(a.status) - rank(b.status);
+          if (statusDiff !== 0) return statusDiff;
+          return new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime();
+        });
 
         const uniquePatientIds = Array.from(new Set(queue.map((item) => item.patientId)));
         const patientLookup = new Map<string, { name: string; code: string }>();
@@ -334,22 +413,41 @@ export default function MedicalRecords() {
           <DialogTrigger asChild>
             <Button 
               className="bg-primary hover:bg-primary/90"
-              disabled={!canWriteClinicalRecord}
-              title={!canWriteClinicalRecord ? "Você não tem permissão para registrar prontuários" : ""}
+              disabled={!canCreateWorkspaceRecord}
+              title={
+                !canWriteClinicalRecord
+                  ? "Você não tem permissão para registrar prontuários"
+                  : !visitId
+                    ? "Selecione uma consulta para registrar o prontuário"
+                    : !attendance
+                      ? "Aguardando contexto do atendimento"
+                      : ""
+              }
             >
               <Plus className="h-4 w-4 mr-2" />
               {canOnlyRecordEvolution ? "Nova Evolução" : "Novo Prontuário"}
             </Button>
           </DialogTrigger>
           <DialogContent className="w-full max-w-[95vw] lg:max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{canOnlyRecordEvolution ? "Nova evolução" : "Novo prontuário"}</DialogTitle>
+              <DialogDescription>
+                Registre os dados clínicos vinculados ao atendimento selecionado.
+              </DialogDescription>
+            </DialogHeader>
             <div className="space-y-6">
               <div>
-                <h2 className="text-lg font-semibold">Novo Prontuário</h2>
                 <p className="text-sm text-muted-foreground">
                   {canOnlyRecordEvolution
                     ? "Registre a evolução do atendimento. O desfecho clínico continua restrito ao fluxo médico."
                     : "Preencha os dados clínicos do atendimento."}
                 </p>
+              </div>
+              <div className="flex justify-end">
+                <DemoAutofillButton
+                  onFill={fillMedicalRecordExample}
+                  aria-label="Preencher exemplo de prontuario"
+                />
               </div>
 
               {!visitId && (
@@ -450,9 +548,9 @@ export default function MedicalRecords() {
                   Cancelar
                 </Button>
                 <Button
-                  disabled={!visitId || submitting || !form.notes.trim()}
+                  disabled={!canCreateWorkspaceRecord || submitting || !form.notes.trim()}
                   onClick={async () => {
-                    if (!visitId) return;
+                    if (!canCreateWorkspaceRecord) return;
                     try {
                       setSubmitting(true);
                       const payload: MedicalRecordRequest = {
@@ -590,7 +688,12 @@ export default function MedicalRecords() {
                         <TableCell>
                           <Button
                             size="sm"
-                            onClick={() => navigate(`/medical-records?visitId=${item.visitId}`)}
+                            onClick={() => {
+                              const next = new URLSearchParams(searchParams);
+                              next.set('visitId', item.visitId);
+                              next.set('tab', 'list');
+                              navigate(`/medical-records?${next.toString()}`);
+                            }}
                           >
                             Abrir atendimento
                           </Button>
@@ -605,7 +708,7 @@ export default function MedicalRecords() {
         </Card>
       )}
 
-      <Tabs defaultValue="list" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList>
           <TabsTrigger value="list">{isWorkspace ? "Prontuário" : "Lista de Prontuários"}</TabsTrigger>
           {isWorkspace && canWriteNursingProcedure && <TabsTrigger value="nursing-procedures">Procedimentos</TabsTrigger>}
@@ -758,12 +861,12 @@ export default function MedicalRecords() {
               <Button
                 className="bg-primary hover:bg-primary/90"
                 onClick={() => setIsPrescriptionOpen(true)}
-                disabled={!canWritePrescription || !attendance}
+                disabled={!canWritePrescription || !hasAttendanceContext}
                 title={
                   !canWritePrescription
                     ? "Você não tem permissão para criar prescrições"
-                    : !attendance
-                    ? "Carregue o atendimento para continuar"
+                    : !hasAttendanceContext
+                    ? "Selecione um atendimento para continuar"
                     : ""
                 }
               >
@@ -792,7 +895,7 @@ export default function MedicalRecords() {
                   patientName={workspacePatientName}
                   visitId={visitId}
                   attendanceId={visitId}
-                  defaultDoctorId={attendance.doctorId}
+                  defaultDoctorId={user?.staffId || attendance.doctorId}
                   onSuccess={() => setPrescriptionVersion((prev) => prev + 1)}
                 />
               </>

@@ -57,20 +57,6 @@ export function PrescriptionList({ patientId, version = 0, onError }: Prescripti
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  const handleCancel = useCallback(async (prescriptionId: string) => {
-    if (!confirm('Confirmar cancelamento desta prescrição?')) return;
-    setCancellingId(prescriptionId);
-    try {
-      await prescriptionService.cancel(prescriptionId);
-      toast.success('Prescrição cancelada.');
-      refetch();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Erro ao cancelar prescrição.');
-    } finally {
-      setCancellingId(null);
-    }
-  }, [refetch]);
-
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['prescriptions', 'patient', patientId, version],
     queryFn: async () => {
@@ -85,6 +71,20 @@ export function PrescriptionList({ patientId, version = 0, onError }: Prescripti
       onError?.(message);
     },
   });
+
+  const handleCancel = useCallback(async (prescriptionId: string) => {
+    if (!confirm('Confirmar cancelamento desta prescrição?')) return;
+    setCancellingId(prescriptionId);
+    try {
+      await prescriptionService.cancel(prescriptionId);
+      toast.success('Prescrição cancelada.');
+      await refetch();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Erro ao cancelar prescrição.');
+    } finally {
+      setCancellingId(null);
+    }
+  }, [refetch]);
 
   const prescriptions = data?.content ?? [];
 

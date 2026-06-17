@@ -32,6 +32,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const primaryRole = getPrimaryRole(user?.roles);
   const isReceptionist = primaryRole === "RECEPTIONIST";
+  const isDoctor = primaryRole === "DOCTOR";
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["dashboard-summary"],
@@ -179,6 +180,11 @@ export default function Dashboard() {
   // Recepcionista vai direto para a tela de Recepção (após todos os hooks)
   if (isReceptionist) {
     return <Navigate to="/reception/triage" replace />;
+  }
+
+  // Médico vai direto para a fila de atendimento médico.
+  if (isDoctor) {
+    return <Navigate to="/consultations" replace />;
   }
 
   return (

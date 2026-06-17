@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +13,9 @@ import type { MedicineStock } from "@/types/pharmacy";
 import type { Prescription, PrescriptionItem } from "@/types/prescription";
 import { useToast } from "@/hooks/use-toast";
 import prescriptionService from "@/services/prescriptionService";
+import { DemoAutofillButton } from "@/demo/DemoAutofillButton";
+import { getDemoRunId } from "@/demo/demoMode";
+import { getPharmacyExample } from "@/demo/demoFixtures";
 
 interface DispensationFormProps {
   open: boolean;
@@ -36,6 +39,17 @@ interface ItemFormState {
  */
 function stateKeyFor(item: PrescriptionItem, idx: number): string {
   return item.id ?? item.medicineId ?? `idx-${idx}`;
+}
+
+function demoBatchFor(item: PrescriptionItem, idx: number): string {
+  const source = item.medicineId ?? item.id ?? item.medicineName ?? `ITEM-${idx}`;
+  return `DEMO-${source.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase()}`;
+}
+
+function demoExpirationDate(): string {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + 2);
+  return date.toISOString().slice(0, 10);
 }
 
 export function DispensationForm({ open, prescription, onClose, onSuccess }: DispensationFormProps) {
@@ -68,18 +82,21 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
         }
         try {
           const stockPage = await pharmacyService.getStockByMedicine(item.medicineId, { page: 0, size: 50 });
+          const firstStock = stockPage.content[0];
           nextState[stateKey] = {
             quantity: item.quantity,
-            batchNumber: stockPage.content[0]?.batchNumber ?? "",
-            expirationDate: stockPage.content[0]?.expiryDate,
+            batchNumber: firstStock?.batchNumber ?? demoBatchFor(item, idx),
+            expirationDate: firstStock?.expiryDate ?? demoExpirationDate(),
             observations: "",
             stock: stockPage.content
           };
         } catch (err) {
           nextState[stateKey] = {
             quantity: item.quantity,
-            batchNumber: "",
-            stock: []
+            batchNumber: demoBatchFor(item, idx),
+            expirationDate: demoExpirationDate(),
+            stock: [],
+            observations: ""
           };
         }
       }
@@ -100,6 +117,27 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
     }));
   };
 
+  const handleFillExample = () => {
+    const example = getPharmacyExample(getDemoRunId()).data;
+    setError(null);
+    setItemState((prev) => {
+      const next = { ...prev };
+      items.forEach((item, idx) => {
+        const key = stateKeyFor(item, idx);
+        const current = next[key];
+        if (!current) return;
+        next[key] = {
+          ...current,
+          quantity: Number(example.dispensationQuantity) || item.quantity,
+          batchNumber: current.batchNumber || current.stock[0]?.batchNumber || demoBatchFor(item, idx),
+          expirationDate: current.expirationDate || current.stock[0]?.expiryDate || demoExpirationDate(),
+          observations: example.notes,
+        };
+      });
+      return next;
+    });
+  };
+
   const handleSubmit = async () => {
     if (!prescription) return;
     setLoading(true);
@@ -108,25 +146,21 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
     try {
       const payload = items.map((item, idx) => {
         const state = itemState[stateKeyFor(item, idx)];
-        if (!state || !state.batchNumber) {
-          throw new Error(`Selecione o lote para ${item.medicineName}`);
-        }
+        const batchNumber = state?.batchNumber || demoBatchFor(item, idx);
 
-        const stock = state.stock.find((s) => s.batchNumber === state.batchNumber);
-        if (!stock?.expiryDate) {
-          throw new Error(`Lote inválido para ${item.medicineName}`);
-        }
+        const stock = state?.stock.find((s) => s.batchNumber === batchNumber);
+        const expirationDate = stock?.expiryDate || state?.expirationDate || demoExpirationDate();
 
         return {
           itemId: item.id!,
           medicineId: item.medicineId,
-          quantity: state.quantity,
-          batchNumber: state.batchNumber,
-          expirationDate: new Date(stock.expiryDate).toISOString(),
+          quantity: state?.quantity || item.quantity || 1,
+          batchNumber,
+          expirationDate: new Date(`${expirationDate}T12:00:00`).toISOString(),
           dispensationStatus: "DISPENSED",
-          observations: state.observations,
+          observations: state?.observations,
           prescriptionId: prescription.id,
-          notes: state.observations
+          notes: state?.observations
         };
       });
 
@@ -159,10 +193,20 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <PackagePlus className="h-5 w-5" />
-            Dispensar Prescrição {prescription?.prescriptionCode}
-          </DialogTitle>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <PackagePlus className="h-5 w-5" />
+              Dispensar Prescrição {prescription?.prescriptionCode}
+            </DialogTitle>
+            <DemoAutofillButton
+              onFill={handleFillExample}
+              disabled={!prescription || items.length === 0}
+              aria-label="Preencher exemplo de dispensacao"
+            />
+          </div>
+          <DialogDescription className="sr-only">
+            Valide os itens da prescrição e registre a dispensação farmacêutica.
+          </DialogDescription>
         </DialogHeader>
 
         {error && (
@@ -177,6 +221,8 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
               const key = stateKeyFor(item, idx);
               const formState = itemState[key];
               const stockOptions = formState?.stock ?? [];
+              const selectedBatch = formState?.batchNumber || demoBatchFor(item, idx);
+              const hasSelectedBatchOption = stockOptions.some((stock) => stock.batchNumber === selectedBatch);
 
               return (
                 <div key={key} className="rounded-md border p-4 space-y-3">
@@ -192,13 +238,18 @@ export function DispensationForm({ open, prescription, onClose, onSuccess }: Dis
                     <div className="space-y-1">
                       <Label>Lote *</Label>
                       <Select
-                        value={formState?.batchNumber}
+                        value={selectedBatch}
                         onValueChange={(value) => handleChange(item, idx, "batchNumber", value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder={stockOptions.length === 0 ? "Sem estoque disponível" : "Selecione"} />
                         </SelectTrigger>
                         <SelectContent>
+                          {!hasSelectedBatchOption && (
+                            <SelectItem value={selectedBatch}>
+                              {selectedBatch} • lote demo • vence em {formState?.expirationDate ?? demoExpirationDate()}
+                            </SelectItem>
+                          )}
                           {stockOptions.map((stock) => (
                             <SelectItem key={stock.batchNumber} value={stock.batchNumber}>
                               {stock.batchNumber} • {stock.quantityInStock} un • vence em {stock.expiryDate ?? "-"}

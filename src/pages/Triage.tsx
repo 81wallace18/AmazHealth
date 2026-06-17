@@ -180,7 +180,10 @@ export default function Triage() {
                 title: 'Atendimento iniciado',
                 description: `${patientName} está em atendimento.`,
               });
-              navigate(`/medical-records?visitId=${visitId}`);
+              const next = new URLSearchParams();
+              next.set('visitId', visitId);
+              next.set('tab', 'list');
+              navigate(`/medical-records?${next.toString()}`);
             } catch (err: any) {
               toast({
                 title: 'Não foi possível iniciar atendimento',

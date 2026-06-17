@@ -109,6 +109,13 @@ export function useAuth() {
       const storedUserRaw = authStorage.getUser();
       const accessToken = authStorage.getAccessToken();
 
+      if (storedUserRaw && !accessToken) {
+        console.warn('[useAuth] Sessão sem token ao carregar, limpando sessão');
+        clearSession();
+        setLoading(false);
+        return;
+      }
+
       if (storedUserRaw && accessToken) {
         try {
           const parsed: User = JSON.parse(storedUserRaw);

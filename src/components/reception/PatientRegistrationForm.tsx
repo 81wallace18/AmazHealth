@@ -34,6 +34,9 @@ import {
   BloodTypes
 } from '@/types/patient';
 import { patientService } from '@/services/patientService';
+import { DemoAutofillButton } from '@/demo/DemoAutofillButton';
+import { getDemoRunId } from '@/demo/demoMode';
+import { getReceptionPatientExample } from '@/demo/demoFixtures';
 
 const patientSchema = z.object({
   // Obrigatorios (topo)
@@ -169,8 +172,39 @@ export function PatientRegistrationForm({
     }
   };
 
+  const handleFillExample = () => {
+    const example = getReceptionPatientExample(getDemoRunId()).data;
+    setFoundPatient(null);
+    setOptionalsOpen(true);
+    reset({
+      birthCountry: 'Brasil',
+      cns: example.cns,
+      cpf: '',
+      fullName: example.fullName,
+      gender: example.gender as Gender,
+      motherName: example.motherName,
+      dateOfBirth: example.dateOfBirth,
+      address: example.address,
+      phone: example.phone,
+      birthCity: example.birthCity,
+      maritalStatus: example.maritalStatus as MaritalStatus,
+      raceColor: example.raceColor as RaceColor,
+      educationLevel: example.educationLevel as EducationLevel,
+      allergies: example.allergies,
+      fatherName: '',
+      email: '',
+    });
+  };
+
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+      <div className="flex justify-end">
+        <DemoAutofillButton
+          onFill={handleFillExample}
+          aria-label="Preencher exemplo de paciente"
+        />
+      </div>
+
       {duplicates.length > 0 && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />

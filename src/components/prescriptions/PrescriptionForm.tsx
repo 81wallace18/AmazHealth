@@ -37,6 +37,9 @@ import staffService from '@/services/staffService';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
+import { DemoAutofillButton } from '@/demo/DemoAutofillButton';
+import { getDemoRunId } from '@/demo/demoMode';
+import { getPrescriptionExample } from '@/demo/demoFixtures';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Command,
@@ -261,6 +264,7 @@ export function PrescriptionForm({
   });
 
   const watchedItems = form.watch('items');
+  const authenticatedDoctorId = defaultDoctorId || '';
 
   const hasSpecialControlItems = useMemo(
     () =>
@@ -288,17 +292,29 @@ export function PrescriptionForm({
   }, [hasBloodComponentItems]);
 
   useEffect(() => {
+    if (!open || !authenticatedDoctorId) return;
+    if (form.getValues('doctorId') !== authenticatedDoctorId) {
+      form.setValue('doctorId', authenticatedDoctorId, { shouldValidate: true });
+    }
+  }, [open, authenticatedDoctorId, form]);
+
+  useEffect(() => {
     if (!open) return;
     const loadDoctors = async () => {
       setIsLoadingDoctors(true);
       try {
         const response = await staffService.findActiveDoctors();
         setDoctors(response);
-        if (!form.getValues('doctorId')) {
-          const defaultId = defaultDoctorId || response[0]?.id;
-          if (defaultId) {
-            form.setValue('doctorId', defaultId);
+
+        if (authenticatedDoctorId) {
+          if (form.getValues('doctorId') !== authenticatedDoctorId) {
+            form.setValue('doctorId', authenticatedDoctorId, { shouldValidate: true });
           }
+          return;
+        }
+
+        if (!form.getValues('doctorId') && response.length === 1) {
+          form.setValue('doctorId', response[0].id, { shouldValidate: true });
         }
       } catch (error) {
         console.error('Erro ao carregar médicos ativos', error);
@@ -309,13 +325,42 @@ export function PrescriptionForm({
     };
 
     loadDoctors();
-  }, [open, defaultDoctorId, form]);
+  }, [open, authenticatedDoctorId, form]);
+
+  const fillPrescriptionExample = () => {
+    const example = getPrescriptionExample(getDemoRunId()).data;
+    const doctorId = authenticatedDoctorId || form.getValues('doctorId') || (doctors.length === 1 ? doctors[0].id : '');
+
+    form.reset({
+      doctorId,
+      status: 'ACTIVE',
+      notes: example.notes,
+      items: example.items.map((item) => ({
+        medicineId: item.medicineId,
+        medicineName: item.medicineName,
+        medicineDescription: item.medicineDescription,
+        medicationType: item.medicationType,
+        dosage: item.dosage,
+        frequency: item.frequency,
+        duration: item.duration,
+        quantity: item.quantity,
+        route: item.route,
+        administrationRouteCode: item.administrationRouteCode,
+        doseType: item.doseType,
+        immediateUse: false,
+        instructions: item.instructions,
+      })),
+    });
+
+    setControlledFormData(null);
+    setBloodComponentFormData(null);
+  };
 
   const handleClose = () => {
     onOpenChange(false);
     form.reset({
       status: 'ACTIVE',
-      doctorId: form.getValues('doctorId'),
+      doctorId: authenticatedDoctorId || form.getValues('doctorId'),
       items: [
         {
           medicineId: '',
@@ -362,9 +407,16 @@ export function PrescriptionForm({
         }
       }
 
+      const doctorId = authenticatedDoctorId || values.doctorId;
+      if (!doctorId) {
+        toast.error('Não foi possível identificar o médico responsável pela prescrição.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
         patientId,
-        doctorId: values.doctorId,
+        doctorId,
         visitId,
         attendanceId,
         status: values.status,
@@ -427,6 +479,13 @@ export function PrescriptionForm({
             </DialogDescription>
           )}
         </DialogHeader>
+        <div className="flex justify-end">
+          <DemoAutofillButton
+            onFill={fillPrescriptionExample}
+            aria-label="Preencher exemplo de prescrição"
+            disabled={isLoadingDoctors}
+          />
+        </div>
 
         <ScrollArea className="max-h-[70vh] pr-2">
           <Form {...form}>
@@ -440,8 +499,8 @@ export function PrescriptionForm({
                       <FormLabel>Médico responsável</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        disabled={isLoadingDoctors}
+                        value={field.value}
+                        disabled={isLoadingDoctors || Boolean(authenticatedDoctorId)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione" />

@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { queryClient, persistOptions } from "./lib/persistedQueryClient";
 import { AppLayout } from "./components/layout/AppLayout";
 import { useAuth } from "./hooks/useAuth";
@@ -40,6 +41,7 @@ import MyPecConnection from "./pages/MyPecConnection";
 import NotFound from "./pages/NotFound";
 import { Unauthorized } from "./pages/Unauthorized";
 import ChangePassword from "./pages/ChangePassword";
+import { isDemoMode } from "./demo/demoMode";
 
 const ALL_SYNC_QUEUE_ROLES: UserRole[] = [
   "ADMIN",
@@ -76,13 +78,14 @@ function RouteLoadingState() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
   
   if (loading) {
     return <RouteLoadingState />;
   }
   
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={`/auth${location.search}`} replace />;
   }
   
   return <>{children}</>;
@@ -102,12 +105,23 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function DemoModeInitializer() {
+  const location = useLocation();
+
+  useEffect(() => {
+    isDemoMode();
+  }, [location.search]);
+
+  return null;
+}
+
 const App = () => (
   <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <DemoModeInitializer />
         <Routes>
           <Route path="/auth" element={
             <PublicRoute>
@@ -156,7 +170,7 @@ const App = () => (
               </RequireCapability>
             } />
             <Route path="appointments" element={
-              <RequireAccess allowedRoles={["ADMIN"]} module="AMBULATORIAL">
+              <RequireAccess allowedRoles={[]} module="AMBULATORIAL">
                 <Appointments />
               </RequireAccess>
             } />

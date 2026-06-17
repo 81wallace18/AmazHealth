@@ -23,6 +23,11 @@ const statusClasses = {
   IN_PROGRESS: "bg-blue-500/10 text-blue-700 border-blue-200",
 } as const;
 
+const consultationSortWeight: Record<"WAITING_DOCTOR" | "IN_PROGRESS", number> = {
+  IN_PROGRESS: 0,
+  WAITING_DOCTOR: 1,
+};
+
 export default function Consultations() {
   const { consultations, loading, startAttendance, refetch } = useConsultations();
   const { canStartAttendance } = useCapabilities();
@@ -35,21 +40,33 @@ export default function Consultations() {
 
   const filteredConsultations = useMemo(
     () =>
-      consultations.filter((consultation) => {
-        const search = searchTerm.trim().toLowerCase();
-        const matchesSearch =
-          search.length === 0 ||
-          consultation.patientName.toLowerCase().includes(search) ||
-          consultation.patientCode.toLowerCase().includes(search) ||
-          (consultation.serviceName ?? "").toLowerCase().includes(search) ||
-          (consultation.areaName ?? "").toLowerCase().includes(search);
+      consultations
+        .filter((consultation) => {
+          const search = searchTerm.trim().toLowerCase();
+          const matchesSearch =
+            search.length === 0 ||
+            consultation.patientName.toLowerCase().includes(search) ||
+            consultation.patientCode.toLowerCase().includes(search) ||
+            (consultation.serviceName ?? "").toLowerCase().includes(search) ||
+            (consultation.areaName ?? "").toLowerCase().includes(search);
 
-        const matchesStatus = statusFilter === "all" || consultation.status === statusFilter;
-        const matchesService =
-          serviceFilter === "all" || (consultation.serviceName ?? "Sem serviço definido") === serviceFilter;
+          const matchesStatus = statusFilter === "all" || consultation.status === statusFilter;
+          const matchesService =
+            serviceFilter === "all" || (consultation.serviceName ?? "Sem serviço definido") === serviceFilter;
 
-        return matchesSearch && matchesStatus && matchesService;
-      }),
+          return matchesSearch && matchesStatus && matchesService;
+        })
+        .sort((left, right) => {
+          const leftWeight = consultationSortWeight[left.status];
+          const rightWeight = consultationSortWeight[right.status];
+          if (leftWeight !== rightWeight) {
+            return leftWeight - rightWeight;
+          }
+
+          const leftVisitAt = new Date(left.visit_date).getTime();
+          const rightVisitAt = new Date(right.visit_date).getTime();
+          return rightVisitAt - leftVisitAt;
+        }),
     [consultations, searchTerm, serviceFilter, statusFilter]
   );
 
@@ -76,14 +93,24 @@ export default function Consultations() {
     [consultations]
   );
 
-  const handleStartAttendance = async (visitId: string) => {
+  const handleOpenConsultation = async (visitId: string, isWaiting: boolean) => {
     try {
       setStartingId(visitId);
-      await startAttendance(visitId);
-      toast({
-        title: "Atendimento iniciado",
-        description: "A fila médica foi atualizada com sucesso.",
-      });
+      if (isWaiting) {
+        await startAttendance(visitId);
+      }
+
+      const next = new URLSearchParams();
+      next.set('visitId', visitId);
+      next.set('tab', 'list');
+      navigate(`/medical-records?${next.toString()}`);
+
+      if (isWaiting) {
+        toast({
+          title: "Atendimento aberto",
+          description: "Fila médica atualizada e prontuário carregado.",
+        });
+      }
     } catch (error) {
       toast({
         title: "Não foi possível iniciar o atendimento",
@@ -295,18 +322,19 @@ export default function Consultations() {
                           {consultation.status === "WAITING_DOCTOR" && canStartAttendance && (
                             <Button
                               size="sm"
-                              onClick={() => handleStartAttendance(consultation.id)}
+                              onClick={() => handleOpenConsultation(consultation.id, true)}
                               disabled={startingId === consultation.id}
                             >
-                              {startingId === consultation.id ? "Iniciando..." : "Iniciar"}
+                              {startingId === consultation.id ? "Abrindo..." : "Abrir atendimento"}
                             </Button>
                           )}
                           <Button
                             variant="ghost"
                             size="sm"
                             title="Ver prontuário"
-                            onClick={() => navigate(`/medical-records?visitId=${consultation.id}`)}
+                            onClick={() => handleOpenConsultation(consultation.id, false)}
                           >
+                            Abrir prontuário
                             <FileText className="h-4 w-4" />
                           </Button>
                         </div>

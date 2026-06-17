@@ -34,6 +34,9 @@ import {
 } from '@/types/triage';
 import { triageService } from '@/services/triageService';
 import { AlertCircle, Heart, Activity, Thermometer, Wind, Droplet, Brain } from 'lucide-react';
+import { DemoAutofillButton } from '@/demo/DemoAutofillButton';
+import { getDemoRunId } from '@/demo/demoMode';
+import { getTriageExample } from '@/demo/demoFixtures';
 
 interface TriageFormProps {
   visitId: string;
@@ -104,6 +107,39 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
   const [suggestedAgeGroup, setSuggestedAgeGroup] = useState<string | null>(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
+
+  const handleFillExample = () => {
+    const example = getTriageExample(getDemoRunId()).data;
+    setError(null);
+    setSuggestionError(null);
+    setFieldErrors({});
+    setBloodPressureSys(example.bloodPressureSys);
+    setBloodPressureDia(example.bloodPressureDia);
+    setHeartRate(example.heartRate);
+    setRespiratoryRate(example.respiratoryRate);
+    setTemperature(example.temperature);
+    setOxygenSaturation(example.oxygenSaturation);
+    setBloodGlucose(example.bloodGlucose);
+    setWeight(example.weight);
+    setHeight(example.height);
+    setGlasgow(example.glasgow);
+    setComplaintCategory(example.complaintCategory);
+    setComplaintText(example.complaintText);
+    setPainScore(example.painScale);
+    setDiscriminators((prev) => ({
+      ...prev,
+      moderatePain: true,
+      severePain: false,
+      chestPain: false,
+      shortnessOfBreath: false,
+    }));
+    setTriageColor(example.manchesterColor);
+    setSuggestedColorBackend(example.manchesterColor);
+    setSuggestionJustification(example.notes);
+    setTriageJustification(example.notes);
+    setOverrideReason(example.overrideReason);
+    setUserSelectedColor(true);
+  };
 
   const hasMandatoryVitals =
     bloodPressureSys.trim() !== '' &&
@@ -300,7 +336,13 @@ export function TriageForm({ visitId, patientName, onSuccess, onCancel }: Triage
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle>Triagem Manchester - {patientName}</CardTitle>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle>Triagem Manchester - {patientName}</CardTitle>
+          <DemoAutofillButton
+            onFill={handleFillExample}
+            aria-label="Preencher exemplo de triagem"
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">

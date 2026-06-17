@@ -47,6 +47,9 @@ import type { ReceptionPatientListItem, ReceptionQueueItem } from "@/types/recep
 import type { Patient } from "@/types/patient";
 import type { ManchesterColor } from "@/types/triage";
 import { toast } from "sonner";
+import { DemoAutofillButton } from "@/demo/DemoAutofillButton";
+import { getDemoRunId } from "@/demo/demoMode";
+import { getReceptionAttendanceExample, getTriageExample } from "@/demo/demoFixtures";
 
 const MANCHESTER_OPTIONS: { value: ManchesterColor; label: string; color: string }[] = [
   { value: "RED", label: "Emergência", color: "bg-red-500" },
@@ -126,6 +129,30 @@ export default function ReceptionTriage() {
     setSuggestedColor("");
     setTriageJustification("");
     setOverrideReason("");
+  };
+
+  const fillAttendanceExample = () => {
+    const attendanceExample = getReceptionAttendanceExample(getDemoRunId()).data;
+    const triageExample = getTriageExample(getDemoRunId()).data;
+    setChiefComplaint(attendanceExample.chiefComplaint);
+
+    if (canRegisterClinicalTriage) {
+      setVitalsOpen(true);
+      setBp(triageExample.bloodPressure);
+      setHr(triageExample.heartRate);
+      setRr(triageExample.respiratoryRate);
+      setTemp(triageExample.temperature);
+      setSpo2(triageExample.oxygenSaturation);
+      setGlasgow(triageExample.glasgow);
+      setWeight(triageExample.weight);
+      setHeight(triageExample.height);
+      setHgt(triageExample.bloodGlucose);
+      setManchesterColor(triageExample.manchesterColor);
+      setSuggestedColor(triageExample.manchesterColor);
+      setTriageJustification(triageExample.notes);
+      setOverrideReason(triageExample.overrideReason);
+      setVitalErrors({});
+    }
   };
 
   // Carrega fila
@@ -309,8 +336,7 @@ export default function ReceptionTriage() {
       setIsAttendanceOpen(true);
     } catch (error: any) {
       const msg = error?.response?.data?.message || "Erro ao cadastrar paciente.";
-      toast.error(msg);
-      throw error;
+      toast.error(msg, { duration: 6000 });
     }
   };
 
@@ -507,6 +533,13 @@ export default function ReceptionTriage() {
           )}
 
           <div className="space-y-4">
+            <div className="flex justify-end">
+              <DemoAutofillButton
+                onFill={fillAttendanceExample}
+                aria-label="Preencher exemplo de abertura de atendimento"
+              />
+            </div>
+
             {/* Queixa principal */}
             <div>
               <Label htmlFor="complaint">Queixa principal *</Label>
