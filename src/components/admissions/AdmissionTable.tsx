@@ -1,186 +1,100 @@
-import { useState } from "react";
 import { format } from "date-fns";
-import { Eye, FileText, UserCheck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DischargeForm } from "./DischargeForm";
+import type { Admission, DischargeRequest } from "@/types/admission";
 
 interface AdmissionTableProps {
-  admissions: any[];
-  onDischarge: (admissionId: string, dischargeData: any) => Promise<void>;
+  admissions: Admission[];
+  onDischarge?: (admissionId: string, dischargeData: DischargeRequest) => void;
 }
 
+const statusLabels: Record<Admission["admissionStatus"], { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  AWAITING_BED: { label: "Aguardando leito", variant: "outline" },
+  BED_ASSIGNED: { label: "Leito atribuido", variant: "default" },
+  ACTIVE: { label: "Ativa", variant: "default" },
+  DISCHARGED: { label: "Alta", variant: "secondary" },
+  TRANSFERRED: { label: "Transferida", variant: "secondary" },
+  CANCELLED: { label: "Cancelada", variant: "destructive" },
+  PENDING_TRANSFER: { label: "Transferencia pendente", variant: "outline" },
+};
+
 export function AdmissionTable({ admissions, onDischarge }: AdmissionTableProps) {
-  const [selectedAdmission, setSelectedAdmission] = useState<any>(null);
-  const [showDischargeForm, setShowDischargeForm] = useState(false);
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      admitted: "default",
-      discharged: "secondary",
-      transferred: "outline",
-    };
-    
-    return (
-      <Badge variant={variants[status] || "outline"}>
-        {status === 'admitted' && 'Internado'}
-        {status === 'discharged' && 'Alta'}
-        {status === 'transferred' && 'Transferido'}
-      </Badge>
-    );
-  };
-
-  const handleDischarge = async (dischargeData: any) => {
-    if (selectedAdmission) {
-      await onDischarge(selectedAdmission.id, dischargeData);
-      setShowDischargeForm(false);
-      setSelectedAdmission(null);
-    }
-  };
-
   return (
-    <>
+    <div className="border rounded-md">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Código</TableHead>
+            <TableHead>Codigo</TableHead>
             <TableHead>Paciente</TableHead>
-            <TableHead>Médico</TableHead>
+            <TableHead>Medico</TableHead>
             <TableHead>Leito</TableHead>
-            <TableHead>Data Internação</TableHead>
+            <TableHead>Entrada</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Ações</TableHead>
+            <TableHead className="text-right">Acoes</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {admissions.map((admission) => (
-            <TableRow key={admission.id}>
-              <TableCell className="font-mono text-sm">
-                {admission.admission_code}
-              </TableCell>
-              <TableCell>
-                <div>
-                  <div className="font-medium">
-                    {admission.patient?.first_name} {admission.patient?.last_name}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {admission.patient?.patient_code}
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div>
-                  <div className="font-medium">
-                    Dr. {admission.doctor?.first_name} {admission.doctor?.last_name}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {admission.doctor?.specialization}
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                {admission.bed ? (
-                  <div>
-                    <div className="font-medium">Leito {admission.bed.bed_number}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {admission.bed.ward?.name}
-                    </div>
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground">Sem leito</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {format(new Date(admission.admission_date), "dd/MM/yyyy")}
-              </TableCell>
-              <TableCell>
-                {getStatusBadge(admission.status)}
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Detalhes da Internação</DialogTitle>
-                        <DialogDescription>
-                          Código: {admission.admission_code}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <h4 className="font-medium">Paciente</h4>
-                            <p>{admission.patient?.first_name} {admission.patient?.last_name}</p>
-                            <p className="text-sm text-muted-foreground">{admission.patient?.patient_code}</p>
-                          </div>
-                          <div>
-                            <h4 className="font-medium">Médico</h4>
-                            <p>Dr. {admission.doctor?.first_name} {admission.doctor?.last_name}</p>
-                            <p className="text-sm text-muted-foreground">{admission.doctor?.specialization}</p>
-                          </div>
-                        </div>
-                        <div>
-                          <h4 className="font-medium">Motivo da Internação</h4>
-                          <p>{admission.reason_for_admission}</p>
-                        </div>
-                        {admission.diagnosis && (
-                          <div>
-                            <h4 className="font-medium">Diagnóstico</h4>
-                            <p>{admission.diagnosis}</p>
-                          </div>
-                        )}
-                        {admission.treatment_plan && (
-                          <div>
-                            <h4 className="font-medium">Plano de Tratamento</h4>
-                            <p>{admission.treatment_plan}</p>
-                          </div>
-                        )}
-                        {admission.notes && (
-                          <div>
-                            <h4 className="font-medium">Observações</h4>
-                            <p>{admission.notes}</p>
-                          </div>
-                        )}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-
-                  {admission.status === 'admitted' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedAdmission(admission);
-                        setShowDischargeForm(true);
-                      }}
-                    >
-                      <UserCheck className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+          {admissions.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                Nenhuma internacao encontrada.
               </TableCell>
             </TableRow>
-          ))}
+          )}
+          {admissions.map((admission) => {
+            const statusInfo = statusLabels[admission.admissionStatus];
+            const canDischarge =
+              onDischarge && (admission.admissionStatus === "BED_ASSIGNED" || admission.admissionStatus === "ACTIVE");
+
+            return (
+              <TableRow key={admission.id}>
+                <TableCell className="font-mono text-xs">{admission.admissionNumber}</TableCell>
+                <TableCell>
+                  <div className="font-medium">{admission.patientName}</div>
+                  <div className="text-xs text-muted-foreground">{admission.patientCpf}</div>
+                </TableCell>
+                <TableCell>
+                  <div className="font-medium">{admission.attendingPhysicianName}</div>
+                </TableCell>
+                <TableCell>
+                  {admission.bedIdentifier ? (
+                    <div>
+                      <div className="font-medium">{admission.bedIdentifier}</div>
+                      <div className="text-xs text-muted-foreground">{admission.wardName}</div>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">Sem leito</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-sm">
+                  {format(new Date(admission.admissionDate), "dd/MM/yyyy HH:mm")}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  {canDischarge ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        onDischarge(admission.id, {
+                          dischargeDisposition: "Alta",
+                        })
+                      }
+                    >
+                      Registrar alta
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
-
-      {showDischargeForm && (
-        <DischargeForm
-          admission={selectedAdmission}
-          onSubmit={handleDischarge}
-          onCancel={() => {
-            setShowDischargeForm(false);
-            setSelectedAdmission(null);
-          }}
-        />
-      )}
-    </>
+    </div>
   );
 }

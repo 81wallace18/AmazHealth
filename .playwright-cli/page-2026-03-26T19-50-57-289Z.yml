@@ -1,0 +1,132 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T":
+    - list:
+      - status [ref=e24]:
+        - img [ref=e26]
+        - generic [ref=e29]: Login realizado com sucesso!
+  - generic [ref=e31]:
+    - generic [ref=e33]:
+      - generic [ref=e35]:
+        - img [ref=e37]
+        - generic [ref=e40]:
+          - heading "AmazHealth" [level=1] [ref=e41]
+          - paragraph [ref=e42]: Sistema Hospitalar
+      - generic [ref=e43]:
+        - generic [ref=e44]: Principal
+        - list [ref=e46]:
+          - listitem [ref=e47]:
+            - link "Dashboard" [ref=e48] [cursor=pointer]:
+              - /url: /
+              - img [ref=e49]
+              - generic [ref=e51]: Dashboard
+      - generic [ref=e52]:
+        - generic [ref=e53]: Atendimento
+        - list [ref=e55]:
+          - listitem [ref=e56]:
+            - link "Pacientes" [ref=e57] [cursor=pointer]:
+              - /url: /patients
+              - img [ref=e58]
+              - generic [ref=e63]: Pacientes
+          - listitem [ref=e64]:
+            - link "Prontuários" [ref=e65] [cursor=pointer]:
+              - /url: /medical-records
+              - img [ref=e66]
+              - generic [ref=e69]: Prontuários
+          - listitem [ref=e70]:
+            - link "Consultas" [ref=e71] [cursor=pointer]:
+              - /url: /consultations
+              - img [ref=e72]
+              - generic [ref=e76]: Consultas
+      - generic [ref=e77]:
+        - generic [ref=e78]: Exames
+        - list [ref=e80]:
+          - listitem [ref=e81]:
+            - link "Laboratório" [ref=e82] [cursor=pointer]:
+              - /url: /laboratory
+              - img [ref=e83]
+              - generic [ref=e85]: Laboratório
+      - generic [ref=e87]:
+        - img [ref=e88]
+        - heading "Fila Médica" [level=3] [ref=e91]
+        - paragraph [ref=e92]: Assumir atendimentos aguardando avaliação médica.
+        - link "Abrir consultas" [ref=e93] [cursor=pointer]:
+          - /url: /consultations
+    - generic [ref=e94]:
+      - banner [ref=e95]:
+        - generic [ref=e97]:
+          - img [ref=e98]
+          - textbox "Busca global indisponível" [disabled] [ref=e101]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e102]:
+          - button [ref=e103] [cursor=pointer]:
+            - img
+          - button "M medico.uat" [ref=e104] [cursor=pointer]:
+            - generic [ref=e106]: M
+            - generic [ref=e107]: medico.uat
+      - main [ref=e108]:
+        - generic [ref=e109]:
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - heading "Painel Médico" [level=1] [ref=e112]
+              - paragraph [ref=e113]: Acesse rapidamente a fila médica, evoluções e desfechos do plantão.
+              - paragraph [ref=e114]: Atualizado em 26/03/2026 às 16:50
+            - button "Atualizar" [ref=e115] [cursor=pointer]:
+              - img
+              - text: Atualizar
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - generic [ref=e118]:
+                - heading "Pacientes Ativos" [level=3] [ref=e119]
+                - img [ref=e120]
+              - generic [ref=e125]:
+                - generic [ref=e126]: "10"
+                - paragraph [ref=e127]: Total de pacientes ativos na organização
+                - generic [ref=e128]: Atualizado
+            - generic [ref=e129]:
+              - generic [ref=e130]:
+                - heading "Atendimentos Hoje" [level=3] [ref=e131]
+                - img [ref=e132]
+              - generic [ref=e134]:
+                - generic [ref=e135]: "13"
+                - paragraph [ref=e136]: Entradas registradas nas últimas 24h
+                - generic [ref=e137]: Atualizado
+            - generic [ref=e138]:
+              - generic [ref=e139]:
+                - heading "Leitos Disponíveis" [level=3] [ref=e140]
+                - img [ref=e141]
+              - generic [ref=e144]:
+                - generic [ref=e145]: "0"
+                - paragraph [ref=e146]: Leitos livres ou liberados para uso
+                - generic [ref=e147]: Atualizado
+            - generic [ref=e148]:
+              - generic [ref=e149]:
+                - heading "Consultas em Andamento" [level=3] [ref=e150]
+                - img [ref=e151]
+              - generic [ref=e155]:
+                - generic [ref=e156]: "5"
+                - paragraph [ref=e157]: Atendimentos em triagem/medicina/exames
+                - generic [ref=e158]: Atualizado
+          - generic [ref=e159]:
+            - generic [ref=e160]:
+              - heading "Ações Rápidas" [level=3] [ref=e161]:
+                - img [ref=e162]
+                - text: Ações Rápidas
+              - paragraph [ref=e164]: Módulos mais relevantes para o papel atual
+            - generic [ref=e166]:
+              - link "Consultas Fila médica do plantão" [ref=e167] [cursor=pointer]:
+                - /url: /consultations
+                - generic [ref=e168]:
+                  - heading "Consultas" [level=3] [ref=e170]
+                  - generic [ref=e171]: Fila médica do plantão
+              - link "Prontuários Histórico e evolução clínica" [ref=e172] [cursor=pointer]:
+                - /url: /medical-records
+                - generic [ref=e173]:
+                  - heading "Prontuários" [level=3] [ref=e175]
+                  - generic [ref=e176]: Histórico e evolução clínica
+              - link "Laboratório Solicitações e resultados" [ref=e177] [cursor=pointer]:
+                - /url: /laboratory
+                - generic [ref=e178]:
+                  - heading "Laboratório" [level=3] [ref=e180]
+                  - generic [ref=e181]: Solicitações e resultados

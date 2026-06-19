@@ -1,0 +1,50 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e8]:
+        - img [ref=e10]
+        - generic [ref=e13]:
+          - heading "AmazHealth" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Sistema Hospitalar
+      - generic [ref=e16]:
+        - generic [ref=e17]: Principal
+        - list [ref=e19]:
+          - listitem [ref=e20]:
+            - link "Dashboard" [ref=e21] [cursor=pointer]:
+              - /url: /
+              - img [ref=e22]
+              - generic [ref=e24]: Dashboard
+      - generic [ref=e25]:
+        - generic [ref=e26]: Atendimento
+        - list [ref=e28]:
+          - listitem [ref=e29]:
+            - link "Pacientes" [ref=e30] [cursor=pointer]:
+              - /url: /patients
+              - img [ref=e31]
+              - generic [ref=e36]: Pacientes
+          - listitem [ref=e37]:
+            - link "Triagem" [ref=e38] [cursor=pointer]:
+              - /url: /triage
+              - img [ref=e39]
+              - generic [ref=e42]: Triagem
+      - generic [ref=e44]:
+        - img [ref=e45]
+        - heading "Fila de Triagem" [level=3] [ref=e48]
+        - paragraph [ref=e49]: Priorizar atendimentos e redistribuir o fluxo clínico.
+        - link "Abrir triagem" [ref=e50] [cursor=pointer]:
+          - /url: /triage
+    - generic [ref=e51]:
+      - banner [ref=e52]:
+        - generic [ref=e54]:
+          - img [ref=e55]
+          - textbox "Busca global indisponível" [disabled] [ref=e58]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e59]:
+          - button [ref=e60] [cursor=pointer]:
+            - img
+          - button "E enfermeiro.uat" [ref=e61] [cursor=pointer]:
+            - generic [ref=e63]: E
+            - generic [ref=e64]: enfermeiro.uat
+      - main [ref=e65]

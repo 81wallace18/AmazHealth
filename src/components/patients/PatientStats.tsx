@@ -1,6 +1,6 @@
 import { Users, Heart, AlertTriangle, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Patient } from "@/hooks/usePatients";
+import type { Patient } from "@/types/patient";
 
 interface PatientStatsProps {
   patients: Patient[];
@@ -12,7 +12,7 @@ export function PatientStats({ patients }: PatientStatsProps) {
     ativos: patients.filter(p => p.status === "active").length,
     inativos: patients.filter(p => p.status === "inactive").length,
     novosEsseMes: patients.filter(p => {
-      const createdAt = new Date(p.created_at);
+      const createdAt = new Date(p.createdAt);
       const now = new Date();
       return createdAt.getMonth() === now.getMonth() && createdAt.getFullYear() === now.getFullYear();
     }).length
@@ -60,7 +60,7 @@ export function PatientStats({ patients }: PatientStatsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-blue-600">{stats.novosEsseMes}</div>
-          <p className="text-xs text-muted-foreground">cadastros em janeiro</p>
+          <p className="text-xs text-muted-foreground">cadastros em {new Date().toLocaleDateString('pt-BR', { month: 'long' })}</p>
         </CardContent>
       </Card>
     </div>

@@ -1,0 +1,124 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T":
+    - list:
+      - status [ref=e24]:
+        - img [ref=e26]
+        - generic [ref=e29]: Login realizado com sucesso!
+  - generic [ref=e31]:
+    - generic [ref=e33]:
+      - generic [ref=e35]:
+        - img [ref=e37]
+        - generic [ref=e40]:
+          - heading "AmazHealth" [level=1] [ref=e41]
+          - paragraph [ref=e42]: Sistema Hospitalar
+      - generic [ref=e43]:
+        - generic [ref=e44]: Principal
+        - list [ref=e46]:
+          - listitem [ref=e47]:
+            - link "Dashboard" [ref=e48] [cursor=pointer]:
+              - /url: /
+              - img [ref=e49]
+              - generic [ref=e51]: Dashboard
+      - generic [ref=e52]:
+        - generic [ref=e53]: Atendimento
+        - list [ref=e55]:
+          - listitem [ref=e56]:
+            - link "Pacientes" [ref=e57] [cursor=pointer]:
+              - /url: /patients
+              - img [ref=e58]
+              - generic [ref=e63]: Pacientes
+          - listitem [ref=e64]:
+            - link "Agendamentos" [ref=e65] [cursor=pointer]:
+              - /url: /appointments
+              - img [ref=e66]
+              - generic [ref=e68]: Agendamentos
+          - listitem [ref=e69]:
+            - link "Triagem (Recepção)" [ref=e70] [cursor=pointer]:
+              - /url: /reception/triage
+              - img [ref=e71]
+              - generic [ref=e74]: Triagem (Recepção)
+      - generic [ref=e76]:
+        - img [ref=e77]
+        - heading "Nova Ficha" [level=3] [ref=e80]
+        - paragraph [ref=e81]: Registrar entrada, localizar paciente e abrir atendimento.
+        - link "Abrir recepção" [ref=e82] [cursor=pointer]:
+          - /url: /reception/triage
+    - generic [ref=e83]:
+      - banner [ref=e84]:
+        - generic [ref=e86]:
+          - img [ref=e87]
+          - textbox "Busca global indisponível" [disabled] [ref=e90]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e91]:
+          - button [ref=e92] [cursor=pointer]:
+            - img
+          - button "R recepcao.uat" [ref=e93] [cursor=pointer]:
+            - generic [ref=e95]: R
+            - generic [ref=e96]: recepcao.uat
+      - main [ref=e97]:
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - heading "Painel da Recepção" [level=1] [ref=e101]
+              - paragraph [ref=e102]: Cadastro de pacientes, abertura de fichas e acompanhamento da fila inicial.
+              - paragraph [ref=e103]: Atualizado em 26/03/2026 às 16:50
+            - button "Atualizar" [ref=e104] [cursor=pointer]:
+              - img
+              - text: Atualizar
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - generic [ref=e107]:
+                - heading "Pacientes Ativos" [level=3] [ref=e108]
+                - img [ref=e109]
+              - generic [ref=e114]:
+                - generic [ref=e115]: "10"
+                - paragraph [ref=e116]: Total de pacientes ativos na organização
+                - generic [ref=e117]: Atualizado
+            - generic [ref=e118]:
+              - generic [ref=e119]:
+                - heading "Atendimentos Hoje" [level=3] [ref=e120]
+                - img [ref=e121]
+              - generic [ref=e123]:
+                - generic [ref=e124]: "13"
+                - paragraph [ref=e125]: Entradas registradas nas últimas 24h
+                - generic [ref=e126]: Atualizado
+            - generic [ref=e127]:
+              - generic [ref=e128]:
+                - heading "Leitos Disponíveis" [level=3] [ref=e129]
+                - img [ref=e130]
+              - generic [ref=e133]:
+                - generic [ref=e134]: "0"
+                - paragraph [ref=e135]: Leitos livres ou liberados para uso
+                - generic [ref=e136]: Atualizado
+            - generic [ref=e137]:
+              - generic [ref=e138]:
+                - heading "Consultas em Andamento" [level=3] [ref=e139]
+                - img [ref=e140]
+              - generic [ref=e144]:
+                - generic [ref=e145]: "5"
+                - paragraph [ref=e146]: Atendimentos em triagem/medicina/exames
+                - generic [ref=e147]: Atualizado
+          - generic [ref=e148]:
+            - generic [ref=e149]:
+              - heading "Ações Rápidas" [level=3] [ref=e150]:
+                - img [ref=e151]
+                - text: Ações Rápidas
+              - paragraph [ref=e153]: Módulos mais relevantes para o papel atual
+            - generic [ref=e155]:
+              - link "Recepção Abrir fichas e acompanhar fila" [ref=e156] [cursor=pointer]:
+                - /url: /reception/triage
+                - generic [ref=e157]:
+                  - heading "Recepção" [level=3] [ref=e159]
+                  - generic [ref=e160]: Abrir fichas e acompanhar fila
+              - link "Pacientes Cadastro e busca de pacientes" [ref=e161] [cursor=pointer]:
+                - /url: /patients
+                - generic [ref=e162]:
+                  - heading "Pacientes" [level=3] [ref=e164]
+                  - generic [ref=e165]: Cadastro e busca de pacientes
+              - link "Agendamentos Agenda e marcações" [ref=e166] [cursor=pointer]:
+                - /url: /appointments
+                - generic [ref=e167]:
+                  - heading "Agendamentos" [level=3] [ref=e169]
+                  - generic [ref=e170]: Agenda e marcações

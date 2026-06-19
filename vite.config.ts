@@ -7,7 +7,14 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 5173,
+    allowedHosts: ["web"],
+    proxy: {
+      "/api/v1": {
+        target: process.env.VITE_PROXY_TARGET || "http://localhost:8080",
+        changeOrigin: true,
+      },
+    },
   },
   plugins: [
     react(),
@@ -18,5 +25,8 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  build: {
+    chunkSizeWarningLimit: 3000,
   },
 }));

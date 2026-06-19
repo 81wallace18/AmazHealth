@@ -1,0 +1,63 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e8]:
+        - img [ref=e10]
+        - generic [ref=e13]:
+          - heading "AmazHealth" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Sistema Hospitalar
+      - generic [ref=e16]:
+        - generic [ref=e17]: Principal
+        - list [ref=e19]:
+          - listitem [ref=e20]:
+            - link "Dashboard" [ref=e21] [cursor=pointer]:
+              - /url: /
+              - img [ref=e22]
+              - generic [ref=e24]: Dashboard
+      - generic [ref=e25]:
+        - generic [ref=e26]: Atendimento
+        - list [ref=e28]:
+          - listitem [ref=e29]:
+            - link "Pacientes" [ref=e30] [cursor=pointer]:
+              - /url: /patients
+              - img [ref=e31]
+              - generic [ref=e36]: Pacientes
+          - listitem [ref=e37]:
+            - link "Prontuários" [ref=e38] [cursor=pointer]:
+              - /url: /medical-records
+              - img [ref=e39]
+              - generic [ref=e42]: Prontuários
+          - listitem [ref=e43]:
+            - link "Consultas" [ref=e44] [cursor=pointer]:
+              - /url: /consultations
+              - img [ref=e45]
+              - generic [ref=e49]: Consultas
+      - generic [ref=e50]:
+        - generic [ref=e51]: Exames
+        - list [ref=e53]:
+          - listitem [ref=e54]:
+            - link "Laboratório" [ref=e55] [cursor=pointer]:
+              - /url: /laboratory
+              - img [ref=e56]
+              - generic [ref=e58]: Laboratório
+      - generic [ref=e60]:
+        - img [ref=e61]
+        - heading "Fila Médica" [level=3] [ref=e64]
+        - paragraph [ref=e65]: Assumir atendimentos aguardando avaliação médica.
+        - link "Abrir consultas" [ref=e66] [cursor=pointer]:
+          - /url: /consultations
+    - generic [ref=e67]:
+      - banner [ref=e68]:
+        - generic [ref=e70]:
+          - img [ref=e71]
+          - textbox "Busca global indisponível" [disabled] [ref=e74]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e75]:
+          - button [ref=e76] [cursor=pointer]:
+            - img
+          - button "M medico.uat" [ref=e77] [cursor=pointer]:
+            - generic [ref=e79]: M
+            - generic [ref=e80]: medico.uat
+      - main [ref=e81]

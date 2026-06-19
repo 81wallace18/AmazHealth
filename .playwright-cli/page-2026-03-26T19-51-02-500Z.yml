@@ -1,0 +1,119 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e8]:
+        - img [ref=e10]
+        - generic [ref=e13]:
+          - heading "AmazHealth" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Sistema Hospitalar
+      - generic [ref=e16]:
+        - generic [ref=e17]: Principal
+        - list [ref=e19]:
+          - listitem [ref=e20]:
+            - link "Dashboard" [ref=e21] [cursor=pointer]:
+              - /url: /
+              - img [ref=e22]
+              - generic [ref=e24]: Dashboard
+      - generic [ref=e25]:
+        - generic [ref=e26]: Atendimento
+        - list [ref=e28]:
+          - listitem [ref=e29]:
+            - link "Pacientes" [ref=e30] [cursor=pointer]:
+              - /url: /patients
+              - img [ref=e31]
+              - generic [ref=e36]: Pacientes
+          - listitem [ref=e37]:
+            - link "Prontuários" [ref=e38] [cursor=pointer]:
+              - /url: /medical-records
+              - img [ref=e39]
+              - generic [ref=e42]: Prontuários
+          - listitem [ref=e43]:
+            - link "Consultas" [ref=e44] [cursor=pointer]:
+              - /url: /consultations
+              - img [ref=e45]
+              - generic [ref=e49]: Consultas
+      - generic [ref=e50]:
+        - generic [ref=e51]: Exames
+        - list [ref=e53]:
+          - listitem [ref=e54]:
+            - link "Laboratório" [ref=e55] [cursor=pointer]:
+              - /url: /laboratory
+              - img [ref=e56]
+              - generic [ref=e58]: Laboratório
+      - generic [ref=e60]:
+        - img [ref=e61]
+        - heading "Fila Médica" [level=3] [ref=e64]
+        - paragraph [ref=e65]: Assumir atendimentos aguardando avaliação médica.
+        - link "Abrir consultas" [ref=e66] [cursor=pointer]:
+          - /url: /consultations
+    - generic [ref=e67]:
+      - banner [ref=e68]:
+        - generic [ref=e70]:
+          - img [ref=e71]
+          - textbox "Busca global indisponível" [disabled] [ref=e74]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e75]:
+          - button [ref=e76] [cursor=pointer]:
+            - img
+          - button "M medico.uat" [ref=e77] [cursor=pointer]:
+            - generic [ref=e79]: M
+            - generic [ref=e80]: medico.uat
+      - main [ref=e81]:
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - generic [ref=e84]:
+              - heading "Laboratório" [level=1] [ref=e85]
+              - paragraph [ref=e86]: Gestão de exames e resultados laboratoriais
+            - button "Novo Exame" [disabled]:
+              - img
+              - text: Novo Exame
+          - generic [ref=e87]:
+            - generic [ref=e88]:
+              - generic [ref=e89]:
+                - heading "Total de Exames" [level=3] [ref=e90]
+                - img [ref=e91]
+              - generic [ref=e93]:
+                - generic [ref=e94]: "0"
+                - paragraph [ref=e95]: requisições ativas
+            - generic [ref=e96]:
+              - generic [ref=e97]:
+                - heading "Solicitados" [level=3] [ref=e98]
+                - img [ref=e99]
+              - generic [ref=e102]:
+                - generic [ref=e103]: "0"
+                - paragraph [ref=e104]: aguardando coleta
+            - generic [ref=e105]:
+              - generic [ref=e106]:
+                - heading "Coletados" [level=3] [ref=e107]
+                - img [ref=e108]
+              - generic [ref=e110]:
+                - generic [ref=e111]: "0"
+                - paragraph [ref=e112]: em processamento
+            - generic [ref=e113]:
+              - generic [ref=e114]:
+                - heading "Laudados" [level=3] [ref=e115]
+                - img [ref=e116]
+              - generic [ref=e119]:
+                - generic [ref=e120]: "0"
+                - paragraph [ref=e121]: resultados prontos
+            - generic [ref=e122]:
+              - generic [ref=e123]:
+                - heading "Cancelados" [level=3] [ref=e124]
+                - img [ref=e125]
+              - generic [ref=e127]:
+                - generic [ref=e128]: "0"
+                - paragraph [ref=e129]: não realizados
+          - generic [ref=e130]:
+            - heading "Filtros" [level=3] [ref=e132]
+            - generic [ref=e134]:
+              - generic [ref=e136]:
+                - img [ref=e137]
+                - textbox "Buscar por paciente, exame ou solicitante..." [ref=e140]
+              - combobox [ref=e141] [cursor=pointer]:
+                - generic: Todos os Status
+                - img [ref=e142]
+          - generic [ref=e144]:
+            - heading "Exames Laboratoriais" [level=3] [ref=e146]
+            - generic [ref=e148]: Carregando exames...

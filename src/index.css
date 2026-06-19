@@ -55,8 +55,8 @@ All colors MUST be HSL.
     --shadow-strong: 0 8px 32px hsl(var(--primary) / 0.16);
 
     /* Transições suaves */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-smooth: all 0.22s cubic-bezier(0.25, 1, 0.5, 1);
+    --transition-bounce: all 0.22s cubic-bezier(0.25, 1, 0.5, 1);
 
     --radius: 0.5rem;
 

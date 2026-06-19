@@ -1,7 +1,6 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   Users,
-  Calendar,
   FileText,
   Pill,
   Stethoscope,
@@ -11,7 +10,15 @@ import {
   UserPlus,
   TestTube,
   Leaf,
-  Building
+  Building,
+  ChevronRight,
+  ClipboardList,
+  ClipboardCheck,
+  Moon,
+  Eye,
+  TrendingUp,
+  Send,
+  KeyRound,
 } from "lucide-react";
 import {
   Sidebar,
@@ -22,101 +29,238 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/useAuth";
+import { useOrgConfig } from "@/hooks/useOrgConfig";
+import { useCapabilities } from "@/auth/useCapabilities";
+import { getPrimaryRole, normalizeRole } from "@/auth/rolePriority";
+import type { UserCapabilities, UserRole } from "@/auth/capabilities";
+import { usePermissions, type PermissionRequest } from "@/auth/permissions";
+import { NightModeIndicator } from "@/components/layout/NightModeIndicator";
 
-const navigationItems = [
+interface NavigationItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  group: string;
+  allowedRoles?: UserRole[];
+  /** Modulo da organizacao necessario. Sem module = sempre visivel. */
+  module?: string;
+  /** Integracao da organizacao necessaria (HORUS_PHARMACY, HORUS_LEGACY, ESUS_AF, ESUS_PEC). */
+  integration?: string;
+  /** Policy operacional necessaria (ex: night_shift_review). */
+  policy?: string;
+  /** Capability efetiva necessaria quando role pura não representa policy/RBAC final. */
+  capability?: keyof UserCapabilities;
+  /** Permissao contextual local alinhada ao desenho resource/action/context. */
+  permission?: PermissionRequest;
+}
+
+const navigationItems: NavigationItem[] = [
   {
-    title: "Dashboard",
+    title: "Início",
     url: "/",
     icon: BarChart3,
-    group: "Principal"
+    group: "Principal",
+    allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "PHARMACIST", "RECEPTIONIST", "HOSPITAL_MANAGER", "FINANCE"],
+  },
+  {
+    title: "Atendimentos",
+    url: "/daily-attendances",
+    icon: ClipboardList,
+    group: "Principal",
+    allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "RECEPTIONIST", "HOSPITAL_MANAGER"],
+    module: "URGENCIA",
   },
   {
     title: "Pacientes",
     url: "/patients",
     icon: Users,
-    group: "Atendimento"
-  },
-  {
-    title: "Agendamentos",
-    url: "/appointments",
-    icon: Calendar,
-    group: "Atendimento"
+    group: "Atendimento",
+    allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "DOCTOR", "HOSPITAL_MANAGER"],
+    module: "URGENCIA",
   },
   {
     title: "Prontuários",
     url: "/medical-records",
     icon: FileText,
-    group: "Atendimento"
+    group: "Atendimento",
+    allowedRoles: ["DOCTOR", "NURSE", "NURSE_TECHNICIAN", "PLATFORM_ADMIN"],
+    module: "URGENCIA",
+    permission: { resource: "PRONTUARIO", action: "READ", context: { sector: "URGENCIA", patientRelationship: "UNDER_CARE", mode: "ROUTINE", shareGrant: "NONE" } },
   },
   {
     title: "Consultas",
     url: "/consultations",
     icon: Stethoscope,
-    group: "Atendimento"
+    group: "Atendimento",
+    allowedRoles: ["DOCTOR", "PLATFORM_ADMIN"],
+    module: "URGENCIA",
+    capability: "canStartAttendance",
+  },
+  {
+    title: "Triagem",
+    url: "/triage",
+    icon: Leaf,
+    group: "Atendimento",
+    allowedRoles: ["DOCTOR", "NURSE", "NURSE_TECHNICIAN", "PLATFORM_ADMIN"],
+    module: "URGENCIA",
+    permission: { resource: "TRIAGEM", action: "READ_BOARD", context: { sector: "URGENCIA", duty: "ACTIVE" } },
+  },
+  {
+    title: "Recepção",
+    url: "/reception/triage",
+    icon: UserPlus,
+    group: "Atendimento",
+    allowedRoles: ["ADMIN", "RECEPTIONIST", "NURSE", "NURSE_MANAGER"],
+    module: "URGENCIA",
+    permission: { resource: "RECEPCAO", action: "OPEN_ATTENDANCE", context: { sector: "URGENCIA" } },
+  },
+  {
+    title: "Fechamento PEC",
+    url: "/pec-shift-closing",
+    icon: Send,
+    group: "Atendimento",
+    allowedRoles: ["ADMIN", "GESTAO", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN"],
+    module: "URGENCIA",
+    integration: "ESUS_PEC",
+  },
+  {
+    title: "Revisão PEC",
+    url: "/pec-review-board",
+    icon: ClipboardCheck,
+    group: "Gestão",
+    allowedRoles: ["ADMIN", "GESTAO", "HOSPITAL_MANAGER"],
+    module: "URGENCIA",
+    integration: "ESUS_PEC",
+  },
+  {
+    title: "Conexão Externa",
+    url: "/minha-conexao-externa",
+    icon: KeyRound,
+    group: "Atendimento",
+    allowedRoles: ["ADMIN", "GESTAO", "DOCTOR", "NURSE", "NURSE_MANAGER", "NURSE_TECHNICIAN", "PHARMACIST", "HOSPITAL_MANAGER"],
   },
   {
     title: "Gestão Hospitalar",
     url: "/hospital",
     icon: Building,
-    group: "Hospitalização"
+    group: "Hospitalização",
+    allowedRoles: ["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER"],
+    module: "INTERNACAO",
   },
   {
     title: "Internação",
     url: "/admissions",
     icon: BedDouble,
-    group: "Hospitalização"
+    group: "Hospitalização",
+    allowedRoles: ["ADMIN", "HOSPITAL_MANAGER"],
+    module: "INTERNACAO",
   },
   {
     title: "Laboratório",
     url: "/laboratory",
     icon: TestTube,
-    group: "Exames"
+    group: "Exames",
+    allowedRoles: ["DOCTOR", "PLATFORM_ADMIN"],
+    module: "LABORATORIO",
+    capability: "canReadExamResults",
   },
   {
     title: "Farmácia",
     url: "/pharmacy",
     icon: Pill,
-    group: "Medicamentos"
+    group: "Medicamentos",
+    allowedRoles: ["ADMIN", "PHARMACIST"],
+    module: "FARMACIA",
+  },
+  {
+    title: "LME/CEAF",
+    url: "/lme-ceaf",
+    icon: FileText,
+    group: "Medicamentos",
+    allowedRoles: ["ADMIN", "GESTAO", "HOSPITAL_MANAGER", "DOCTOR", "PHARMACIST", "PLATFORM_ADMIN"],
   },
   {
     title: "Faturamento",
     url: "/billing",
     icon: CreditCard,
-    group: "Financeiro"
+    group: "Financeiro",
+    allowedRoles: ["ADMIN", "FINANCE"],
+    module: "FATURAMENTO",
+  },
+  {
+    title: "Painel Gerencial",
+    url: "/gestora-dashboard",
+    icon: TrendingUp,
+    group: "Gestão",
+    allowedRoles: ["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER"],
+    module: "URGENCIA",
   },
   {
     title: "Relatórios",
     url: "/reports",
     icon: BarChart3,
-    group: "Gestão"
+    group: "Gestão",
+    allowedRoles: ["ADMIN", "GESTAO", "NURSE_MANAGER", "HOSPITAL_MANAGER", "FINANCE"],
+    module: "RELATORIOS",
   },
   {
     title: "Equipe",
     url: "/staff",
     icon: Users,
-    group: "Gestão"
+    group: "Gestão",
+    allowedRoles: ["ADMIN", "GESTAO", "HOSPITAL_MANAGER"],
   },
   {
     title: "Usuários",
     url: "/users",
     icon: UserPlus,
-    group: "Gestão"
-  }
+    group: "Gestão",
+    allowedRoles: ["ADMIN", "HOSPITAL_MANAGER"],
+  },
+  {
+    title: "Plantões",
+    url: "/duties",
+    icon: Moon,
+    group: "Gestão",
+    allowedRoles: ["ADMIN", "NURSE_MANAGER", "PLATFORM_ADMIN"],
+    module: "URGENCIA",
+    policy: "night_shift_review",
+    capability: "canManageDuties",
+  },
+  {
+    title: "Revisão Noturna",
+    url: "/night-shift-review",
+    icon: Eye,
+    group: "Gestão",
+    allowedRoles: ["DOCTOR", "NURSE_MANAGER", "PLATFORM_ADMIN"],
+    module: "URGENCIA",
+    policy: "night_shift_review",
+    capability: "canReviewNightActions",
+  },
 ];
-
-const groupedItems = navigationItems.reduce((acc, item) => {
-  if (!acc[item.group]) {
-    acc[item.group] = [];
-  }
-  acc[item.group].push(item);
-  return acc;
-}, {} as Record<string, typeof navigationItems>);
 
 export function AppSidebar() {
   const isMobile = useIsMobile();
   const location = useLocation();
+  const { user } = useAuth();
+  const { hasIntegration, hasPolicy } = useOrgConfig();
+  const capabilities = useCapabilities();
+  const permissions = usePermissions();
+  const primaryRole = getPrimaryRole(user?.roles);
+  const normalizedRoles = new Set(
+    (user?.roles ?? [])
+      .map(normalizeRole)
+      .filter((role): role is UserRole => role !== null)
+  );
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -125,67 +269,244 @@ export function AppSidebar() {
     return location.pathname.startsWith(path);
   };
 
+  const enabledModules = user?.enabledModules;
+
+  const filteredNavigationItems = navigationItems.filter(item => {
+    // Filtro por role
+    if (item.allowedRoles && item.allowedRoles.length > 0) {
+      if (!item.allowedRoles.some((role) => normalizedRoles.has(role))) {
+        return false;
+      }
+    }
+    if (item.capability && !capabilities.can(item.capability)) {
+      return false;
+    }
+    if (item.permission && !permissions.can(item.permission)) {
+      return false;
+    }
+    // Filtro por modulo da organizacao (null = tudo habilitado)
+    if (item.module && enabledModules && enabledModules.length > 0) {
+      if (!enabledModules.includes(item.module)) {
+        return false;
+      }
+    }
+    // Filtro por integracao
+    if (item.integration && !hasIntegration(item.integration)) {
+      return false;
+    }
+    // Filtro por policy operacional
+    if (item.policy && !hasPolicy(item.policy)) {
+      return false;
+    }
+    return true;
+  });
+
+  const groupedItems = filteredNavigationItems.reduce((acc, item) => {
+    if (!acc[item.group]) {
+      acc[item.group] = [];
+    }
+    acc[item.group].push(item);
+    return acc;
+  }, {} as Record<string, NavigationItem[]>);
+
+  const quickAction = (() => {
+    switch (primaryRole) {
+      case "ADMIN":
+        return {
+          title: "Gerir Usuários",
+          description: "Criar acessos, revisar perfis e auditar permissões.",
+          to: "/users",
+          label: "Abrir usuários",
+        };
+      case "GESTAO":
+        return {
+          title: "Indicadores",
+          description: "Acompanhar indicadores operacionais e relatórios da unidade.",
+          to: "/reports",
+          label: "Abrir relatórios",
+        };
+      case "HOSPITAL_MANAGER":
+        return {
+          title: "Capacidade Hospitalar",
+          description: "Monitorar leitos, alas e pacientes internados.",
+          to: "/hospital",
+          label: "Abrir gestão",
+        };
+      case "FINANCE":
+        return {
+          title: "Cobranças",
+          description: "Acompanhar pendências e faturamento do plantão.",
+          to: "/billing",
+          label: "Abrir faturamento",
+        };
+      case "NURSE_MANAGER":
+      case "NURSE":
+      case "NURSE_TECHNICIAN":
+        return {
+          title: "Fila de Triagem",
+          description: "Priorizar atendimentos e registrar o fluxo permitido para o plantão.",
+          to: "/triage",
+          label: "Abrir triagem",
+        };
+      case "DOCTOR":
+        return {
+          title: "Fila Médica",
+          description: "Assumir atendimentos aguardando avaliação médica.",
+          to: "/consultations",
+          label: "Abrir consultas",
+        };
+      case "PHARMACIST":
+        return {
+          title: "Operação Farmácia",
+          description: "Fila de dispensação e itens com estoque crítico.",
+          to: "/pharmacy",
+          label: "Abrir farmácia",
+        };
+      case "RECEPTIONIST":
+        return {
+          title: "Nova Ficha",
+          description: "Registrar entrada, localizar paciente e abrir atendimento.",
+          to: "/reception/triage",
+          label: "Abrir recepção",
+        };
+      default:
+        return null;
+    }
+  })();
+
+  const groupOrder = ["Principal", "Atendimento", "Hospitalização", "Exames", "Medicamentos", "Financeiro", "Gestão"];
+
+  const orderedGroups = groupOrder
+    .filter((g) => groupedItems[g])
+    .map((g) => [g, groupedItems[g]] as const);
+
+  // Groups that contain the active route start open
+  const activeGroup = filteredNavigationItems.find((item) =>
+    isActive(item.url) && item.url !== "/"
+  )?.group;
+
   return (
     <Sidebar
       className="w-64"
-      collapsible={isMobile ? "offcanvas" : "none"}
+      collapsible={isMobile ? "offcanvas" : "icon"}
     >
       <SidebarContent>
-        {/* Logo/Brand */}
-        <div className="p-4 border-b">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-primary rounded-lg">
+        {/* Logo/Brand + Toggle */}
+        <div className="border-b p-4 group-data-[collapsible=icon]:px-1 group-data-[collapsible=icon]:py-2">
+          <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
+            <div className="rounded-lg bg-gradient-primary p-2 flex-shrink-0 group-data-[collapsible=icon]:p-1.5">
               <Leaf className="h-6 w-6 text-white" />
             </div>
-              <div>
-                <h1 className="text-lg font-bold text-primary">AmazHealth</h1>
-                <p className="text-xs text-muted-foreground">Sistema Hospitalar</p>
-              </div>
+            <div className="overflow-hidden flex-1 group-data-[collapsible=icon]:hidden">
+              <h1 className="text-lg font-bold text-primary truncate">AmazHealth</h1>
+              <p className="text-xs text-muted-foreground truncate">Sistema Hospitalar</p>
+            </div>
           </div>
         </div>
+
+        {/* Night Shift Indicator — só pra orgs com policy night_shift_review ON */}
+        {hasPolicy('night_shift_review') && user?.activeShift === 'NIGHT' && (
+          <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden">
+            <NightModeIndicator sectorName={user?.activeSectorName} startsAt={user?.activeDutyStartsAt} />
+          </div>
+        )}
 
         {/* Navigation Groups */}
-        {Object.entries(groupedItems).map(([groupName, items]) => (
-          <SidebarGroup key={groupName}>
-            <SidebarGroupLabel className="text-primary font-semibold">
-              {groupName}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive(item.url)}
-                      tooltip={item.title}
-                      className={isActive(item.url) ? "bg-primary text-primary-foreground shadow-medium hover:bg-primary hover:text-primary-foreground" : ""}
-                    >
-                      <NavLink to={item.url}>
-                        <item.icon className="h-5 w-5 flex-shrink-0" />
-                        <span>{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {orderedGroups.map(([groupName, items]) => {
+          // "Principal" (Dashboard) is always visible, not collapsible
+          if (groupName === "Principal") {
+            return (
+              <SidebarGroup key={groupName}>
+                <SidebarGroupLabel className="text-primary font-semibold">
+                  {groupName}
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {items.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive(item.url)}
+                          tooltip={item.title}
+                          className={isActive(item.url) ? "bg-primary text-primary-foreground shadow-medium hover:bg-primary hover:text-primary-foreground" : ""}
+                        >
+                          <NavLink to={item.url}>
+                            <item.icon className="h-5 w-5 flex-shrink-0" />
+                            <span>{item.title}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            );
+          }
+
+          // Other groups are collapsible
+          const isGroupActive = activeGroup === groupName;
+          return (
+            <Collapsible
+              key={groupName}
+              defaultOpen={isGroupActive || items.length <= 2}
+              className="group/collapsible"
+            >
+              <SidebarGroup>
+                <SidebarGroupLabel
+                  asChild
+                  className="text-primary font-semibold cursor-pointer hover:bg-sidebar-accent rounded-md transition-colors"
+                >
+                  <CollapsibleTrigger className="flex w-full items-center">
+                    {groupName}
+                    <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {items.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={isActive(item.url)}
+                            tooltip={item.title}
+                            className={isActive(item.url) ? "bg-primary text-primary-foreground shadow-medium hover:bg-primary hover:text-primary-foreground" : ""}
+                          >
+                            <NavLink to={item.url}>
+                              <item.icon className="h-5 w-5 flex-shrink-0" />
+                              <span>{item.title}</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          );
+        })}
 
         {/* Quick Action */}
-        <div className="p-4 mt-auto">
-          <div className="bg-gradient-hero p-4 rounded-lg text-white">
-            <UserPlus className="h-6 w-6 mb-2" />
-            <h3 className="font-semibold text-sm">Novo Paciente</h3>
-            <p className="text-xs opacity-90 mb-3">
-              Cadastrar rapidamente
-            </p>
-            <button className="w-full bg-white/20 hover:bg-white/30 rounded-md py-2 px-3 text-xs font-medium transition-colors">
-              Cadastrar
-            </button>
+        {quickAction && (
+          <div className="p-4 mt-auto group-data-[collapsible=icon]:hidden">
+            <div className="bg-gradient-hero p-4 rounded-lg text-white">
+              <UserPlus className="h-6 w-6 mb-2" />
+              <h3 className="font-semibold text-sm">{quickAction.title}</h3>
+              <p className="text-xs opacity-90 mb-3">
+                {quickAction.description}
+              </p>
+              <Link
+                to={quickAction.to}
+                className="block w-full bg-white/20 hover:bg-white/30 rounded-md py-2 px-3 text-xs font-medium transition-colors text-center"
+              >
+                {quickAction.label}
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
       </SidebarContent>
+      <SidebarRail />
     </Sidebar>
   );
 }

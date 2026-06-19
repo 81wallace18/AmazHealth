@@ -1,146 +1,67 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from "react";
+import { triageService } from "@/services/triageService";
+import type { ManchesterColor, TriageBoardItem } from "@/types/triage";
 
 export interface Consultation {
   id: string;
-  patient_id: string;
-  doctor_id: string;
+  patientCode: string;
+  patientName: string;
   visit_date: string;
-  chief_complaint: string;
-  symptoms?: string;
-  diagnosis?: string;
-  treatment_plan?: string;
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-  visit_type: 'consultation' | 'follow_up' | 'emergency';
-  visit_code: string;
-  follow_up_date?: string;
-  created_at: string;
-  updated_at: string;
-  
-  // Related data
-  patients?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    patient_code: string;
-  };
-  staff?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    specialization: string;
-  };
+  status: "WAITING_DOCTOR" | "IN_PROGRESS";
+  triageColor: ManchesterColor | null;
+  waitingTimeMinutes: number;
+  areaName?: string | null;
+  serviceName?: string | null;
 }
 
 export function useConsultations() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
-  const fetchConsultations = async () => {
+  const load = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('opd_visits')
-        .select(`
-          *,
-          patients!opd_visits_patient_id_fkey (
-            id,
-            first_name,
-            last_name,
-            patient_code
-          ),
-          staff!opd_visits_doctor_id_fkey (
-            id,
-            first_name,
-            last_name,
-            specialization
-          )
-        `)
-        .order('visit_date', { ascending: false });
-
-      if (error) throw error;
-      setConsultations((data || []) as unknown as Consultation[]);
-    } catch (error: any) {
-      console.error('Error fetching consultations:', error);
-      toast({
-        title: "Erro ao carregar consultas",
-        description: error.message,
-        variant: "destructive",
-      });
+      const board = await triageService.getTriageBoard();
+      setConsultations(
+        board
+          .filter((item) => item.status === "WAITING_DOCTOR" || item.status === "IN_PROGRESS")
+          .map(mapBoardToConsultation)
+      );
+    } catch (error) {
+      console.error("Erro ao carregar consultas:", error);
+      setConsultations([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const updateConsultationStatus = async (id: string, status: Consultation['status']) => {
-    try {
-      const { data, error } = await supabase
-        .from('opd_visits')
-        .update({ status })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setConsultations(prev => prev.map(c => c.id === id ? { ...c, status } : c));
-      toast({
-        title: "Sucesso",
-        description: "Status da consulta atualizado com sucesso!",
-      });
-      
-      return data;
-    } catch (error: any) {
-      console.error('Error updating consultation status:', error);
-      toast({
-        title: "Erro ao atualizar consulta",
-        description: error.message,
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
-  const updateConsultation = async (id: string, updates: Partial<Consultation>) => {
-    try {
-      const { data, error } = await supabase
-        .from('opd_visits')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setConsultations(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-      toast({
-        title: "Sucesso",
-        description: "Consulta atualizada com sucesso!",
-      });
-      
-      return data;
-    } catch (error: any) {
-      console.error('Error updating consultation:', error);
-      toast({
-        title: "Erro ao atualizar consulta",
-        description: error.message,
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
   useEffect(() => {
-    fetchConsultations();
+    load();
   }, []);
+
+  const startAttendance = async (id: string) => {
+    await triageService.startAttendance(id);
+    await load();
+  };
 
   return {
     consultations,
     loading,
-    updateConsultationStatus,
-    updateConsultation,
-    refetch: fetchConsultations,
+    startAttendance,
+    refetch: load,
+  };
+}
+
+function mapBoardToConsultation(item: TriageBoardItem): Consultation {
+  return {
+    id: item.visitId,
+    patientCode: item.patientCode,
+    patientName: item.patientName,
+    visit_date: item.entryTime,
+    status: item.status === "IN_PROGRESS" ? "IN_PROGRESS" : "WAITING_DOCTOR",
+    triageColor: item.triageColor,
+    waitingTimeMinutes: item.waitingTimeMinutes,
+    areaName: item.areaName,
+    serviceName: item.serviceName,
   };
 }

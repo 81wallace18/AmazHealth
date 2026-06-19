@@ -1,0 +1,50 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e8]:
+        - img [ref=e10]
+        - generic [ref=e13]:
+          - heading "AmazHealth" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Sistema Hospitalar
+      - generic [ref=e16]:
+        - generic [ref=e17]: Principal
+        - list [ref=e19]:
+          - listitem [ref=e20]:
+            - link "Dashboard" [ref=e21] [cursor=pointer]:
+              - /url: /
+              - img [ref=e22]
+              - generic [ref=e24]: Dashboard
+    - generic [ref=e25]:
+      - banner [ref=e26]:
+        - generic [ref=e28]:
+          - img [ref=e29]
+          - textbox "Busca global indisponível" [disabled] [ref=e32]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e33]:
+          - button [ref=e34] [cursor=pointer]:
+            - img
+          - button "US Usuário" [ref=e35] [cursor=pointer]:
+            - generic [ref=e37]: US
+            - generic [ref=e38]: Usuário
+      - main [ref=e39]:
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - generic [ref=e42]:
+              - heading "Dashboard" [level=1] [ref=e43]
+              - paragraph [ref=e44]: Visão geral em tempo real das operações hospitalares.
+            - button "Atualizar" [disabled]:
+              - img
+              - text: Atualizar
+          - generic [ref=e74]:
+            - generic [ref=e75]:
+              - heading "Ações Rápidas" [level=3] [ref=e76]:
+                - img [ref=e77]
+                - text: Ações Rápidas
+              - paragraph [ref=e79]: Módulos mais relevantes para o papel atual
+            - generic [ref=e81]:
+              - generic [ref=e82]:
+                - paragraph [ref=e83]: Não há atalhos configurados para o papel atual.
+                - paragraph [ref=e84]: Use a navegação lateral para acessar os módulos disponíveis.
+              - img [ref=e85]

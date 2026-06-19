@@ -1,0 +1,32 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T":
+    - list:
+      - status [ref=e3]:
+        - img [ref=e5]
+        - generic [ref=e8]: Você não tem permissão para esta ação.
+  - generic [ref=e10]:
+    - generic [ref=e11]:
+      - heading "Sistema Hospitalar" [level=3] [ref=e12]
+      - paragraph [ref=e13]: Acesso para profissionais de saúde
+    - generic [ref=e15]:
+      - tablist [ref=e16]:
+        - tab "Login" [selected] [ref=e17] [cursor=pointer]
+        - tab "Cadastro" [ref=e18] [cursor=pointer]
+      - tabpanel "Login" [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - text: Email ou Username
+            - textbox "Email ou Username" [ref=e22]:
+              - /placeholder: seu.email@exemplo.com ou username
+          - generic [ref=e23]:
+            - text: Senha
+            - textbox "Senha" [ref=e24]:
+              - /placeholder: ••••••
+          - generic [ref=e25]:
+            - checkbox "Permanecer conectado neste dispositivo" [ref=e26] [cursor=pointer]
+            - checkbox
+            - generic [ref=e27]: Permanecer conectado neste dispositivo
+          - generic [ref=e28]: "Dica: use seu email institucional ou username cadastrado. Em caso de bloqueio, contate a administração."
+          - button "Entrar" [ref=e29] [cursor=pointer]

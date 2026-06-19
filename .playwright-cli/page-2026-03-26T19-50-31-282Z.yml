@@ -1,0 +1,55 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e8]:
+        - img [ref=e10]
+        - generic [ref=e13]:
+          - heading "AmazHealth" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Sistema Hospitalar
+      - generic [ref=e16]:
+        - generic [ref=e17]: Principal
+        - list [ref=e19]:
+          - listitem [ref=e20]:
+            - link "Dashboard" [ref=e21] [cursor=pointer]:
+              - /url: /
+              - img [ref=e22]
+              - generic [ref=e24]: Dashboard
+      - generic [ref=e25]:
+        - generic [ref=e26]: Atendimento
+        - list [ref=e28]:
+          - listitem [ref=e29]:
+            - link "Pacientes" [ref=e30] [cursor=pointer]:
+              - /url: /patients
+              - img [ref=e31]
+              - generic [ref=e36]: Pacientes
+          - listitem [ref=e37]:
+            - link "Agendamentos" [ref=e38] [cursor=pointer]:
+              - /url: /appointments
+              - img [ref=e39]
+              - generic [ref=e41]: Agendamentos
+          - listitem [ref=e42]:
+            - link "Triagem (Recepção)" [ref=e43] [cursor=pointer]:
+              - /url: /reception/triage
+              - img [ref=e44]
+              - generic [ref=e47]: Triagem (Recepção)
+      - generic [ref=e49]:
+        - img [ref=e50]
+        - heading "Nova Ficha" [level=3] [ref=e53]
+        - paragraph [ref=e54]: Registrar entrada, localizar paciente e abrir atendimento.
+        - link "Abrir recepção" [ref=e55] [cursor=pointer]:
+          - /url: /reception/triage
+    - generic [ref=e56]:
+      - banner [ref=e57]:
+        - generic [ref=e59]:
+          - img [ref=e60]
+          - textbox "Busca global indisponível" [disabled] [ref=e63]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e64]:
+          - button [ref=e65] [cursor=pointer]:
+            - img
+          - button "R recepcao.uat" [ref=e66] [cursor=pointer]:
+            - generic [ref=e68]: R
+            - generic [ref=e69]: recepcao.uat
+      - main [ref=e70]

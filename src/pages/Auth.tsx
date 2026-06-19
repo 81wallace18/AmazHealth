@@ -1,265 +1,440 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { knownUsers, KnownUser, normalizeKnownUserLogin } from '@/lib/knownUsers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { ArrowLeft, UserPlus, X } from 'lucide-react';
+import { ExternalIdentityProvider } from '@/types/externalIdentity';
 
 const loginSchema = z.object({
   login: z.string().min(1, 'Email ou username é obrigatório'),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  password: z.string().min(1, 'Senha é obrigatória'),
   organizationId: z.string().optional(),
+  rememberMe: z.boolean().optional(),
+  provider: z.enum(['LOCAL', 'HORUS_LEGACY', 'ESUS_PEC', 'ESUS_AF']).optional(),
 });
 
-const signupSchema = z.object({
-  username: z.string().min(3, 'Username deve ter pelo menos 3 caracteres'),
-  email: z.string().email('Email inválido'),
-  password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
-  confirmPassword: z.string(),
-  registrationNumber: z.string().min(1, 'Número de registro é obrigatório'),
-  fullName: z.string().min(1, 'Nome completo é obrigatório'),
-  area: z.string().min(1, 'Área é obrigatória'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Senhas não coincidem",
-  path: ["confirmPassword"],
-});
+type LoginValues = z.infer<typeof loginSchema>;
 
-const healthcareAreas = [
-  'Medicina',
-  'Enfermagem',
-  'Fisioterapia',
-  'Psicologia',
-  'Nutrição',
-  'Farmácia',
-  'Odontologia',
-  'Radiologia',
-  'Laboratório',
-  'Administração',
-  'Outros'
+type Mode = 'picker' | 'login';
+type LoginState =
+  | { kind: 'pending-approval'; message: string; provider?: ExternalIdentityProvider }
+  | { kind: 'password-expired'; message: string; provider?: ExternalIdentityProvider }
+  | null;
+
+const providerOptions: Array<{ value: 'LOCAL' | ExternalIdentityProvider; label: string }> = [
+  { value: 'LOCAL', label: 'Acesso local' },
+  { value: 'HORUS_LEGACY', label: 'Hórus legado' },
+  { value: 'ESUS_PEC', label: 'e-SUS PEC' },
+  { value: 'ESUS_AF', label: 'e-SUS AF' },
 ];
 
-export default function Auth() {
-  const { signIn, signUp, loading } = useAuth();
-  const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
+const providerForKnownUser = (user: KnownUser): 'LOCAL' | ExternalIdentityProvider => {
+  if (user.provider) return user.provider;
+  return /^\d{8,15}$/.test(normalizeKnownUserLogin(user)) ? 'ESUS_PEC' : 'LOCAL';
+};
 
-  const loginForm = useForm<z.infer<typeof loginSchema>>({
+const isInternalOrExternalIdentifier = (value?: string): boolean => {
+  const normalized = (value ?? '').trim();
+  return /^ext_\d{8,15}$/.test(normalized) || /^\d{8,15}$/.test(normalized);
+};
+
+const displayNameForKnownUser = (user: KnownUser): string => {
+  if (user.fullName && !isInternalOrExternalIdentifier(user.fullName)) {
+    return user.fullName;
+  }
+  if (providerForKnownUser(user) === 'ESUS_PEC') {
+    return 'Profissional PEC';
+  }
+  return normalizeKnownUserLogin(user);
+};
+
+export default function Auth() {
+  const { signIn, loading } = useAuth();
+  const navigate = useNavigate();
+
+  const [users, setUsers] = useState<KnownUser[]>(() => knownUsers.list());
+  const [mode, setMode] = useState<Mode>(() => (knownUsers.list().length > 0 ? 'picker' : 'login'));
+  const [selectedUser, setSelectedUser] = useState<KnownUser | null>(null);
+  const [loginState, setLoginState] = useState<LoginState>(null);
+
+  const loginForm = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       login: '',
       password: '',
       organizationId: '',
+      rememberMe: false,
+      provider: 'LOCAL',
     },
   });
 
-  const signupForm = useForm<z.infer<typeof signupSchema>>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      username: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      registrationNumber: '',
-      fullName: '',
-      area: '',
-    },
-  });
-
-  const onLogin = async (values: z.infer<typeof loginSchema>) => {
-    // TODO: Implementar seleção de organização. Por ora usa temporário
-    const orgId = values.organizationId || '00000000-0000-0000-0000-000000000000';
-    const { error } = await signIn(values.login, values.password, orgId);
-    if (!error) {
-      navigate('/');
+  // Quando seleciona usuário do picker, pré-preenche o login e foca no campo senha.
+  useEffect(() => {
+    if (selectedUser) {
+      loginForm.setValue('login', normalizeKnownUserLogin(selectedUser));
+      loginForm.setValue('password', '');
+      loginForm.setValue('rememberMe', true);
+      loginForm.setValue('provider', providerForKnownUser(selectedUser));
+      // O picker guarda organizacao como metadata de exibicao. No login, o
+      // backend deve inferir a organizacao atual para evitar IDs salvos obsoletos.
+      loginForm.setValue('organizationId', '');
+      loginForm.clearErrors();
+      setLoginState(null);
+      const t = setTimeout(() => {
+        document.querySelector<HTMLInputElement>('input[name="password"]')?.focus();
+      }, 50);
+      return () => clearTimeout(t);
     }
-  };
+  }, [selectedUser, loginForm]);
 
-  const onSignup = async (values: z.infer<typeof signupSchema>) => {
-    const { error } = await signUp(
-      values.username,
-      values.email,
+  const onLogin = async (values: LoginValues) => {
+    loginForm.clearErrors('root');
+    setLoginState(null);
+    const externalProvider = values.provider && values.provider !== 'LOCAL'
+      ? values.provider as ExternalIdentityProvider
+      : undefined;
+    const organizationId = externalProvider ? values.organizationId?.trim() || undefined : undefined;
+    const result = await signIn(
+      values.login,
       values.password,
-      values.registrationNumber,
-      values.fullName,
-      values.area
+      organizationId,
+      values.rememberMe,
+      externalProvider
     );
+    const { error, message, mustChangePassword } = result;
     if (!error) {
-      // Após cadastro, redireciona direto para home (já está logado)
-      navigate('/');
+      if (result.pendingApproval) {
+        setLoginState({
+          kind: 'pending-approval',
+          message: message || 'Seu vínculo externo ainda aguarda aprovação administrativa.',
+          provider: result.externalProvider,
+        });
+        loginForm.reset({ ...values, password: '' });
+        return;
+      }
+      if (result.requiresExternalPasswordChange) {
+        setLoginState({
+          kind: 'password-expired',
+          message: message || 'A senha do provedor externo expirou.',
+          provider: result.externalProvider,
+        });
+        loginForm.reset({ ...values, password: '' });
+        return;
+      }
+      navigate(mustChangePassword ? '/change-password' : '/', { replace: true });
+    } else if (message) {
+      loginForm.setError('root', { message });
     }
   };
+
+  const handlePickUser = (user: KnownUser) => {
+    setSelectedUser({
+      ...user,
+      login: normalizeKnownUserLogin(user),
+      provider: providerForKnownUser(user),
+    });
+    setMode('login');
+  };
+
+  const handleAddNew = () => {
+    setSelectedUser(null);
+    setLoginState(null);
+    loginForm.reset({ login: '', password: '', organizationId: '', rememberMe: false, provider: 'LOCAL' });
+    setMode('login');
+  };
+
+  const handleForget = (login: string, ev: React.MouseEvent) => {
+    ev.stopPropagation();
+    knownUsers.forget(login);
+    const remaining = knownUsers.list();
+    setUsers(remaining);
+    if (remaining.length === 0) {
+      setMode('login');
+    }
+  };
+
+  const handleBackToPicker = () => {
+    setSelectedUser(null);
+    setLoginState(null);
+    loginForm.reset({ login: '', password: '', organizationId: '', rememberMe: false, provider: 'LOCAL' });
+    setMode('picker');
+  };
+
+  if (mode === 'picker') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-2xl">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">Quem está usando?</CardTitle>
+            <CardDescription>
+              Selecione seu perfil pra entrar com sua senha, ou adicione outro usuário.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+              {users.map((user) => (
+                <UserTile
+                  key={user.login}
+                  user={user}
+                  onClick={() => handlePickUser(user)}
+                  onForget={(ev) => handleForget(user.login, ev)}
+                />
+              ))}
+              <button
+                onClick={handleAddNew}
+                className="group flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-card p-4 transition-colors hover:border-primary hover:bg-accent"
+              >
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground">
+                  <UserPlus className="h-8 w-8" />
+                </div>
+                <span className="text-sm font-medium">Outro usuário</span>
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Sistema Hospitalar</CardTitle>
-          <CardDescription>
-            Acesso para profissionais de saúde
-          </CardDescription>
+        <CardHeader className="text-center space-y-3">
+          {selectedUser ? (
+            <>
+              <div className="flex justify-start">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBackToPicker}
+                  className="-ml-2 text-muted-foreground"
+                >
+                  <ArrowLeft className="mr-1 h-4 w-4" />
+                  Trocar usuário
+                </Button>
+              </div>
+              <div className="flex justify-center">
+                <Avatar initials={selectedUser.initials ?? '?'} size="lg" />
+              </div>
+              <CardTitle className="text-2xl font-bold">
+                {displayNameForKnownUser(selectedUser)}
+              </CardTitle>
+              {selectedUser.organizationName && (
+                <CardDescription>{selectedUser.organizationName}</CardDescription>
+              )}
+            </>
+          ) : (
+            <>
+              {users.length > 0 && (
+                <div className="flex justify-start">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBackToPicker}
+                    className="-ml-2 text-muted-foreground"
+                  >
+                    <ArrowLeft className="mr-1 h-4 w-4" />
+                    Voltar
+                  </Button>
+                </div>
+              )}
+              <CardTitle className="text-2xl font-bold">Sistema Hospitalar</CardTitle>
+              <CardDescription>Acesso para profissionais de saúde</CardDescription>
+            </>
+          )}
         </CardHeader>
         <CardContent>
-          <Tabs value={isLogin ? 'login' : 'signup'} onValueChange={(value) => setIsLogin(value === 'login')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Cadastro</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <Form {...loginForm}>
-                <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
-                  <FormField
-                    control={loginForm.control}
-                    name="login"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email ou Username</FormLabel>
-                        <FormControl>
-                          <Input placeholder="seu.email@exemplo.com ou username" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={loginForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Senha</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Entrando...' : 'Entrar'}
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-            
-            <TabsContent value="signup">
-              <Form {...signupForm}>
-                <form onSubmit={signupForm.handleSubmit(onSignup)} className="space-y-4">
-                  <FormField
-                    control={signupForm.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <Input placeholder="seu_username" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="registrationNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Número do Registro Profissional</FormLabel>
-                        <FormControl>
-                          <Input placeholder="CRM, COREN, CRF, etc." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome Completo</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Seu nome completo" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="area"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Área de Atuação</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione sua área" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {healthcareAreas.map((area) => (
-                              <SelectItem key={area} value={area}>{area}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="seu.email@exemplo.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Senha</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirmar Senha</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Cadastrando...' : 'Cadastrar'}
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-          </Tabs>
+          <Form {...loginForm}>
+            <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+              {!selectedUser && (
+                <FormField
+                  control={loginForm.control}
+                  name="login"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email, Username ou CPF</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="email, username ou CPF"
+                          autoFocus
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              <FormField
+                control={loginForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Senha</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••"
+                        autoComplete="current-password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={loginForm.control}
+                name="provider"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Origem do acesso</FormLabel>
+                    <Select value={field.value || 'LOCAL'} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a origem" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {providerOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={loginForm.control}
+                name="rememberMe"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                      />
+                    </FormControl>
+                    <FormLabel className="text-sm font-normal">
+                      Permanecer conectado neste dispositivo
+                    </FormLabel>
+                  </FormItem>
+                )}
+              />
+              {loginForm.formState.errors.root?.message && (
+                <Alert variant="destructive">
+                  <AlertDescription>{loginForm.formState.errors.root.message}</AlertDescription>
+                </Alert>
+              )}
+              {loginState?.kind === 'pending-approval' && (
+                <Alert>
+                  <AlertDescription>
+                    {loginState.message} Procure a gestão da unidade para aprovar o vínculo antes de tentar novamente.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {loginState?.kind === 'password-expired' && (
+                <Alert>
+                  <AlertDescription>
+                    {loginState.message} Renove a senha diretamente no provedor externo e depois faça uma nova tentativa por esta tela.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {!selectedUser && (
+                <div className="text-xs text-muted-foreground">
+                  Acesso por convite. Solicite ao gestor da unidade caso ainda não tenha acesso.
+                </div>
+              )}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Entrando...' : 'Entrar'}
+              </Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function UserTile({
+  user,
+  onClick,
+  onForget,
+}: {
+  user: KnownUser;
+  onClick: () => void;
+  onForget: (ev: React.MouseEvent) => void;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      className="group relative flex flex-col items-center gap-2 rounded-lg border bg-card p-4 transition-all hover:border-primary hover:shadow-md"
+      aria-label={`Selecionar usuário ${displayNameForKnownUser(user)}`}
+    >
+      <button
+        type="button"
+        onClick={onForget}
+        title="Esquecer este usuário neste dispositivo"
+        className="absolute right-1 top-1 rounded-full bg-background p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive hover:text-destructive-foreground group-hover:opacity-100"
+      >
+        <X className="h-3 w-3" />
+      </button>
+      <Avatar initials={user.initials ?? '?'} size="md" />
+      <div className="text-center">
+        <div className="line-clamp-1 text-sm font-semibold">{displayNameForKnownUser(user)}</div>
+        {user.organizationName && (
+          <div className="line-clamp-1 text-xs text-muted-foreground">{user.organizationName}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Avatar({ initials, size }: { initials: string; size: 'sm' | 'md' | 'lg' }) {
+  const dim =
+    size === 'lg'
+      ? 'h-20 w-20 text-2xl'
+      : size === 'md'
+      ? 'h-16 w-16 text-xl'
+      : 'h-10 w-10 text-base';
+  const palette = useMemo(
+    () => [
+      'bg-rose-500',
+      'bg-amber-500',
+      'bg-emerald-500',
+      'bg-sky-500',
+      'bg-violet-500',
+      'bg-fuchsia-500',
+      'bg-teal-500',
+    ],
+    []
+  );
+  const hash = initials.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  const color = palette[hash % palette.length];
+  return (
+    <div className={`flex items-center justify-center rounded-full font-bold text-white ${color} ${dim}`}>
+      {initials}
     </div>
   );
 }

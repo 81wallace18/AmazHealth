@@ -1,0 +1,103 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T":
+    - list:
+      - status [ref=e24]:
+        - img [ref=e26]
+        - generic [ref=e29]: Login realizado com sucesso!
+  - generic [ref=e31]:
+    - generic [ref=e33]:
+      - generic [ref=e35]:
+        - img [ref=e37]
+        - generic [ref=e40]:
+          - heading "AmazHealth" [level=1] [ref=e41]
+          - paragraph [ref=e42]: Sistema Hospitalar
+      - generic [ref=e43]:
+        - generic [ref=e44]: Principal
+        - list [ref=e46]:
+          - listitem [ref=e47]:
+            - link "Dashboard" [ref=e48] [cursor=pointer]:
+              - /url: /
+              - img [ref=e49]
+              - generic [ref=e51]: Dashboard
+      - generic [ref=e52]:
+        - generic [ref=e53]: Medicamentos
+        - list [ref=e55]:
+          - listitem [ref=e56]:
+            - link "Farmácia" [ref=e57] [cursor=pointer]:
+              - /url: /pharmacy
+              - img [ref=e58]
+              - generic [ref=e61]: Farmácia
+      - generic [ref=e63]:
+        - img [ref=e64]
+        - heading "Operação Farmácia" [level=3] [ref=e67]
+        - paragraph [ref=e68]: Fila de dispensação e itens com estoque crítico.
+        - link "Abrir farmácia" [ref=e69] [cursor=pointer]:
+          - /url: /pharmacy
+    - generic [ref=e70]:
+      - banner [ref=e71]:
+        - generic [ref=e73]:
+          - img [ref=e74]
+          - textbox "Busca global indisponível" [disabled] [ref=e77]:
+            - /placeholder: Busca global será ativada em breve
+        - generic [ref=e78]:
+          - button [ref=e79] [cursor=pointer]:
+            - img
+          - button "F farmacia.uat" [ref=e80] [cursor=pointer]:
+            - generic [ref=e82]: F
+            - generic [ref=e83]: farmacia.uat
+      - main [ref=e84]:
+        - generic [ref=e85]:
+          - generic [ref=e86]:
+            - generic [ref=e87]:
+              - heading "Painel da Farmácia" [level=1] [ref=e88]
+              - paragraph [ref=e89]: Monitore prescrições, dispensações e itens com estoque crítico.
+              - paragraph [ref=e90]: Atualizado em 26/03/2026 às 16:51
+            - button "Atualizar" [ref=e91] [cursor=pointer]:
+              - img
+              - text: Atualizar
+          - generic [ref=e92]:
+            - generic [ref=e93]:
+              - generic [ref=e94]:
+                - heading "Pacientes Ativos" [level=3] [ref=e95]
+                - img [ref=e96]
+              - generic [ref=e101]:
+                - generic [ref=e102]: "10"
+                - paragraph [ref=e103]: Total de pacientes ativos na organização
+                - generic [ref=e104]: Atualizado
+            - generic [ref=e105]:
+              - generic [ref=e106]:
+                - heading "Atendimentos Hoje" [level=3] [ref=e107]
+                - img [ref=e108]
+              - generic [ref=e110]:
+                - generic [ref=e111]: "13"
+                - paragraph [ref=e112]: Entradas registradas nas últimas 24h
+                - generic [ref=e113]: Atualizado
+            - generic [ref=e114]:
+              - generic [ref=e115]:
+                - heading "Leitos Disponíveis" [level=3] [ref=e116]
+                - img [ref=e117]
+              - generic [ref=e120]:
+                - generic [ref=e121]: "0"
+                - paragraph [ref=e122]: Leitos livres ou liberados para uso
+                - generic [ref=e123]: Atualizado
+            - generic [ref=e124]:
+              - generic [ref=e125]:
+                - heading "Consultas em Andamento" [level=3] [ref=e126]
+                - img [ref=e127]
+              - generic [ref=e131]:
+                - generic [ref=e132]: "5"
+                - paragraph [ref=e133]: Atendimentos em triagem/medicina/exames
+                - generic [ref=e134]: Atualizado
+          - generic [ref=e135]:
+            - generic [ref=e136]:
+              - heading "Ações Rápidas" [level=3] [ref=e137]:
+                - img [ref=e138]
+                - text: Ações Rápidas
+              - paragraph [ref=e140]: Módulos mais relevantes para o papel atual
+            - link "Farmácia Fila, estoque e alertas" [ref=e143] [cursor=pointer]:
+              - /url: /pharmacy
+              - generic [ref=e144]:
+                - heading "Farmácia" [level=3] [ref=e146]
+                - generic [ref=e147]: Fila, estoque e alertas
