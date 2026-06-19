@@ -1,134 +1,111 @@
 # AmazHealth (Frontend)
 
-Aplicação web do **AmazHealth** (HIS/Sistema Hospitalar) — interface de recepção, triagem, prontuário, prescrições e farmácia.
+Aplicacao web do AmazHealth (HIS/Sistema Hospitalar), implementada em React + Vite para recepcao, triagem, atendimento, prescricoes, farmacia e gestao operacional.
 
 ## Stack
-- React + Vite + TypeScript
-- Tailwind + shadcn/ui
-- Axios (`src/lib/api.ts`)
-- E2E: Playwright (`e2e/`)
 
----
+- React 18
+- Vite 5
+- TypeScript
+- Tailwind CSS + shadcn/ui
+- React Router
+- React Query
+- Axios
+- Playwright para E2E
 
-## Variáveis de ambiente
+## Pre-requisitos
 
-- `VITE_API_URL` (base da API)
-  - Desenvolvimento (local): `http://localhost:18080/api/v1`
-  - Produção (mesma origem via reverse proxy): `/api/v1`
-  - Produção (API em outro domínio): `https://api.seudominio.com/api/v1`
+- Docker + Docker Compose (recomendado para o fluxo completo)
+- Node.js 20+ e npm (apenas para execucao fora de container)
 
-Arquivo de referência: `.env.example`.
+## Variaveis de ambiente
 
----
+Arquivo de referencia: `.env.example`.
 
-## Rodar em desenvolvimento (recomendado)
+Variavel principal:
 
-Pré-requisitos: Docker + Docker Compose.
+- `VITE_API_URL`
 
-1) Subir **backend + banco** (no repositório `AmazHealth-backend`):
+Exemplos:
+
+- desenvolvimento local: `http://localhost:8080/api/v1` ou a porta publicada pelo compose ativo
+- producao por reverse proxy: `/api/v1`
+- API externa: `https://api.seudominio.com/api/v1`
+
+## Fluxo recomendado com Docker
+
+Suba backend + banco no repositorio de backend:
+
 ```bash
-cd ../AmazHealth-backend
-cp .env.example .env
-# ajuste JWT_SECRET (>= 32 chars) e demais variáveis se necessário
-docker compose -f docker/docker-compose.yml up -d --build
+docker compose -f AmazHealth-backend/docker/docker-compose.yml up --build
 ```
 
-2) Subir **frontend dev (Vite)**:
+Em outro terminal, suba apenas o frontend dev:
+
 ```bash
-cd ../AmazHealth
-docker compose -f docker-compose.yml --profile dev up -d web-dev
+docker compose -f AmazHealth/docker-compose.yml --profile dev up web-dev
 ```
 
-Acessos:
+Acessos comuns:
+
 - Frontend: `http://localhost:5173`
-- API: `http://localhost:18080/api/v1`
+- Backend health: `http://localhost:8080/actuator/health`
 
----
+## Docker neste repositorio
 
-## Rodar local sem Docker (frontend apenas)
+Frontend com hot reload:
 
-Pré-requisitos: Node.js 20+.
+```bash
+docker compose --profile dev up web-dev
+```
+
+Build prod-like com NGINX:
+
+```bash
+docker compose --profile prod up --build web
+```
+
+Banco local deste compose:
+
+```bash
+docker compose --profile backend up db
+```
+
+Use o banco deste compose apenas quando nao estiver usando o banco do compose do backend.
+
+## Execucao local sem Docker
 
 ```bash
 npm ci
 npm run dev -- --host 0.0.0.0 --port 5173
 ```
 
-Defina `VITE_API_URL` apontando para um backend acessível (local ou remoto).
-
----
-
-## Build de produção
+## Build e qualidade
 
 ```bash
-npm ci
+npm run lint
 npm run build
 ```
 
----
+## E2E
 
-## Rodar “prod-like” local (Nginx)
-
-Pré-requisito: backend rodando em `http://localhost:18080`.
-
-```bash
-VITE_API_URL=http://localhost:18080/api/v1 docker compose -f docker-compose.yml --profile prod up -d --build web
-```
-
-Acesso: `http://localhost:8081`
-
-Observação:
-- O `docker/frontend.Dockerfile` aceita `VITE_API_URL` via `--build-arg` (usado pelo compose).
-- Em produção real, o padrão mais simples é usar `VITE_API_URL=/api/v1` com reverse proxy roteando `/api/` para o backend.
-
----
-
-## E2E (Playwright)
-
-Pré-requisitos: backend + frontend rodando.
-
-Variáveis suportadas:
-- `E2E_BACKEND_URL` (default: `http://localhost:18080/api/v1`)
-- `E2E_FRONTEND_URL` (default: `http://localhost:5173`)
+Com backend e frontend rodando:
 
 ```bash
 npx playwright install
 npx playwright test e2e/mvp-pa-fluxo.spec.ts --project=chromium
 ```
 
-Frontend web do AmazHealth HIS em React + Vite + TypeScript.
+Variaveis suportadas:
 
-## Stack
-- React 18
-- Vite 5
-- TypeScript
-- Tailwind CSS + shadcn/ui
-- React Query + React Router
+- `E2E_BACKEND_URL`
+- `E2E_FRONTEND_URL`
 
-## Requisitos
-- Node 20+
-- npm
+## Troubleshooting
 
-## Configuracao
-Copie `.env.example` para `.env` e ajuste:
+- `EADDRINUSE: 8080`: backend ja ocupa a porta; rode o frontend em `5173`.
+- Conflito em `5432`: nao suba dois servicos `db` ao mesmo tempo.
+- Login falhando: confirme backend ativo e `VITE_API_URL` correto.
+- CORS bloqueado: confira se a origem do frontend esta permitida no backend.
 
-- `VITE_API_URL` (padrao: `http://localhost:18080/api/v1`)
-
-## Comandos
-
-```bash
-npm ci
-npm run dev
-```
-
-Outros:
-
-```bash
-npm run lint
-npm run build
-npm run preview
-```
-
-## Integracao com backend
-- Em dev local: `VITE_API_URL=http://localhost:18080/api/v1`
-- Em producao via NGINX: usar `VITE_API_URL=/api/v1`
+Guia complementar no meta-repo: `../docs/INICIALIZACAO_COMPOSES.md`.
